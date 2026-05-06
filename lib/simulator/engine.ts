@@ -14,7 +14,7 @@ export interface SimulatorEvent {
 
 type SimulatorListener = (event: SimulatorEvent) => void;
 
-// Small random walk — stays within ~2km of Bamako center
+// Small random walk — stays within ~2km of Ouagadougou center
 function jitter(val: number, scale = 0.002): number {
   return val + (Math.random() - 0.5) * scale;
 }

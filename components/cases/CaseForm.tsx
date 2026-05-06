@@ -33,7 +33,7 @@ export default function CaseForm({ unassignedDevices }: Props) {
           </div>
           <div>
             <label className="block text-xs font-medium text-gray-600 mb-1.5">N° identité nationale *</label>
-            <input name="national_id" type="text" required placeholder="MLI-AAAA-XXXX" className={INPUT} />
+            <input name="national_id" type="text" required placeholder="BFA-AAAA-XXXX" className={INPUT} />
           </div>
           <div>
             <label className="block text-xs font-medium text-gray-600 mb-1.5">Date de naissance *</label>
@@ -41,7 +41,7 @@ export default function CaseForm({ unassignedDevices }: Props) {
           </div>
           <div className="sm:col-span-2">
             <label className="block text-xs font-medium text-gray-600 mb-1.5">Adresse</label>
-            <input name="address" type="text" placeholder="Quartier, Commune, Bamako" className={INPUT} />
+            <input name="address" type="text" placeholder="Secteur, Arrondissement, Ouagadougou" className={INPUT} />
           </div>
         </div>
       </div>

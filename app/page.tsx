@@ -50,7 +50,7 @@ export default function Home() {
         <div className="max-w-4xl mx-auto text-center">
           <div className="inline-flex items-center gap-2 bg-blue-800/60 border border-blue-700 rounded-full px-4 py-1.5 text-sm font-medium text-blue-200 mb-8">
             <ShieldCheck className="w-4 h-4" />
-            République du Mali — Ministère de la Justice
+            Burkina Faso — Ministère de la Justice et des Droits Humains
           </div>
           <h1 className="text-5xl md:text-6xl font-bold tracking-tight leading-tight mb-6">
             Surveillance électronique
@@ -222,9 +222,9 @@ export default function Home() {
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-gray-400">
           <div className="flex items-center gap-2">
             <ShieldCheck className="w-4 h-4 text-blue-900" />
-            <span>Système Horon — République du Mali</span>
+            <span>Système Horon — Burkina Faso</span>
           </div>
-          <p>© {new Date().getFullYear()} Ministère de la Justice. Tous droits réservés.</p>
+          <p>© {new Date().getFullYear()} Ministère de la Justice et des Droits Humains. Tous droits réservés.</p>
           <p className="text-xs">Usage strictement institutionnel</p>
         </div>
       </footer>

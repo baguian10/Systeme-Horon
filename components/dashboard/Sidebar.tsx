@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
   LayoutDashboard, FolderOpen, Bell, Map, BarChart2,
-  Users, ShieldCheck, ChevronRight, Activity,
+  Users, ShieldCheck, ChevronRight, Activity, ClipboardList,
 } from 'lucide-react';
 import type { UserRole } from '@/lib/supabase/types';
 import { canViewUsers, canViewStats } from '@/lib/auth/permissions';
@@ -28,6 +28,7 @@ function buildNav(role: UserRole): NavItem[] {
   }
   if (canViewUsers(role)) {
     items.push({ href: '/sigep/dashboard/users', label: 'Utilisateurs', icon: <Users className="w-4 h-4" /> });
+    items.push({ href: '/sigep/dashboard/audit', label: 'Journal d\'audit', icon: <ClipboardList className="w-4 h-4" /> });
   }
   return items;
 }
@@ -83,9 +84,9 @@ export default function Sidebar({ role }: { role: UserRole }) {
       {/* Footer */}
       <div className="px-5 py-4 border-t border-gray-800">
         <p className="text-[10px] text-gray-600 uppercase tracking-wider">
-          République du Mali
+          Burkina Faso
         </p>
-        <p className="text-[10px] text-gray-700">Ministère de la Justice</p>
+        <p className="text-[10px] text-gray-700">Ministère de la Justice et des Droits Humains</p>
       </div>
     </aside>
   );

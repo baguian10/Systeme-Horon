@@ -4,8 +4,8 @@ import { useRef, useEffect } from 'react';
 import { usePositionFeed, type LivePosition } from '@/hooks/usePositionFeed';
 import type { CaseStatus } from '@/lib/supabase/types';
 
-// Bamako bounding box
-const BBOX = { minLat: 12.55, maxLat: 12.75, minLon: -8.10, maxLon: -7.85 };
+// Ouagadougou bounding box
+const BBOX = { minLat: 12.25, maxLat: 12.45, minLon: -1.65, maxLon: -1.45 };
 
 function norm(val: number, min: number, max: number) {
   return Math.min(100, Math.max(0, ((val - min) / (max - min)) * 100));
@@ -41,7 +41,7 @@ export default function LiveMapGrid({ initialPositions = [] }: Props) {
       {/* Labels */}
       <div className="absolute top-3 left-3 flex items-center gap-2 z-10">
         <div className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
-        <span className="text-xs font-medium text-slate-300">Bamako — Temps réel</span>
+        <span className="text-xs font-medium text-slate-300">Ouagadougou — Temps réel</span>
       </div>
       <div className="absolute top-3 right-3 text-xs font-bold text-slate-500 select-none">N↑</div>
 

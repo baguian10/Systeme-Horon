@@ -3,7 +3,8 @@
 import { revalidatePath } from 'next/cache';
 import { getSession } from '@/lib/auth/session';
 import { canResolveAlert } from '@/lib/auth/permissions';
-import { IS_DEMO_MODE } from '@/lib/mock/helpers';
+
+const isDemoMode = () => !process.env.NEXT_PUBLIC_SUPABASE_URL;
 
 export async function resolveAlertAction(formData: FormData) {
   const session = await getSession();
@@ -12,9 +13,16 @@ export async function resolveAlertAction(formData: FormData) {
   const alertId = formData.get('alertId') as string;
   if (!alertId) return;
 
-  if (IS_DEMO_MODE) {
-    // Demo mode — no-op, just revalidate to show optimistic feel
+  if (isDemoMode()) {
+    const { MOCK_ALERTS } = await import('@/lib/mock/data');
+    const alert = MOCK_ALERTS.find((a) => a.id === alertId);
+    if (alert) {
+      alert.is_resolved = true;
+      alert.resolved_by = session.id;
+      alert.resolved_at = new Date().toISOString();
+    }
     revalidatePath('/sigep/dashboard/alerts');
+    revalidatePath('/sigep/dashboard');
     return;
   }
 

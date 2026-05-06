@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { getSession } from '@/lib/auth/session';
 import { canCreateCase, canManageGeofences, canUpdateCaseStatus } from '@/lib/auth/permissions';
+import { writeAudit } from '@/lib/audit/log';
 import type { CaseStatus } from '@/lib/supabase/types';
 
 const isDemoMode = () => !process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -37,7 +38,7 @@ export async function createCaseAction(
 
     const caseId = `c-${Date.now()}`;
     const year = new Date().getFullYear();
-    const caseNumber = `BJMK-${year}-${String(MOCK_CASES.length + 1).padStart(4, '0')}`;
+    const caseNumber = `OUAG-${year}-${String(MOCK_CASES.length + 1).padStart(4, '0')}`;
 
     let assignedDevice: (typeof MOCK_DEVICES)[number] | undefined;
     if (device_id) {
@@ -55,6 +56,7 @@ export async function createCaseAction(
       alert_count: 0, geofences: [], last_position: null,
     });
 
+    await writeAudit({ userId: session.id, action: 'CREATE_CASE', tableName: 'cases', recordId: caseId, newData: { case_number: caseNumber, full_name } });
     revalidatePath('/sigep/dashboard/cases');
     redirect(`/sigep/dashboard/cases/${caseId}`);
   }
@@ -71,7 +73,7 @@ export async function createCaseAction(
 
   const year = new Date().getFullYear();
   const { count } = await supabase.from('cases').select('id', { count: 'exact', head: true });
-  const caseNumber = `BJMK-${year}-${String((count ?? 0) + 1).padStart(4, '0')}`;
+  const caseNumber = `OUAG-${year}-${String((count ?? 0) + 1).padStart(4, '0')}`;
 
   const { data: newCase, error: caseErr } = await supabase
     .from('cases')
@@ -84,6 +86,7 @@ export async function createCaseAction(
 
   if (device_id) await supabase.from('devices').update({ case_id: newCase.id }).eq('id', device_id);
 
+  await writeAudit({ userId: session.id, action: 'CREATE_CASE', tableName: 'cases', recordId: newCase.id, newData: { case_number: caseNumber, full_name } });
   revalidatePath('/sigep/dashboard/cases');
   redirect(`/sigep/dashboard/cases/${newCase.id}`);
 }
@@ -106,6 +109,7 @@ export async function updateCaseStatusAction(formData: FormData): Promise<void> 
       c.updated_at = new Date().toISOString();
       if (status === 'TERMINATED') c.end_date = new Date().toISOString();
     }
+    await writeAudit({ userId: session.id, action: 'UPDATE_STATUS', tableName: 'cases', recordId: case_id, newData: { status } });
     revalidatePath(`/sigep/dashboard/cases/${case_id}`);
     revalidatePath('/sigep/dashboard/cases');
     return;
@@ -120,6 +124,7 @@ export async function updateCaseStatusAction(formData: FormData): Promise<void> 
     ...(status === 'TERMINATED' ? { end_date: new Date().toISOString() } : {}),
   }).eq('id', case_id);
 
+  await writeAudit({ userId: session.id, action: 'UPDATE_STATUS', tableName: 'cases', recordId: case_id, newData: { status } });
   revalidatePath(`/sigep/dashboard/cases/${case_id}`);
   revalidatePath('/sigep/dashboard/cases');
 }
@@ -165,6 +170,7 @@ export async function addGeofenceAction(
     MOCK_GEOFENCES.push(newGeo);
     const c = MOCK_CASES.find((c) => c.id === case_id);
     if (c) c.geofences = [...(c.geofences ?? []), newGeo];
+    await writeAudit({ userId: session.id, action: 'ADD_GEOFENCE', tableName: 'geofences', recordId: newGeo.id, newData: { name, case_id, is_exclusion } });
     revalidatePath(`/sigep/dashboard/cases/${case_id}`);
     return null;
   }
@@ -173,13 +179,14 @@ export async function addGeofenceAction(
   const supabase = createAdminClient();
   if (!supabase) return { error: 'Base de données indisponible' };
 
-  const { error } = await supabase.from('geofences').insert({
+  const { data: geoData, error } = await supabase.from('geofences').insert({
     case_id, name, is_exclusion, area: polygon,
     active_start: active_start || null, active_end: active_end || null,
     created_by: session.id,
-  });
+  }).select('id').single();
 
   if (error) return { error: 'Erreur lors de la création de la géofence' };
+  await writeAudit({ userId: session.id, action: 'ADD_GEOFENCE', tableName: 'geofences', recordId: geoData?.id, newData: { name, case_id, is_exclusion } });
   revalidatePath(`/sigep/dashboard/cases/${case_id}`);
   return null;
 }
@@ -198,6 +205,7 @@ export async function deleteGeofenceAction(formData: FormData): Promise<void> {
     if (idx !== -1) MOCK_GEOFENCES.splice(idx, 1);
     const c = MOCK_CASES.find((c) => c.id === case_id);
     if (c) c.geofences = (c.geofences ?? []).filter((g) => g.id !== geofence_id);
+    await writeAudit({ userId: session.id, action: 'DELETE_GEOFENCE', tableName: 'geofences', recordId: geofence_id, oldData: { case_id } });
     revalidatePath(`/sigep/dashboard/cases/${case_id}`);
     return;
   }
@@ -207,5 +215,6 @@ export async function deleteGeofenceAction(formData: FormData): Promise<void> {
   if (!supabase) return;
 
   await supabase.from('geofences').delete().eq('id', geofence_id);
+  await writeAudit({ userId: session.id, action: 'DELETE_GEOFENCE', tableName: 'geofences', recordId: geofence_id, oldData: { case_id } });
   revalidatePath(`/sigep/dashboard/cases/${case_id}`);
 }
