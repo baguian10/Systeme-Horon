@@ -34,23 +34,23 @@ const PILLARS = [
     icon: <Shield className="w-7 h-7" />,
     color: 'bg-bf-gold/20 text-yellow-700',
     title: 'Sécurité nationale',
-    desc: 'La surveillance continue assure que les obligations judiciaires sont respectées. Les périmètres configurables par les juges garantissent que la protection de la communauté n'est jamais compromise au profit de la liberté accordée.',
+    desc: "La surveillance continue assure que les obligations judiciaires sont respectées. Les périmètres configurables par les juges garantissent que la protection de la communauté n'est jamais compromise au profit de la liberté accordée.",
   },
 ];
 
 const VALUES = [
-  { icon: <Scale className="w-5 h-5" />,   label: 'Justice équitable' },
-  { icon: <Heart className="w-5 h-5" />,   label: 'Dignité humaine' },
-  { icon: <Users className="w-5 h-5" />,   label: 'Cohésion sociale' },
-  { icon: <Shield className="w-5 h-5" />,  label: 'Sécurité nationale' },
+  { icon: <Scale className="w-5 h-5" />,    label: 'Justice équitable' },
+  { icon: <Heart className="w-5 h-5" />,    label: 'Dignité humaine' },
+  { icon: <Users className="w-5 h-5" />,    label: 'Cohésion sociale' },
+  { icon: <Shield className="w-5 h-5" />,   label: 'Sécurité nationale' },
   { icon: <BookOpen className="w-5 h-5" />, label: 'État de droit' },
-  { icon: <Star className="w-5 h-5" />,    label: 'Modernité institutionnelle' },
+  { icon: <Star className="w-5 h-5" />,     label: 'Modernité institutionnelle' },
 ];
 
 const IMPACTS = [
-  { value: '73%', label: 'Réduction de la récidive', color: 'text-bf-green' },
-  { value: '60%', label: 'Réduction du coût de détention', color: 'text-bf-gold' },
-  { value: '85%', label: 'Taux de conformité aux ordonnances', color: 'text-blue-600' },
+  { value: '73%', label: 'Réduction de la récidive',             color: 'text-bf-green' },
+  { value: '60%', label: 'Réduction du coût de détention',       color: 'text-bf-gold' },
+  { value: '85%', label: 'Taux de conformité aux ordonnances',   color: 'text-blue-600' },
   { value: '3×',  label: 'Meilleure réinsertion professionnelle', color: 'text-bf-red' },
 ];
 
@@ -62,7 +62,6 @@ export default function InitiativePage() {
 
         {/* ══ PAGE HERO ════════════════════════════════════════════════════════ */}
         <section className="relative pt-32 pb-20 px-6 bg-bf-green overflow-hidden">
-          {/* Decorative */}
           <div className="absolute top-0 right-0 w-96 h-96 rounded-full bg-white/5 -translate-y-1/2 translate-x-1/2" />
           <div className="absolute bottom-0 left-0 w-64 h-64 rounded-full bg-white/5 translate-y-1/2 -translate-x-1/3" />
 
@@ -77,7 +76,7 @@ export default function InitiativePage() {
             </div>
 
             <h1 className="text-5xl md:text-6xl font-bold text-white leading-tight mb-6">
-              L'Initiative<br />
+              L&apos;Initiative<br />
               <span className="text-bf-gold">Présidentielle</span>
             </h1>
             <p className="text-xl text-white/75 max-w-2xl leading-relaxed">
@@ -102,11 +101,10 @@ export default function InitiativePage() {
                 Réformer sans renoncer à la sécurité
               </h2>
               <p className="text-gray-600 text-lg leading-relaxed">
-                Le Système Horon repose sur une conviction fondamentale : une société juste n'emprisonne pas par défaut. Elle protège, elle surveille, elle accompagne — et elle offre la possibilité de se réhabiliter.
+                Le Système Horon repose sur une conviction fondamentale : une société juste n&apos;emprisonne pas par défaut. Elle protège, elle surveille, elle accompagne — et elle offre la possibilité de se réhabiliter.
               </p>
             </div>
 
-            {/* Pillars */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {PILLARS.map((p) => (
                 <div key={p.title} className="bg-institutional rounded-3xl p-8 border border-gray-100 hover:shadow-md transition-all">
@@ -125,9 +123,9 @@ export default function InitiativePage() {
         <section className="py-20 px-6 bg-gray-950 relative overflow-hidden">
           <div className="absolute inset-0 opacity-5" style={{ backgroundImage: 'radial-gradient(circle at 30% 50%, #009E49 0%, transparent 60%)' }} />
           <div className="relative max-w-4xl mx-auto text-center">
-            <div className="text-8xl text-bf-gold/30 font-serif leading-none mb-4">"</div>
+            <div className="text-8xl text-bf-gold/30 font-serif leading-none mb-4">&ldquo;</div>
             <blockquote className="text-2xl md:text-3xl font-light text-white leading-relaxed mb-8">
-              La grandeur d'un système judiciaire se mesure non pas à la sévérité de ses peines, mais à la sagesse avec laquelle il distingue la punition nécessaire de la précaution suffisante.
+              La grandeur d&apos;un système judiciaire se mesure non pas à la sévérité de ses peines, mais à la sagesse avec laquelle il distingue la punition nécessaire de la précaution suffisante.
             </blockquote>
             <p className="text-bf-gold font-semibold text-sm uppercase tracking-widest">
               Principes directeurs du Programme National de Surveillance Électronique
@@ -146,7 +144,7 @@ export default function InitiativePage() {
               </div>
               <h2 className="text-4xl font-bold text-gray-900">Les résultats parlent</h2>
               <p className="text-gray-500 mt-3 max-w-lg mx-auto">
-                Des données collectées sur des programmes similaires à l'échelle internationale et adaptées au contexte burkinabè.
+                Des données collectées sur des programmes similaires à l&apos;échelle internationale et adaptées au contexte burkinabè.
               </p>
             </div>
 
@@ -186,7 +184,7 @@ export default function InitiativePage() {
           <div className="max-w-3xl mx-auto text-center">
             <h2 className="text-3xl font-bold text-white mb-4">Comment fonctionne le système ?</h2>
             <p className="text-white/70 mb-8 leading-relaxed">
-              De l'ordonnance judiciaire à la surveillance en temps réel — découvrez le processus complet et les capacités techniques du Système Horon.
+              De l&apos;ordonnance judiciaire à la surveillance en temps réel — découvrez le processus complet et les capacités techniques du Système Horon.
             </p>
             <Link
               href="/fonctionnement"

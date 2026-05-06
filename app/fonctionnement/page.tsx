@@ -33,7 +33,7 @@ const STEPS = [
     title: 'Équipement & configuration',
     color: 'bg-gray-900 text-white',
     ring: 'ring-gray-200',
-    desc: 'Un agent SIGEP spécialisé procède à la pose du dispositif électronique sécurisé et configure l'ensemble des paramètres selon les termes exacts de l'ordonnance.',
+    desc: "Un agent SIGEP spécialisé procède à la pose du dispositif électronique sécurisé et configure l'ensemble des paramètres selon les termes exacts de l'ordonnance.",
     details: [
       'Pose du Dispositif Électronique Sécurisé certifié',
       'Configuration des périmètres géographiques autorisés',
@@ -84,7 +84,7 @@ const TECH_FEATURES = [
   },
   {
     icon: <Activity className="w-6 h-6" />,
-    title: 'Surveillance de l'état de santé',
+    title: "Surveillance de l'état de santé",
     desc: 'Monitoring continu des paramètres physiologiques. Détection des situations de détresse médicale avec notification automatique des secours.',
     tag: 'Santé',
     accent: 'bg-purple-600 text-white',
@@ -93,7 +93,7 @@ const TECH_FEATURES = [
   {
     icon: <Lock className="w-6 h-6" />,
     title: 'Chiffrement de bout en bout',
-    desc: 'Toutes les données transmises sont chiffrées selon les standards gouvernementaux les plus stricts. Aucune donnée n'est accessible sans accréditation judiciaire.',
+    desc: "Toutes les données transmises sont chiffrées selon les standards gouvernementaux les plus stricts. Aucune donnée n'est accessible sans accréditation judiciaire.",
     tag: 'Sécurité des données',
     accent: 'bg-gray-900 text-white',
     size: 'sm',
@@ -109,11 +109,11 @@ const TECH_FEATURES = [
 ];
 
 const LEGAL = [
-  { icon: <FileText className="w-4 h-4" />,    label: 'Code de procédure pénale du Burkina Faso' },
-  { icon: <Shield className="w-4 h-4" />,       label: 'Loi sur la protection des données personnelles' },
-  { icon: <CheckCircle className="w-4 h-4" />,  label: 'Normes internationales des droits de l'homme' },
-  { icon: <Lock className="w-4 h-4" />,         label: 'Charte africaine des droits de l'homme et des peuples' },
-  { icon: <Clock className="w-4 h-4" />,         label: 'Règles minima des Nations Unies (Règles Nelson Mandela)' },
+  { icon: <FileText className="w-4 h-4" />,   label: 'Code de procédure pénale du Burkina Faso' },
+  { icon: <Shield className="w-4 h-4" />,      label: 'Loi sur la protection des données personnelles' },
+  { icon: <CheckCircle className="w-4 h-4" />, label: "Normes internationales des droits de l'homme" },
+  { icon: <Lock className="w-4 h-4" />,        label: "Charte africaine des droits de l'homme et des peuples" },
+  { icon: <Clock className="w-4 h-4" />,        label: 'Règles minima des Nations Unies (Règles Nelson Mandela)' },
 ];
 
 export default function FonctionnementPage() {
@@ -164,7 +164,6 @@ export default function FonctionnementPage() {
             <div className="space-y-8 max-w-5xl mx-auto">
               {STEPS.map((step, idx) => (
                 <div key={step.number} className="flex gap-6 md:gap-10 items-start group">
-                  {/* Step indicator */}
                   <div className="flex-shrink-0 flex flex-col items-center">
                     <div className={`w-16 h-16 rounded-2xl ${step.color} ring-4 ${step.ring} flex flex-col items-center justify-center shadow-lg`}>
                       {step.icon}
@@ -175,7 +174,6 @@ export default function FonctionnementPage() {
                     )}
                   </div>
 
-                  {/* Content */}
                   <div className="flex-1 bg-institutional rounded-3xl p-7 border border-gray-100 group-hover:shadow-md transition-all mb-2">
                     <h3 className="text-2xl font-bold text-gray-900 mb-3">{step.title}</h3>
                     <p className="text-gray-600 leading-relaxed mb-5">{step.desc}</p>
@@ -256,7 +254,7 @@ export default function FonctionnementPage() {
                 <span className="text-xs font-bold text-blue-600 uppercase tracking-widest mb-2 block">Géofencing</span>
                 <h3 className="text-lg font-bold text-gray-900 mb-2">Périmètres configurables</h3>
                 <p className="text-gray-500 text-sm leading-relaxed">
-                  Zones d'inclusion et d'exclusion définies par le magistrat selon les termes exacts de l'ordonnance.
+                  Zones d&apos;inclusion et d&apos;exclusion définies par le magistrat selon les termes exacts de l&apos;ordonnance.
                 </p>
               </div>
 
@@ -293,7 +291,7 @@ export default function FonctionnementPage() {
         <section className="py-20 px-6 bg-white">
           <div className="max-w-4xl mx-auto">
             <div className="text-center mb-10">
-              <h2 className="text-3xl font-bold text-gray-900 mb-3">Cadre légal & conformité</h2>
+              <h2 className="text-3xl font-bold text-gray-900 mb-3">Cadre légal &amp; conformité</h2>
               <p className="text-gray-500">Le programme est fondé sur le respect strict des textes juridiques nationaux et internationaux.</p>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -312,7 +310,7 @@ export default function FonctionnementPage() {
         {/* ══ CTA ══════════════════════════════════════════════════════════════ */}
         <section className="py-20 px-6 bg-bf-green">
           <div className="max-w-3xl mx-auto text-center">
-            <h2 className="text-3xl font-bold text-white mb-4">En savoir plus sur l'initiative</h2>
+            <h2 className="text-3xl font-bold text-white mb-4">En savoir plus sur l&apos;initiative</h2>
             <p className="text-white/70 mb-8 leading-relaxed">
               Découvrez la philosophie présidentielle qui a inspiré ce programme — une vision pour une justice burkinabè plus humaine et plus efficace.
             </p>
@@ -321,13 +319,13 @@ export default function FonctionnementPage() {
                 href="/initiative"
                 className="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-2xl bg-white text-bf-green font-bold text-sm hover:bg-bf-gold hover:text-gray-900 transition-all shadow-lg"
               >
-                L'Initiative Présidentielle <ArrowRight className="w-4 h-4" />
+                L&apos;Initiative Présidentielle <ArrowRight className="w-4 h-4" />
               </Link>
               <Link
                 href="/"
                 className="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-2xl border border-white/30 text-white font-semibold text-sm hover:bg-white/10 transition-all"
               >
-                Retour à l'accueil
+                Retour à l&apos;accueil
               </Link>
             </div>
           </div>

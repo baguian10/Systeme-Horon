@@ -105,7 +105,7 @@ export default function HomePage() {
               </h1>
 
               <p className="text-xl text-white/75 max-w-2xl leading-relaxed mb-10">
-                Le Système Horon offre une alternative moderne et digne à la détention provisoire — protégeant la présomption d'innocence tout en garantissant la sécurité de la nation burkinabè.
+                Le Système Horon offre une alternative moderne et digne à la détention provisoire — protégeant la présomption d&apos;innocence tout en garantissant la sécurité de la nation burkinabè.
               </p>
 
               <div className="flex flex-col sm:flex-row gap-4">
@@ -113,7 +113,7 @@ export default function HomePage() {
                   href="/initiative"
                   className="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-2xl bg-bf-gold text-gray-900 font-bold text-sm hover:brightness-110 transition-all shadow-lg shadow-yellow-900/30"
                 >
-                  L'Initiative Présidentielle <ArrowRight className="w-4 h-4" />
+                  L&apos;Initiative Présidentielle <ArrowRight className="w-4 h-4" />
                 </Link>
                 <Link
                   href="/fonctionnement"
@@ -162,7 +162,7 @@ export default function HomePage() {
                   href="/initiative"
                   className="inline-flex items-center gap-2 font-semibold text-bf-green hover:gap-3 transition-all group"
                 >
-                  Découvrir l'initiative présidentielle
+                  Découvrir l&apos;initiative présidentielle
                   <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                 </Link>
               </div>
@@ -284,17 +284,17 @@ export default function HomePage() {
               Initiative Présidentielle
             </div>
             <h2 className="text-4xl md:text-5xl font-bold text-white mb-5 leading-tight">
-              Une justice qui réhabilite<br />autant qu'elle protège
+              Une justice qui réhabilite<br />autant qu&apos;elle protège
             </h2>
             <p className="text-white/75 text-lg max-w-2xl mx-auto mb-10 leading-relaxed">
-              Découvrez comment le programme national de surveillance électronique transforme l'approche judiciaire du Burkina Faso, en plaçant la dignité humaine au cœur de la procédure.
+              Découvrez comment le programme national de surveillance électronique transforme l&apos;approche judiciaire du Burkina Faso, en plaçant la dignité humaine au cœur de la procédure.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link
                 href="/initiative"
                 className="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-2xl bg-white text-bf-green font-bold text-sm hover:bg-bf-gold hover:text-gray-900 transition-all shadow-lg"
               >
-                L'Initiative Présidentielle <ArrowRight className="w-4 h-4" />
+                L&apos;Initiative Présidentielle <ArrowRight className="w-4 h-4" />
               </Link>
               <Link
                 href="/fonctionnement"
