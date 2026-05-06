@@ -4,10 +4,10 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
   LayoutDashboard, FolderOpen, Bell, Map, BarChart2,
-  Users, ShieldCheck, ChevronRight, Activity, ClipboardList,
+  Users, ShieldCheck, ChevronRight, Activity, ClipboardList, Watch,
 } from 'lucide-react';
 import type { UserRole } from '@/lib/supabase/types';
-import { canViewUsers, canViewStats } from '@/lib/auth/permissions';
+import { canViewUsers, canViewStats, canViewDevices } from '@/lib/auth/permissions';
 
 interface NavItem {
   href: string;
@@ -25,6 +25,9 @@ function buildNav(role: UserRole): NavItem[] {
   ];
   if (canViewStats(role)) {
     items.push({ href: '/sigep/dashboard/stats', label: 'Statistiques', icon: <BarChart2 className="w-4 h-4" /> });
+  }
+  if (canViewDevices(role)) {
+    items.push({ href: '/sigep/dashboard/devices', label: 'Bracelets', icon: <Watch className="w-4 h-4" /> });
   }
   if (canViewUsers(role)) {
     items.push({ href: '/sigep/dashboard/users', label: 'Utilisateurs', icon: <Users className="w-4 h-4" /> });

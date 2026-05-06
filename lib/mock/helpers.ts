@@ -1,5 +1,5 @@
 import {
-  MOCK_CASES, MOCK_ALERTS, MOCK_USERS, MOCK_STATS, MOCK_POSITIONS, MOCK_DEVICES,
+  MOCK_CASES, MOCK_ALERTS, MOCK_USERS, MOCK_STATS, MOCK_POSITIONS, MOCK_DEVICES, MOCK_CASE_ASSIGNMENTS,
 } from './data';
 import type { Case, Alert, User, OverviewStats, UserRole, Position, Device } from '@/lib/supabase/types';
 
@@ -88,6 +88,44 @@ export async function fetchUnassignedDevices(): Promise<Device[]> {
   const supabase = createAdminClient();
   if (!supabase) return [];
   const { data } = await supabase.from('devices').select('*').is('case_id', null);
+  return (data ?? []) as Device[];
+}
+
+export async function fetchOperationalUsers(): Promise<User[]> {
+  if (IS_DEMO_MODE) return MOCK_USERS.filter((u) => u.role === 'OPERATIONAL' && u.is_active);
+  const { createAdminClient } = await import('@/lib/supabase/admin');
+  const supabase = createAdminClient();
+  if (!supabase) return [];
+  const { data } = await supabase.from('users').select('*').eq('role', 'OPERATIONAL').eq('is_active', true);
+  return (data ?? []) as User[];
+}
+
+export async function fetchCaseAssignments(caseId: string): Promise<Array<User & { assigned_at: string }>> {
+  if (IS_DEMO_MODE) {
+    return MOCK_CASE_ASSIGNMENTS
+      .filter((a) => a.case_id === caseId)
+      .map((a) => {
+        const user = MOCK_USERS.find((u) => u.id === a.operational_id);
+        return user ? { ...user, assigned_at: a.assigned_at } : null;
+      })
+      .filter(Boolean) as Array<User & { assigned_at: string }>;
+  }
+  const { createAdminClient } = await import('@/lib/supabase/admin');
+  const supabase = createAdminClient();
+  if (!supabase) return [];
+  const { data } = await supabase
+    .from('case_assignments')
+    .select('assigned_at, operational:users!operational_id(*)')
+    .eq('case_id', caseId);
+  return (data ?? []).map((r) => ({ ...(r.operational as User), assigned_at: r.assigned_at }));
+}
+
+export async function fetchAllDevices(): Promise<Device[]> {
+  if (IS_DEMO_MODE) return MOCK_DEVICES;
+  const { createAdminClient } = await import('@/lib/supabase/admin');
+  const supabase = createAdminClient();
+  if (!supabase) return [];
+  const { data } = await supabase.from('devices').select('*').order('created_at', { ascending: false });
   return (data ?? []) as Device[];
 }
 

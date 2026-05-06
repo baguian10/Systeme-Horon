@@ -1,6 +1,8 @@
 import { redirect } from 'next/navigation';
+import Link from 'next/link';
+import { Download } from 'lucide-react';
 import { getSession } from '@/lib/auth/session';
-import { canViewStats } from '@/lib/auth/permissions';
+import { canViewStats, canExportData } from '@/lib/auth/permissions';
 import { fetchOverviewStats, fetchCases, fetchAlerts } from '@/lib/mock/helpers';
 import type { CaseStatus, AlertType } from '@/lib/supabase/types';
 
@@ -30,6 +32,7 @@ export default async function StatsPage() {
   const session = await getSession();
   if (!session || !canViewStats(session.role)) redirect('/sigep/dashboard');
 
+  const canExport = canExportData(session.role);
   const [stats, cases, alerts] = await Promise.all([
     fetchOverviewStats(),
     fetchCases(session.role, session.id),
@@ -67,9 +70,20 @@ export default async function StatsPage() {
 
   return (
     <div className="space-y-6 max-w-4xl">
-      <div>
-        <h2 className="text-xl font-bold text-gray-900">Statistiques globales</h2>
-        <p className="text-sm text-gray-500 mt-0.5">Agrégats — aucune donnée nominative</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-xl font-bold text-gray-900">Statistiques globales</h2>
+          <p className="text-sm text-gray-500 mt-0.5">Agrégats — aucune donnée nominative</p>
+        </div>
+        {canExport && (
+          <Link
+            href="/api/export/cases"
+            className="flex items-center gap-2 px-4 py-2 rounded-xl border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors"
+          >
+            <Download className="w-4 h-4" />
+            Exporter CSV
+          </Link>
+        )}
       </div>
 
       {/* Summary tiles */}

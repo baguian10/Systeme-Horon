@@ -1,4 +1,4 @@
-import type { User, Individual, Case, Device, Geofence, Alert, Position, OverviewStats } from '@/lib/supabase/types';
+import type { User, Individual, Case, Device, Geofence, Alert, Position, OverviewStats, CaseAssignment } from '@/lib/supabase/types';
 
 export const MOCK_USERS: User[] = [
   {
@@ -311,6 +311,11 @@ export const MOCK_CASES: Case[] = [
     geofences: [],
     last_position: null,
   },
+];
+
+export const MOCK_CASE_ASSIGNMENTS: CaseAssignment[] = [
+  { case_id: 'c-0001', operational_id: 'u-0004', assigned_by: 'u-0003', assigned_at: '2024-03-02T10:00:00Z' },
+  { case_id: 'c-0002', operational_id: 'u-0004', assigned_by: 'u-0003', assigned_at: '2024-03-06T11:00:00Z' },
 ];
 
 export const MOCK_STATS: OverviewStats = {

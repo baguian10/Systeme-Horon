@@ -21,3 +21,6 @@ export const canManageGeofences = (role: UserRole) => role === 'JUDGE' || role =
 export const canResolveAlert = (role: UserRole) => role !== 'STRATEGIC';
 export const canViewPII = (role: UserRole) => role !== 'STRATEGIC';
 export const canUpdateCaseStatus = (role: UserRole) => role === 'JUDGE' || role === 'SUPER_ADMIN';
+export const canManageAssignments = (role: UserRole) => role === 'JUDGE' || role === 'SUPER_ADMIN';
+export const canExportData = (role: UserRole) => role === 'SUPER_ADMIN' || role === 'STRATEGIC';
+export const canViewDevices = (role: UserRole) => role === 'SUPER_ADMIN' || role === 'JUDGE';

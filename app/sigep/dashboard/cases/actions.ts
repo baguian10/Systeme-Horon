@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { getSession } from '@/lib/auth/session';
-import { canCreateCase, canManageGeofences, canUpdateCaseStatus } from '@/lib/auth/permissions';
+import { canCreateCase, canManageGeofences, canUpdateCaseStatus, canManageAssignments } from '@/lib/auth/permissions';
 import { writeAudit } from '@/lib/audit/log';
 import type { CaseStatus } from '@/lib/supabase/types';
 
@@ -189,6 +189,60 @@ export async function addGeofenceAction(
   await writeAudit({ userId: session.id, action: 'ADD_GEOFENCE', tableName: 'geofences', recordId: geoData?.id, newData: { name, case_id, is_exclusion } });
   revalidatePath(`/sigep/dashboard/cases/${case_id}`);
   return null;
+}
+
+// ── Case assignments ──────────────────────────────────────────────────────────
+
+export async function assignOperationalAction(formData: FormData): Promise<void> {
+  const session = await getSession();
+  if (!session || !canManageAssignments(session.role)) return;
+
+  const case_id = formData.get('case_id') as string;
+  const operational_id = formData.get('operational_id') as string;
+  if (!case_id || !operational_id) return;
+
+  if (isDemoMode()) {
+    const { MOCK_CASE_ASSIGNMENTS } = await import('@/lib/mock/data');
+    const exists = MOCK_CASE_ASSIGNMENTS.find((a) => a.case_id === case_id && a.operational_id === operational_id);
+    if (!exists) {
+      MOCK_CASE_ASSIGNMENTS.push({ case_id, operational_id, assigned_by: session.id, assigned_at: new Date().toISOString() });
+    }
+    revalidatePath(`/sigep/dashboard/cases/${case_id}`);
+    return;
+  }
+
+  const { createAdminClient } = await import('@/lib/supabase/admin');
+  const supabase = createAdminClient();
+  if (!supabase) return;
+
+  await supabase.from('case_assignments').upsert({ case_id, operational_id, assigned_by: session.id });
+  await writeAudit({ userId: session.id, action: 'ASSIGN_OPERATIONAL', tableName: 'case_assignments', recordId: case_id, newData: { operational_id } });
+  revalidatePath(`/sigep/dashboard/cases/${case_id}`);
+}
+
+export async function removeAssignmentAction(formData: FormData): Promise<void> {
+  const session = await getSession();
+  if (!session || !canManageAssignments(session.role)) return;
+
+  const case_id = formData.get('case_id') as string;
+  const operational_id = formData.get('operational_id') as string;
+  if (!case_id || !operational_id) return;
+
+  if (isDemoMode()) {
+    const { MOCK_CASE_ASSIGNMENTS } = await import('@/lib/mock/data');
+    const idx = MOCK_CASE_ASSIGNMENTS.findIndex((a) => a.case_id === case_id && a.operational_id === operational_id);
+    if (idx !== -1) MOCK_CASE_ASSIGNMENTS.splice(idx, 1);
+    revalidatePath(`/sigep/dashboard/cases/${case_id}`);
+    return;
+  }
+
+  const { createAdminClient } = await import('@/lib/supabase/admin');
+  const supabase = createAdminClient();
+  if (!supabase) return;
+
+  await supabase.from('case_assignments').delete().eq('case_id', case_id).eq('operational_id', operational_id);
+  await writeAudit({ userId: session.id, action: 'REMOVE_ASSIGNMENT', tableName: 'case_assignments', recordId: case_id, oldData: { operational_id } });
+  revalidatePath(`/sigep/dashboard/cases/${case_id}`);
 }
 
 export async function deleteGeofenceAction(formData: FormData): Promise<void> {

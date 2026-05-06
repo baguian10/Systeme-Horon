@@ -4,25 +4,31 @@ import {
   ArrowLeft, User, Calendar, FileText, Wifi, WifiOff,
   Battery, MapPin, ShieldCheck, Clock,
 } from 'lucide-react';
-import { fetchCaseById } from '@/lib/mock/helpers';
+import { fetchCaseById, fetchCaseAssignments, fetchOperationalUsers } from '@/lib/mock/helpers';
 import { getSession } from '@/lib/auth/session';
 import { CaseStatusBadge, AlertTypeBadge, SeverityDot } from '@/components/ui/StatusBadge';
-import { canViewPII, canManageGeofences, canUpdateCaseStatus } from '@/lib/auth/permissions';
+import { canViewPII, canManageGeofences, canUpdateCaseStatus, canManageAssignments } from '@/lib/auth/permissions';
 import StatusControls from '@/components/cases/StatusControls';
 import GeofenceManager from '@/components/cases/GeofenceManager';
+import AssignmentManager from '@/components/cases/AssignmentManager';
 
 export default async function CaseDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const [session, caseData] = await Promise.all([getSession(), fetchCaseById(id)]);
+  const [session, caseData, assignments, allOperationals] = await Promise.all([
+    getSession(), fetchCaseById(id), fetchCaseAssignments(id), fetchOperationalUsers(),
+  ]);
   if (!session || !caseData) notFound();
 
   const showPII = canViewPII(session.role);
   const canGeo = canManageGeofences(session.role);
   const canStatus = canUpdateCaseStatus(session.role);
+  const canAssign = canManageAssignments(session.role);
   const individual = caseData.individual;
   const device = caseData.device;
   const openAlerts = (caseData.alerts ?? []).filter((a) => !a.is_resolved);
   const geofences = caseData.geofences ?? [];
+  const assignedIds = new Set(assignments.map((a) => a.id));
+  const availableOperationals = allOperationals.filter((u) => !assignedIds.has(u.id));
 
   function formatDate(iso: string | null) {
     if (!iso) return '—';
@@ -205,6 +211,14 @@ export default async function CaseDetailPage({ params }: { params: Promise<{ id:
             caseId={caseData.id}
             geofences={geofences}
             canManage={canGeo && caseData.status !== 'TERMINATED'}
+          />
+
+          {/* Assignments */}
+          <AssignmentManager
+            caseId={caseData.id}
+            assigned={assignments.map((a) => ({ id: a.id, full_name: a.full_name, badge_number: a.badge_number, assigned_at: a.assigned_at }))}
+            available={availableOperationals.map((u) => ({ id: u.id, full_name: u.full_name, badge_number: u.badge_number }))}
+            canManage={canAssign && caseData.status !== 'TERMINATED'}
           />
         </div>
       </div>

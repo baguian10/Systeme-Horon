@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import Link from 'next/link';
 import { FolderOpen, Plus, Battery, Wifi, WifiOff } from 'lucide-react';
 import { getSession } from '@/lib/auth/session';
@@ -5,16 +6,29 @@ import { fetchCases } from '@/lib/mock/helpers';
 import { CaseStatusBadge } from '@/components/ui/StatusBadge';
 import { canCreateCase, canViewPII } from '@/lib/auth/permissions';
 import EmptyState from '@/components/ui/EmptyState';
+import CaseSearch from '@/components/cases/CaseSearch';
+import type { CaseStatus } from '@/lib/supabase/types';
 
 export const metadata = { title: 'Dossiers — SIGEP' };
 
-export default async function CasesPage() {
-  const session = await getSession();
+export default async function CasesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string; status?: string }>;
+}) {
+  const [{ q = '', status = '' }, session] = await Promise.all([searchParams, getSession()]);
   if (!session) return null;
 
   const cases = await fetchCases(session.role, session.id);
   const showPII = canViewPII(session.role);
   const canCreate = canCreateCase(session.role);
+
+  const filtered = cases.filter((c) => {
+    const matchQ = !q || c.case_number.toLowerCase().includes(q.toLowerCase()) ||
+      (showPII && c.individual?.full_name.toLowerCase().includes(q.toLowerCase()));
+    const matchStatus = !status || c.status === (status as CaseStatus);
+    return matchQ && matchStatus;
+  });
 
   function formatDate(iso: string | null) {
     if (!iso) return '—';
@@ -26,7 +40,7 @@ export default async function CasesPage() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-xl font-bold text-gray-900">Dossiers</h2>
-          <p className="text-sm text-gray-500 mt-0.5">{cases.length} dossier{cases.length !== 1 ? 's' : ''} trouvé{cases.length !== 1 ? 's' : ''}</p>
+          <p className="text-sm text-gray-500 mt-0.5">{cases.length} dossier{cases.length !== 1 ? 's' : ''} au total</p>
         </div>
         {canCreate && (
           <Link
@@ -39,12 +53,16 @@ export default async function CasesPage() {
         )}
       </div>
 
+      <Suspense>
+        <CaseSearch total={filtered.length} />
+      </Suspense>
+
       <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
-        {cases.length === 0 ? (
+        {filtered.length === 0 ? (
           <EmptyState
             icon={<FolderOpen className="w-6 h-6" />}
             title="Aucun dossier"
-            description="Aucun dossier ne vous est assigné pour le moment."
+            description={cases.length > 0 ? 'Aucun dossier ne correspond à votre recherche.' : 'Aucun dossier ne vous est assigné pour le moment.'}
           />
         ) : (
           <div className="overflow-x-auto">
@@ -62,7 +80,7 @@ export default async function CasesPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
-                {cases.map((c) => (
+                {filtered.map((c) => (
                   <tr key={c.id} className="hover:bg-gray-50/50 transition-colors">
                     <td className="px-5 py-3.5">
                       <span className="font-mono font-semibold text-gray-800 text-xs">{c.case_number}</span>
