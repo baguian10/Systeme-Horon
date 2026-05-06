@@ -107,7 +107,7 @@ export default async function CaseDetailPage({ params }: { params: Promise<{ id:
 
           {/* Device */}
           <div className="bg-white rounded-2xl border border-gray-100 p-5">
-            <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Bracelet ThinkRace TR40</h3>
+            <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Bracelet de Sûreté</h3>
             {device ? (
               <div className="space-y-2 text-sm">
                 <div className="flex items-center justify-between">

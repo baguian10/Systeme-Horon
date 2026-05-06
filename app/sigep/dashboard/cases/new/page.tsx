@@ -25,7 +25,7 @@ export default async function NewCasePage() {
         </Link>
         <h2 className="text-xl font-bold text-gray-900">Nouveau dossier</h2>
         <p className="text-sm text-gray-500 mt-0.5">
-          Créer un dossier de contrôle judiciaire et assigner un bracelet ThinkRace TR40
+          Créer un dossier de contrôle judiciaire et assigner un Dispositif Électronique Sécurisé
         </p>
       </div>
 

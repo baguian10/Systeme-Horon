@@ -74,7 +74,7 @@ CREATE TABLE devices (
   id            UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   case_id       UUID UNIQUE REFERENCES cases(id),
   imei          TEXT UNIQUE NOT NULL,
-  model         TEXT NOT NULL DEFAULT 'ThinkRace TR40',
+  model         TEXT NOT NULL DEFAULT 'Dispositif Électronique Sécurisé',
   firmware_ver  TEXT,
   battery_pct   SMALLINT CHECK (battery_pct BETWEEN 0 AND 100),
   is_online     BOOLEAN NOT NULL DEFAULT false,

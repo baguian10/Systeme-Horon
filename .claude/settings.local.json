@@ -1,0 +1,33 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx create-next-app@latest . --typescript --tailwind --eslint --app --no-src-dir --import-alias \"@/*\" --yes)",
+      "Read(//c/Users/hesed recruitment/Desktop/**)",
+      "Bash(npx create-next-app@latest systeme-horon-temp --typescript --tailwind --eslint --app --no-src-dir --import-alias \"@/*\" --yes)",
+      "Bash(Get-Content \"C:\\\\Users\\\\HESEDR~1\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Users-hesed-recruitment-Desktop-syst-me-horon\\\\b5428891-73b6-4f3c-8745-577740fc5ab6\\\\tasks\\\\bbfyzqcji.output\" -Wait -Tail 5)",
+      "Bash(Select-String -Pattern \"Success|Error|Done|npm warn|created|initialized\")",
+      "Bash(Get-Content \"C:\\\\Users\\\\HESEDR~1\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Users-hesed-recruitment-Desktop-syst-me-horon\\\\b5428891-73b6-4f3c-8745-577740fc5ab6\\\\tasks\\\\bbfyzqcji.output\")",
+      "Bash(Select-Object -Last 20)",
+      "Bash(cp *)",
+      "Bash(npm install *)",
+      "Bash(git config *)",
+      "Bash(gh auth *)",
+      "Bash(npx tsc *)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git push *)",
+      "Bash(Get-Content \"C:\\\\Users\\\\HESEDR~1\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Users-hesed-recruitment-Desktop-syst-me-horon\\\\b5428891-73b6-4f3c-8745-577740fc5ab6\\\\tasks\\\\b9xdjvtul.output\" -Wait -Tail 20)",
+      "Bash(Select-String -Pattern \"main|error|Error|fatal|rejected|Everything\" --SimpleMatch)",
+      "Bash(Test-Path *)",
+      "Bash(npm run *)",
+      "Bash(Get-Content \"C:\\\\Users\\\\HESEDR~1\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Users-hesed-recruitment-Desktop-syst-me-horon\\\\b5428891-73b6-4f3c-8745-577740fc5ab6\\\\tasks\\\\b19uiufnp.output\")",
+      "Bash(Select-Object -Last 40)",
+      "Bash(npm ci *)",
+      "Bash(node -e \"require\\('./package.json'\\)\")",
+      "Bash(node -e \"JSON.parse\\(require\\('fs'\\).readFileSync\\('package-lock.json','utf8'\\)\\)\")",
+      "Bash(node -e \"const l=require\\('./package-lock.json'\\); const bad=Object.entries\\(l.packages||{}\\).filter\\(\\([k,v]\\)=>v.version&&!/^[0-9]/.test\\(v.version\\)&&v.version!==''\\); console.log\\(bad.slice\\(0,5\\).map\\(\\([k,v]\\)=>k+': '+v.version\\).join\\('\\\\n'\\)\\)\")",
+      "Bash(node -e \"const l=require\\('./package-lock.json'\\); const bad=Object.entries\\(l.packages||{}\\).filter\\(\\([k,v]\\)=>v.version==='' || v.version===null || v.version===undefined\\); console.log\\('empty/null versions:', bad.slice\\(0,5\\).map\\(\\([k]\\)=>k\\).join\\('\\\\n'\\)\\); console.log\\('lockfile version:', l.lockfileVersion\\); console.log\\('root version:', l.version\\);\")",
+      "Bash(node -e \"require\\('./node_modules/next/package.json'\\); console.log\\('next ok'\\)\")"
+    ]
+  }
+}

@@ -6,7 +6,7 @@ const ContentSecurityPolicy = [
   "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
   // Tailwind utility classes are injected at runtime
   "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' data: blob:",
+  "img-src 'self' data: blob: https://images.unsplash.com",
   "font-src 'self'",
   // Supabase REST + Realtime WebSocket
   "connect-src 'self' https://*.supabase.co wss://*.supabase.co",
@@ -18,6 +18,9 @@ const ContentSecurityPolicy = [
 const nextConfig: NextConfig = {
   poweredByHeader: false,
   compress: true,
+  images: {
+    remotePatterns: [{ hostname: 'images.unsplash.com' }],
+  },
 
   async headers() {
     return [

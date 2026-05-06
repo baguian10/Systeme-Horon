@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 import type { AlertType } from '@/lib/supabase/types';
 
 // POST /api/ingest/alert
-// Called by the ThinkRace TR40 device for tamper/health/panic events
+// Called by the certified secure device for tamper/health/panic events
 // Body: { imei, type: AlertType, severity?, description?, lat?, lon? }
 export async function POST(request: NextRequest) {
   const apiKey = request.headers.get('x-api-key');

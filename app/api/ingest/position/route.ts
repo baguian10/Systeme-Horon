@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { checkGeofences } from '@/lib/geofence/pointInPolygon';
 
 // POST /api/ingest/position
-// Called by the ThinkRace TR40 device (or the demo simulator)
+// Called by the certified secure device (or the demo simulator)
 // Body: { imei, lat, lon, accuracy_m?, speed_kmh?, timestamp? }
 export async function POST(request: NextRequest) {
   const apiKey = request.headers.get('x-api-key');
