@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
   LayoutDashboard, FolderOpen, Bell, Map, BarChart2,
-  Users, ShieldCheck, ChevronRight,
+  Users, ShieldCheck, ChevronRight, Activity,
 } from 'lucide-react';
 import type { UserRole } from '@/lib/supabase/types';
 import { canViewUsers, canViewStats } from '@/lib/auth/permissions';
@@ -21,6 +21,7 @@ function buildNav(role: UserRole): NavItem[] {
     { href: '/sigep/dashboard/cases', label: 'Dossiers', icon: <FolderOpen className="w-4 h-4" /> },
     { href: '/sigep/dashboard/alerts', label: 'Alertes', icon: <Bell className="w-4 h-4" /> },
     { href: '/sigep/dashboard/map', label: 'Surveillance', icon: <Map className="w-4 h-4" /> },
+    { href: '/sigep/dashboard/monitoring', label: 'Temps réel', icon: <Activity className="w-4 h-4" /> },
   ];
   if (canViewStats(role)) {
     items.push({ href: '/sigep/dashboard/stats', label: 'Statistiques', icon: <BarChart2 className="w-4 h-4" /> });

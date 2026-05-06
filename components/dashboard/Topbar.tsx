@@ -5,6 +5,8 @@ import { LogOut, Info } from 'lucide-react';
 import { useSession } from '@/app/sigep/dashboard/context';
 import RoleBadge from '@/components/ui/RoleBadge';
 import { createClient, IS_DEMO_MODE } from '@/lib/supabase/client';
+import AlertBell from '@/components/realtime/AlertBell';
+import ConnectionStatus from '@/components/realtime/ConnectionStatus';
 
 export default function Topbar({ title }: { title: string }) {
   const session = useSession();
@@ -29,6 +31,9 @@ export default function Topbar({ title }: { title: string }) {
             Mode démo
           </div>
         )}
+
+        <ConnectionStatus />
+        <AlertBell />
 
         <RoleBadge role={session.role} />
 
