@@ -15,12 +15,12 @@ export const metadata = {
 const STATS = [
   { value: '73%', label: 'Réduction de la récidive', sub: 'vs détention classique' },
   { value: '24/7', label: 'Surveillance continue',   sub: 'sans interruption' },
-  { value: '<2s',  label: "Délai d'alerte",          sub: 'en cas d'incident' },
+  { value: '<2s',  label: "Délai d'alerte",          sub: "en cas d'incident" },
   { value: '100%', label: 'Conformité juridique',    sub: 'Code de procédure pénale' },
 ];
 
 const PILLARS = [
-  { icon: <Scale className="w-5 h-5" />,    title: 'Présomption d'innocence', desc: 'Garantie constitutionnelle préservée tout au long de la procédure judiciaire.' },
+  { icon: <Scale className="w-5 h-5" />,    title: "Présomption d'innocence", desc: 'Garantie constitutionnelle préservée tout au long de la procédure judiciaire.' },
   { icon: <Users className="w-5 h-5" />,    title: 'Liens familiaux maintenus', desc: 'Le prévenu conserve ses responsabilités familiales, sociales et professionnelles.' },
   { icon: <Shield className="w-5 h-5" />,   title: 'Sécurité publique garantie', desc: 'Surveillance rigoureuse assurant la protection de la communauté nationale.' },
   { icon: <Activity className="w-5 h-5" />, title: 'Suivi judiciaire continu', desc: 'Conformité aux ordonnances vérifiée en temps réel par les agents habilités.' },
@@ -37,14 +37,14 @@ const FEATURES = [
   {
     icon: <Zap className="w-6 h-6" />,
     title: 'Alertes instantanées',
-    desc: 'Notification immédiate des agents et du juge responsable en cas d'incident détecté.',
+    desc: "Notification immédiate des agents et du juge responsable en cas d'incident détecté.",
     size: 'sm',
     color: 'bg-bf-red text-white',
   },
   {
     icon: <Eye className="w-6 h-6" />,
     title: 'Périmètres de sécurité',
-    desc: 'Le juge configure des zones d'inclusion et d'exclusion personnalisées selon l'ordonnance.',
+    desc: "Le juge configure des zones d'inclusion et d'exclusion personnalisées selon l'ordonnance.",
     size: 'sm',
     color: 'bg-gray-900 text-white',
   },
@@ -58,7 +58,7 @@ const FEATURES = [
   {
     icon: <CheckCircle className="w-6 h-6" />,
     title: 'Traçabilité complète',
-    desc: 'Journal d'audit immuable de toutes les actions effectuées sur le système.',
+    desc: "Journal d'audit immuable de toutes les actions effectuées sur le système.",
     size: 'sm',
     color: 'bg-white border border-gray-200 text-gray-800',
   },

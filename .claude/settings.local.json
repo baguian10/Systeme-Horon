@@ -27,7 +27,9 @@
       "Bash(node -e \"JSON.parse\\(require\\('fs'\\).readFileSync\\('package-lock.json','utf8'\\)\\)\")",
       "Bash(node -e \"const l=require\\('./package-lock.json'\\); const bad=Object.entries\\(l.packages||{}\\).filter\\(\\([k,v]\\)=>v.version&&!/^[0-9]/.test\\(v.version\\)&&v.version!==''\\); console.log\\(bad.slice\\(0,5\\).map\\(\\([k,v]\\)=>k+': '+v.version\\).join\\('\\\\n'\\)\\)\")",
       "Bash(node -e \"const l=require\\('./package-lock.json'\\); const bad=Object.entries\\(l.packages||{}\\).filter\\(\\([k,v]\\)=>v.version==='' || v.version===null || v.version===undefined\\); console.log\\('empty/null versions:', bad.slice\\(0,5\\).map\\(\\([k]\\)=>k\\).join\\('\\\\n'\\)\\); console.log\\('lockfile version:', l.lockfileVersion\\); console.log\\('root version:', l.version\\);\")",
-      "Bash(node -e \"require\\('./node_modules/next/package.json'\\); console.log\\('next ok'\\)\")"
+      "Bash(node -e \"require\\('./node_modules/next/package.json'\\); console.log\\('next ok'\\)\")",
+      "Bash(git commit *)",
+      "Bash(taskkill *)"
     ]
   }
 }

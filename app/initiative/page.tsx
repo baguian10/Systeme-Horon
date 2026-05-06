@@ -16,7 +16,7 @@ const PILLARS = [
     icon: <Heart className="w-7 h-7" />,
     color: 'bg-bf-red/10 text-bf-red',
     title: 'Dignité humaine',
-    desc: 'Chaque prévenu est d'abord un être humain. Le programme garantit que la présomption d'innocence n'est pas une abstraction juridique mais une réalité vécue — permettant de conserver sa vie sociale, familiale et professionnelle pendant la procédure.',
+    desc: "Chaque prévenu est d'abord un être humain. Le programme garantit que la présomption d'innocence n'est pas une abstraction juridique mais une réalité vécue — permettant de conserver sa vie sociale, familiale et professionnelle pendant la procédure.",
   },
   {
     icon: <TrendingDown className="w-7 h-7" />,

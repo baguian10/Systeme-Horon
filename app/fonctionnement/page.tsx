@@ -19,7 +19,7 @@ const STEPS = [
     title: 'Ordonnance judiciaire',
     color: 'bg-bf-green text-white',
     ring: 'ring-bf-green/20',
-    desc: 'Le juge d'instruction ou le tribunal évalue le dossier et prononce une ordonnance de placement sous surveillance électronique comme alternative à la détention provisoire.',
+    desc: "Le juge d'instruction ou le tribunal évalue le dossier et prononce une ordonnance de placement sous surveillance électronique comme alternative à la détention provisoire.",
     details: [
       'Évaluation de la dangerosité et des risques de fuite',
       'Définition des conditions : périmètre, horaires, obligations',
@@ -69,7 +69,7 @@ const TECH_FEATURES = [
   {
     icon: <Eye className="w-6 h-6" />,
     title: 'Périmètres configurables',
-    desc: 'Le magistrat définit des zones d'inclusion (domicile, lieu de travail) et d'exclusion (zone de la victime, tribunal). Chaque périmètre est personnalisé selon l'ordonnance.',
+    desc: "Le magistrat définit des zones d'inclusion (domicile, lieu de travail) et d'exclusion (zone de la victime, tribunal). Chaque périmètre est personnalisé selon l'ordonnance.",
     tag: 'Géofencing',
     accent: 'bg-blue-600 text-white',
     size: 'sm',
@@ -77,7 +77,7 @@ const TECH_FEATURES = [
   {
     icon: <AlertTriangle className="w-6 h-6" />,
     title: 'Détection de manipulation',
-    desc: 'Capteurs certifiés détectant toute tentative de retrait ou de sabotage du dispositif. Déclenchement immédiat d'une alerte de niveau maximum.',
+    desc: "Capteurs certifiés détectant toute tentative de retrait ou de sabotage du dispositif. Déclenchement immédiat d'une alerte de niveau maximum.",
     tag: 'Anti-sabotage',
     accent: 'bg-bf-red text-white',
     size: 'sm',
