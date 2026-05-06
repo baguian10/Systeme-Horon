@@ -1,7 +1,7 @@
 import {
-  MOCK_CASES, MOCK_ALERTS, MOCK_USERS, MOCK_STATS, MOCK_POSITIONS,
+  MOCK_CASES, MOCK_ALERTS, MOCK_USERS, MOCK_STATS, MOCK_POSITIONS, MOCK_DEVICES,
 } from './data';
-import type { Case, Alert, User, OverviewStats, UserRole, Position } from '@/lib/supabase/types';
+import type { Case, Alert, User, OverviewStats, UserRole, Position, Device } from '@/lib/supabase/types';
 
 export const IS_DEMO_MODE =
   !process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -80,6 +80,15 @@ export async function fetchOverviewStats(): Promise<OverviewStats> {
     monitored_individuals: (active_cases ?? 0) + (violation_cases ?? 0),
     violation_cases: violation_cases ?? 0,
   };
+}
+
+export async function fetchUnassignedDevices(): Promise<Device[]> {
+  if (IS_DEMO_MODE) return MOCK_DEVICES.filter((d) => !d.case_id);
+  const { createAdminClient } = await import('@/lib/supabase/admin');
+  const supabase = createAdminClient();
+  if (!supabase) return [];
+  const { data } = await supabase.from('devices').select('*').is('case_id', null);
+  return (data ?? []) as Device[];
 }
 
 export async function fetchLatestPositions(): Promise<(Position & { case_number: string })[]> {

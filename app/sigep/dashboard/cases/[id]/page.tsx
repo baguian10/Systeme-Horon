@@ -2,12 +2,14 @@ import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import {
   ArrowLeft, User, Calendar, FileText, Wifi, WifiOff,
-  Battery, MapPin, ShieldAlert, ShieldCheck, Clock,
+  Battery, MapPin, ShieldCheck, Clock,
 } from 'lucide-react';
 import { fetchCaseById } from '@/lib/mock/helpers';
 import { getSession } from '@/lib/auth/session';
 import { CaseStatusBadge, AlertTypeBadge, SeverityDot } from '@/components/ui/StatusBadge';
-import { canViewPII, canManageGeofences } from '@/lib/auth/permissions';
+import { canViewPII, canManageGeofences, canUpdateCaseStatus } from '@/lib/auth/permissions';
+import StatusControls from '@/components/cases/StatusControls';
+import GeofenceManager from '@/components/cases/GeofenceManager';
 
 export default async function CaseDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -16,6 +18,7 @@ export default async function CaseDetailPage({ params }: { params: Promise<{ id:
 
   const showPII = canViewPII(session.role);
   const canGeo = canManageGeofences(session.role);
+  const canStatus = canUpdateCaseStatus(session.role);
   const individual = caseData.individual;
   const device = caseData.device;
   const openAlerts = (caseData.alerts ?? []).filter((a) => !a.is_resolved);
@@ -45,7 +48,7 @@ export default async function CaseDetailPage({ params }: { params: Promise<{ id:
         </Link>
         <div className="flex items-start justify-between gap-4">
           <div>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 flex-wrap">
               <h2 className="text-xl font-bold text-gray-900 font-mono">{caseData.case_number}</h2>
               <CaseStatusBadge status={caseData.status} />
               {openAlerts.length > 0 && (
@@ -58,6 +61,9 @@ export default async function CaseDetailPage({ params }: { params: Promise<{ id:
               Ordonnance du {formatDate(caseData.court_order_date)} · Juge {caseData.judge?.full_name ?? '—'}
             </p>
           </div>
+          {canStatus && caseData.status !== 'TERMINATED' && (
+            <StatusControls caseId={caseData.id} currentStatus={caseData.status} />
+          )}
         </div>
       </div>
 
@@ -195,35 +201,11 @@ export default async function CaseDetailPage({ params }: { params: Promise<{ id:
           </div>
 
           {/* Geofences */}
-          <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
-            <div className="px-5 py-4 border-b border-gray-50 flex items-center justify-between">
-              <h3 className="font-semibold text-gray-900">Géofences ({geofences.length})</h3>
-              {canGeo && (
-                <span className="text-xs text-gray-400">Gérez via le panneau juge</span>
-              )}
-            </div>
-            {geofences.length === 0 ? (
-              <p className="text-sm text-gray-400 px-5 py-4">Aucune géofence configurée</p>
-            ) : (
-              <ul className="divide-y divide-gray-50">
-                {geofences.map((g) => (
-                  <li key={g.id} className="px-5 py-3 flex items-center gap-3">
-                    <div className={`w-2 h-2 rounded-full flex-shrink-0 ${g.is_exclusion ? 'bg-red-400' : 'bg-green-400'}`} />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-gray-800">{g.name}</p>
-                      <p className="text-xs text-gray-400">
-                        {g.is_exclusion ? 'Zone interdite' : 'Zone autorisée'}
-                        {g.active_start ? ` · ${g.active_start} – ${g.active_end}` : ' · Toujours active'}
-                      </p>
-                    </div>
-                    {g.is_exclusion
-                      ? <ShieldAlert className="w-4 h-4 text-red-400 flex-shrink-0" />
-                      : <ShieldCheck className="w-4 h-4 text-green-400 flex-shrink-0" />}
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
+          <GeofenceManager
+            caseId={caseData.id}
+            geofences={geofences}
+            canManage={canGeo && caseData.status !== 'TERMINATED'}
+          />
         </div>
       </div>
     </div>
