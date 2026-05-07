@@ -154,3 +154,22 @@ export interface OverviewStats {
   monitored_individuals: number;
   violation_cases: number;
 }
+
+export type TigSiteCategory = 'MAIRIE' | 'HOPITAL' | 'ECOLE' | 'ONG' | 'ESPACE_VERT' | 'AUTRE';
+
+export interface TigSite {
+  id: string;
+  name: string;
+  category: TigSiteCategory;
+  address: string;
+  arrondissement: string;
+  contact_name: string;
+  contact_phone: string;
+  capacity: number;
+  current_count: number;
+  hours: string;
+  is_active: boolean;
+  latitude: number;
+  longitude: number;
+  created_at: string;
+}

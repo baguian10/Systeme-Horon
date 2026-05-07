@@ -40,3 +40,13 @@ export const canViewPII           = (role: UserRole) => role !== 'STRATEGIC';
 
 // ── Devices: SUPER_ADMIN + JUDGE (OPERATIONAL sees tracking, not hardware) ───
 export const canViewDevices       = (role: UserRole) => role === 'SUPER_ADMIN' || role === 'JUDGE';
+
+// ── Reports: SUPER_ADMIN + JUDGE ─────────────────────────────────────────────
+export const canViewReports       = (role: UserRole) => role === 'SUPER_ADMIN' || role === 'JUDGE';
+
+// ── Violations history: everyone except STRATEGIC ────────────────────────────
+export const canViewViolations    = (role: UserRole) => role !== 'STRATEGIC';
+
+// ── TIG sites: everyone except STRATEGIC ─────────────────────────────────────
+export const canViewTigSites      = (role: UserRole) => role !== 'STRATEGIC';
+export const canManageTigSites    = (role: UserRole) => role === 'SUPER_ADMIN' || role === 'JUDGE';

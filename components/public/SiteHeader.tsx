@@ -6,9 +6,11 @@ import { usePathname } from 'next/navigation';
 import { ShieldCheck, Lock, Menu, X } from 'lucide-react';
 
 const NAV = [
-  { href: '/',              label: 'Accueil' },
-  { href: '/initiative',   label: "L'Initiative" },
+  { href: '/',               label: 'Accueil' },
+  { href: '/initiative',     label: "L'Initiative" },
   { href: '/fonctionnement', label: 'Fonctionnement' },
+  { href: '/programme-tig',  label: 'Programme TIG' },
+  { href: '/statistiques',   label: 'Statistiques' },
 ];
 
 export default function SiteHeader() {

@@ -37,7 +37,8 @@
       "Bash(Select-Object FullName)",
       "Bash(npx plugins *)",
       "Bash(vercel *)",
-      "Bash(npx vercel *)"
+      "Bash(npx vercel *)",
+      "PowerShell(Set-Location \"C:\\\\Users\\\\hesed recruitment\\\\Desktop\\\\système horon\"; \\(Get-Content \"lib\\\\mock\\\\data.ts\" | Measure-Object -Line\\).Lines)"
     ]
   }
 }

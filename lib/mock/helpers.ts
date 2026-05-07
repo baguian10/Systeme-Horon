@@ -1,8 +1,8 @@
 import {
   MOCK_CASES, MOCK_ALERTS, MOCK_USERS, MOCK_STATS, MOCK_POSITIONS, MOCK_DEVICES,
-  MOCK_CASE_ASSIGNMENTS, MOCK_GEOFENCES,
+  MOCK_CASE_ASSIGNMENTS, MOCK_GEOFENCES, MOCK_TIG_SITES,
 } from './data';
-import type { Case, Alert, User, OverviewStats, UserRole, Position, Device, Geofence } from '@/lib/supabase/types';
+import type { Case, Alert, User, OverviewStats, UserRole, Position, Device, Geofence, TigSite } from '@/lib/supabase/types';
 
 export const IS_DEMO_MODE =
   !process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -163,4 +163,20 @@ export async function fetchGeofences(caseId?: string): Promise<Geofence[]> {
   const query = supabase.from('geofences').select('*').order('created_at', { ascending: false });
   const { data } = caseId ? await query.eq('case_id', caseId) : await query;
   return (data ?? []) as Geofence[];
+}
+
+export async function fetchTigSites(): Promise<TigSite[]> {
+  if (IS_DEMO_MODE) return MOCK_TIG_SITES;
+  const { createAdminClient } = await import('@/lib/supabase/admin');
+  const supabase = createAdminClient();
+  if (!supabase) return [];
+  const { data } = await supabase.from('tig_sites').select('*').order('created_at', { ascending: false });
+  return (data ?? []) as TigSite[];
+}
+
+export async function fetchViolations(role: UserRole): Promise<Alert[]> {
+  const alerts = await fetchAlerts(role);
+  return alerts
+    .filter((a) => ['GEOFENCE_EXIT', 'TAMPER_DETECTED'].includes(a.alert_type))
+    .sort((a, b) => new Date(b.triggered_at).getTime() - new Date(a.triggered_at).getTime());
 }

@@ -6,12 +6,13 @@ import {
   LayoutDashboard, FolderOpen, Bell, Map,
   BarChart2, Users, ShieldCheck, ChevronRight,
   Activity, ClipboardList, Watch, Hexagon,
+  FileText, AlertTriangle, Shovel,
 } from 'lucide-react';
 import type { UserRole } from '@/lib/supabase/types';
 import {
   canViewUsers, canViewStats, canViewDevices,
   canViewCases, canViewRealtime, canViewAudit,
-  canManageGeofences,
+  canManageGeofences, canViewReports, canViewViolations, canViewTigSites,
 } from '@/lib/auth/permissions';
 
 interface NavItem {
@@ -57,6 +58,21 @@ function buildNav(role: UserRole): NavItem[] {
   // User management — SUPER_ADMIN + JUDGE (JUDGE sees their agents)
   if (canViewUsers(role)) {
     items.push({ href: '/sigep/dashboard/users', label: 'Utilisateurs', icon: <Users className="w-4 h-4" /> });
+  }
+
+  // Reports — JUDGE + SUPER_ADMIN
+  if (canViewReports(role)) {
+    items.push({ href: '/sigep/dashboard/rapports',    label: 'Rapports',     icon: <FileText className="w-4 h-4" /> });
+  }
+
+  // Violations history — not STRATEGIC
+  if (canViewViolations(role)) {
+    items.push({ href: '/sigep/dashboard/infractions', label: 'Infractions',  icon: <AlertTriangle className="w-4 h-4" /> });
+  }
+
+  // TIG sites — not STRATEGIC
+  if (canViewTigSites(role)) {
+    items.push({ href: '/sigep/dashboard/tig-sites',   label: 'Sites TIG',    icon: <Shovel className="w-4 h-4" /> });
   }
 
   // Audit log — SUPER_ADMIN only
