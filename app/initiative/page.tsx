@@ -139,11 +139,11 @@ export default function InitiativePage() {
               <div className="relative">
                 <div className="relative aspect-[4/5] rounded-2xl overflow-hidden shadow-2xl shadow-slate-200">
                   <Image
-                    src="/reinsertion-sociale.jpg"
+                    src="/reinsertion-sociale-portrait.jpg"
                     alt="Travaux d'intérêt général au Burkina Faso"
                     fill
                     sizes="(max-width: 768px) 100vw, 50vw"
-                    className="object-cover"
+                    className="object-cover object-center"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-slate-900/60 to-transparent" />
                   <div className="absolute bottom-6 left-6 right-6">
