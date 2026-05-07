@@ -81,6 +81,41 @@ export async function createUserAction(
   return null;
 }
 
+// ── Force password reset ─────────────────────────────────────────────────────
+
+export async function forcePasswordResetAction(formData: FormData): Promise<{ error?: string; success?: string }> {
+  const session = await getSession();
+  if (!session || !canViewUsers(session.role)) return { error: 'Accès refusé' };
+
+  const user_id = formData.get('user_id') as string;
+  if (!user_id || user_id === session.id) return { error: 'Opération non autorisée' };
+
+  if (isDemoMode()) {
+    const { writeAudit } = await import('@/lib/audit/log');
+    await writeAudit({ userId: session.id, action: 'FORCE_PASSWORD_RESET', tableName: 'users', recordId: user_id });
+    revalidatePath('/sigep/dashboard/users');
+    return { success: 'Réinitialisation enregistrée (mode démo)' };
+  }
+
+  const { createAdminClient } = await import('@/lib/supabase/admin');
+  const supabase = createAdminClient();
+  if (!supabase) return { error: 'Base de données indisponible' };
+
+  const { data: userData } = await supabase.from('users').select('auth_id').eq('id', user_id).single();
+  if (!userData) return { error: 'Utilisateur introuvable' };
+
+  const { data: authUser } = await supabase.auth.admin.getUserById(userData.auth_id);
+  if (!authUser?.user?.email) return { error: 'Email introuvable pour cet utilisateur' };
+
+  await supabase.auth.admin.generateLink({ type: 'recovery', email: authUser.user.email });
+
+  const { writeAudit } = await import('@/lib/audit/log');
+  await writeAudit({ userId: session.id, action: 'FORCE_PASSWORD_RESET', tableName: 'users', recordId: user_id });
+
+  revalidatePath('/sigep/dashboard/users');
+  return { success: `Lien de réinitialisation envoyé à ${authUser.user.email}` };
+}
+
 // ── Toggle active state ───────────────────────────────────────────────────────
 
 export async function toggleUserActiveAction(formData: FormData): Promise<void> {

@@ -29,7 +29,8 @@
       "Bash(node -e \"const l=require\\('./package-lock.json'\\); const bad=Object.entries\\(l.packages||{}\\).filter\\(\\([k,v]\\)=>v.version==='' || v.version===null || v.version===undefined\\); console.log\\('empty/null versions:', bad.slice\\(0,5\\).map\\(\\([k]\\)=>k\\).join\\('\\\\n'\\)\\); console.log\\('lockfile version:', l.lockfileVersion\\); console.log\\('root version:', l.version\\);\")",
       "Bash(node -e \"require\\('./node_modules/next/package.json'\\); console.log\\('next ok'\\)\")",
       "Bash(git commit *)",
-      "Bash(taskkill *)"
+      "Bash(taskkill *)",
+      "PowerShell(npm run *)"
     ]
   }
 }
