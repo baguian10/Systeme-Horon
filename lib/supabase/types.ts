@@ -31,6 +31,9 @@ export interface Individual {
   created_at: string;
 }
 
+export type NetworkProtocol = 'MQTT' | 'HTTPS' | 'TCP';
+export type SyncStatus = 'SYNCED' | 'DELAYED' | 'LOST';
+
 export interface Device {
   id: string;
   case_id: string | null;
@@ -42,6 +45,17 @@ export interface Device {
   last_seen_at: string | null;
   assigned_at: string | null;
   created_at: string;
+  // GPS tracker sync parameters
+  report_interval_s: number | null;
+  network_protocol: NetworkProtocol | null;
+  sim_iccid: string | null;
+  signal_strength_dbm: number | null;
+  gps_accuracy_m: number | null;
+  tamper_detected: boolean;
+  geofences_synced: number | null;
+  sync_status: SyncStatus | null;
+  last_heartbeat_at: string | null;
+  server_endpoint: string | null;
 }
 
 export type GeofenceType  = 'GPS_ZONE' | 'BLE_DOMICILE';

@@ -9,7 +9,7 @@ const isDemoMode = () => !process.env.NEXT_PUBLIC_SUPABASE_URL;
 
 // Roles each creator is allowed to provision
 const ALLOWED_ROLES: Record<string, UserRole[]> = {
-  SUPER_ADMIN: ['JUDGE', 'STRATEGIC'],
+  SUPER_ADMIN: ['STRATEGIC', 'JUDGE', 'OPERATIONAL'],
   JUDGE: ['OPERATIONAL'],
 };
 

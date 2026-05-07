@@ -30,12 +30,26 @@ const ROLE_CARDS_SUPER_ADMIN = [
     color: 'blue',
     title: 'Niveau Judiciaire',
     subtitle: 'Magistrats & Parquet',
-    desc: "Gestion complète des dossiers de sa juridiction, création des périmètres, et délégation aux agents opérationnels.",
+    desc: "Gestion complète des dossiers de sa juridiction, création des périmètres et délégation aux agents opérationnels.",
     profiles: [
       "Juge d'instruction",
       'Juge de fond / TGI',
       'Procureur du Faso',
       'Substitut du Procureur',
+    ],
+  },
+  {
+    value: 'OPERATIONAL',
+    level: 'N3',
+    color: 'emerald',
+    title: 'Niveau Opérationnel',
+    subtitle: 'Agents de terrain & Pénitentiaires',
+    desc: "Accès restreint aux dossiers assignés. Réception des alertes GPS, rapports de terrain et suivi des bracelets électroniques.",
+    profiles: [
+      'Officier de Police Judiciaire (OPJ)',
+      'Agent Pénitentiaire / Établissement',
+      'Gendarme / Brigade territoriale',
+      'Travailleur social — suivi TIG',
     ],
   },
 ];
@@ -46,13 +60,13 @@ const ROLE_CARDS_JUDGE = [
     level: 'N3',
     color: 'emerald',
     title: 'Niveau Opérationnel',
-    subtitle: 'Agents de terrain',
-    desc: "Accès restreint aux dossiers qui lui sont assignés. Réception des alertes et rapports de terrain.",
+    subtitle: 'Agents de terrain & Pénitentiaires',
+    desc: "Accès restreint aux dossiers assignés par le juge. Réception des alertes GPS, suivi terrain et rapports de présence.",
     profiles: [
       'Officier de Police Judiciaire (OPJ)',
-      'Agent de Police Judiciaire (APJ)',
+      'Agent Pénitentiaire / Établissement',
       'Gendarme / Brigade territoriale',
-      'Greffier — suivi électronique',
+      'Travailleur social — suivi TIG',
     ],
   },
 ];
@@ -134,7 +148,7 @@ export default function UserForm({ creatorRole }: Props) {
           </p>
         </div>
 
-        <div className={`grid gap-4 ${roleCards.length === 1 ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2'}`}>
+        <div className={`grid gap-4 ${roleCards.length === 1 ? 'grid-cols-1' : roleCards.length === 3 ? 'grid-cols-1 md:grid-cols-3' : 'grid-cols-1 md:grid-cols-2'}`}>
           {roleCards.map((card) => {
             const c = COLOR_MAP[card.color];
             const isSelected = selectedRole === card.value;
@@ -194,7 +208,7 @@ export default function UserForm({ creatorRole }: Props) {
       {/* ── Affectation ──────────────────────────────────────────────── */}
       <div className="bg-white rounded-2xl border border-gray-100 p-5 space-y-4">
         <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
-          {isJudge ? "Affectation & portée d'accès" : 'Affectation'}
+          {selectedRole === 'OPERATIONAL' ? "Affectation & portée d'accès" : 'Affectation'}
         </h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
@@ -202,7 +216,10 @@ export default function UserForm({ creatorRole }: Props) {
             <input
               name="badge_number"
               type="text"
-              placeholder={isJudge ? 'OPJ-001' : 'JUG-001'}
+              placeholder={
+                selectedRole === 'OPERATIONAL' ? 'OPJ-001 / AP-042...' :
+                selectedRole === 'JUDGE' ? 'JUG-017' : 'MIN-042'
+              }
               className={INPUT}
             />
           </div>
@@ -211,13 +228,17 @@ export default function UserForm({ creatorRole }: Props) {
             <input
               name="jurisdiction"
               type="text"
-              placeholder={isJudge ? 'Brigade PJ Ouagadougou...' : 'TGI Ouagadougou...'}
+              placeholder={
+                selectedRole === 'OPERATIONAL' ? 'Brigade PJ / Maison d\'arrêt / DCPJ...' :
+                selectedRole === 'JUDGE' ? 'TGI Ouagadougou...' :
+                'Ministère de la Justice...'
+              }
               className={INPUT}
             />
           </div>
 
-          {/* ── Scope of Access — JUDGE only ────────────────────────── */}
-          {isJudge && (
+          {/* ── Scope of Access — for OPERATIONAL role ──────────────── */}
+          {selectedRole === 'OPERATIONAL' && (
             <div className="sm:col-span-2 space-y-2">
               <label className="block text-xs font-medium text-gray-600 mb-1">
                 Portée d&apos;accès aux dossiers *
