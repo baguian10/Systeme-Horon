@@ -2,10 +2,16 @@
 
 import { revalidatePath } from 'next/cache';
 import { getSession } from '@/lib/auth/session';
-import { canViewUsers } from '@/lib/auth/permissions';
+import { canViewUsers, canManageAllUsers } from '@/lib/auth/permissions';
 import type { UserRole } from '@/lib/supabase/types';
 
 const isDemoMode = () => !process.env.NEXT_PUBLIC_SUPABASE_URL;
+
+// Roles each creator is allowed to provision
+const ALLOWED_ROLES: Record<string, UserRole[]> = {
+  SUPER_ADMIN: ['JUDGE', 'STRATEGIC'],
+  JUDGE: ['OPERATIONAL'],
+};
 
 // ── Create user ───────────────────────────────────────────────────────────────
 
@@ -22,12 +28,18 @@ export async function createUserAction(
   const role = formData.get('role') as UserRole;
   const badge_number = (formData.get('badge_number') as string)?.trim() || null;
   const jurisdiction = (formData.get('jurisdiction') as string)?.trim() || null;
+  const access_scope = (formData.get('access_scope') as 'FULL' | 'RESTRICTED') || null;
 
   if (!full_name || !email || !password || !role) {
     return { error: 'Veuillez remplir tous les champs obligatoires' };
   }
   if (password.length < 8) {
     return { error: 'Le mot de passe doit comporter au moins 8 caractères' };
+  }
+
+  const allowed = ALLOWED_ROLES[session.role] ?? [];
+  if (!allowed.includes(role)) {
+    return { error: `Votre rôle ne permet pas de créer un compte de type « ${role} »` };
   }
 
   if (isDemoMode()) {
@@ -45,6 +57,8 @@ export async function createUserAction(
       is_active: true,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
+      created_by: session.id,
+      access_scope: role === 'OPERATIONAL' ? (access_scope ?? 'FULL') : null,
     });
     revalidatePath('/sigep/dashboard/users');
     return null;
@@ -68,6 +82,8 @@ export async function createUserAction(
     badge_number: badge_number || null,
     jurisdiction: jurisdiction || null,
     is_active: true,
+    created_by: session.id,
+    access_scope: role === 'OPERATIONAL' ? (access_scope ?? 'FULL') : null,
   });
   if (userErr) {
     await supabase.auth.admin.deleteUser(authData.user.id);
@@ -85,7 +101,7 @@ export async function createUserAction(
 
 export async function forcePasswordResetAction(formData: FormData): Promise<{ error?: string; success?: string }> {
   const session = await getSession();
-  if (!session || !canViewUsers(session.role)) return { error: 'Accès refusé' };
+  if (!session || !canManageAllUsers(session.role)) return { error: 'Accès refusé' };
 
   const user_id = formData.get('user_id') as string;
   if (!user_id || user_id === session.id) return { error: 'Opération non autorisée' };
@@ -120,7 +136,7 @@ export async function forcePasswordResetAction(formData: FormData): Promise<{ er
 
 export async function toggleUserActiveAction(formData: FormData): Promise<void> {
   const session = await getSession();
-  if (!session || !canViewUsers(session.role)) return;
+  if (!session || !canManageAllUsers(session.role)) return;
 
   const user_id = formData.get('user_id') as string;
   const next_active = formData.get('next_active') === 'true';

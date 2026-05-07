@@ -1,8 +1,8 @@
 import type { SessionUser } from '@/lib/supabase/types';
 import { MOCK_USERS } from '@/lib/mock/data';
 
-// Demo session is a JUDGE by default — change index to test other roles
-const DEMO_USER_INDEX = 2; // 0=SUPER_ADMIN, 1=STRATEGIC, 2=JUDGE, 3=OPERATIONAL
+// Demo session — 0=SUPER_ADMIN (baguian10), 1=STRATEGIC, 2=JUDGE, 3=OPERATIONAL
+const DEMO_USER_INDEX = 0;
 
 const DEMO_SESSION: SessionUser = {
   id: MOCK_USERS[DEMO_USER_INDEX].id,

@@ -48,12 +48,18 @@ export async function fetchAlerts(role: UserRole): Promise<Alert[]> {
   return (data ?? []) as Alert[];
 }
 
-export async function fetchUsers(): Promise<User[]> {
-  if (IS_DEMO_MODE) return MOCK_USERS;
+export async function fetchUsers(role?: UserRole, userId?: string): Promise<User[]> {
+  if (IS_DEMO_MODE) {
+    if (role === 'JUDGE') return MOCK_USERS.filter((u) => u.role === 'OPERATIONAL' && u.created_by === userId);
+    return MOCK_USERS;
+  }
   const { createAdminClient } = await import('@/lib/supabase/admin');
   const supabase = createAdminClient();
   if (!supabase) return [];
-  const { data } = await supabase.from('users').select('*').order('created_at', { ascending: false });
+  const base = supabase.from('users').select('*').order('created_at', { ascending: false });
+  const { data } = role === 'JUDGE' && userId
+    ? await base.eq('role', 'OPERATIONAL').eq('created_by', userId)
+    : await base;
   return (data ?? []) as User[];
 }
 

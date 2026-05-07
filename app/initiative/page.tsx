@@ -75,6 +75,7 @@ export default function InitiativePage() {
               alt=""
               fill
               priority
+              sizes="100vw"
               className="object-cover opacity-10"
             />
           </div>
@@ -136,11 +137,12 @@ export default function InitiativePage() {
               </div>
 
               <div className="relative">
-                <div className="aspect-[4/5] rounded-2xl overflow-hidden shadow-2xl shadow-slate-200">
+                <div className="relative aspect-[4/5] rounded-2xl overflow-hidden shadow-2xl shadow-slate-200">
                   <Image
                     src="https://images.unsplash.com/photo-1594708767771-a7502209ff51?q=80&w=1200"
                     alt="Travaux d'intérêt général au Burkina Faso"
                     fill
+                    sizes="(max-width: 768px) 100vw, 50vw"
                     className="object-cover"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-slate-900/60 to-transparent" />

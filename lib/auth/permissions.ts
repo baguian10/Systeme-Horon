@@ -14,7 +14,10 @@ export const ROLE_LABELS: Record<UserRole, string> = {
   OPERATIONAL: 'Opérationnel',
 };
 
-export const canViewUsers = (role: UserRole) => role === 'SUPER_ADMIN';
+// SUPER_ADMIN can view all users; JUDGE can view & manage their own OPERATIONAL agents
+export const canViewUsers = (role: UserRole) => role === 'SUPER_ADMIN' || role === 'JUDGE';
+export const canManageAllUsers = (role: UserRole) => role === 'SUPER_ADMIN';
+export const canConfigureHardware = (role: UserRole) => role === 'SUPER_ADMIN';
 export const canViewStats = (role: UserRole) => role === 'SUPER_ADMIN' || role === 'STRATEGIC';
 export const canCreateCase = (role: UserRole) => role === 'JUDGE' || role === 'SUPER_ADMIN';
 export const canManageGeofences = (role: UserRole) => role === 'JUDGE' || role === 'SUPER_ADMIN';

@@ -90,6 +90,7 @@ export default function HomePage() {
               alt=""
               fill
               priority
+              sizes="100vw"
               className="object-cover object-center opacity-20"
             />
             <div className="absolute inset-0 bg-gradient-to-br from-slate-900/95 via-slate-900/85 to-emerald-950/90" />
@@ -186,11 +187,12 @@ export default function HomePage() {
               </div>
 
               <div className="relative">
-                <div className="aspect-[4/3] rounded-2xl overflow-hidden shadow-2xl shadow-slate-200">
+                <div className="relative aspect-[4/3] rounded-2xl overflow-hidden shadow-2xl shadow-slate-200">
                   <Image
                     src="https://images.unsplash.com/photo-1594708767771-a7502209ff51?q=80&w=1200"
                     alt="Travaux d'intérêt général — travail communautaire"
                     fill
+                    sizes="(max-width: 768px) 100vw, 50vw"
                     className="object-cover"
                   />
                 </div>

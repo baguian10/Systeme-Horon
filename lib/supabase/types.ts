@@ -18,6 +18,8 @@ export interface User {
   is_active: boolean;
   created_at: string;
   updated_at: string;
+  created_by?: string | null;
+  access_scope?: 'FULL' | 'RESTRICTED' | null;
 }
 
 export interface Individual {

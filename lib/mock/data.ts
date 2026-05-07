@@ -11,6 +11,8 @@ export const MOCK_USERS: User[] = [
     is_active: true,
     created_at: '2024-01-15T08:00:00Z',
     updated_at: '2024-01-15T08:00:00Z',
+    created_by: null,
+    access_scope: null,
   },
   {
     id: 'u-0002',
@@ -22,6 +24,8 @@ export const MOCK_USERS: User[] = [
     is_active: true,
     created_at: '2024-01-20T09:00:00Z',
     updated_at: '2024-01-20T09:00:00Z',
+    created_by: 'u-0001',
+    access_scope: null,
   },
   {
     id: 'u-0003',
@@ -33,6 +37,8 @@ export const MOCK_USERS: User[] = [
     is_active: true,
     created_at: '2024-02-01T10:00:00Z',
     updated_at: '2024-02-01T10:00:00Z',
+    created_by: 'u-0001',
+    access_scope: null,
   },
   {
     id: 'u-0004',
@@ -44,6 +50,8 @@ export const MOCK_USERS: User[] = [
     is_active: true,
     created_at: '2024-02-10T11:00:00Z',
     updated_at: '2024-02-10T11:00:00Z',
+    created_by: 'u-0003',
+    access_scope: 'FULL',
   },
 ];
 

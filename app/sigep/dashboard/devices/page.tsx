@@ -4,7 +4,7 @@ import {
   Cpu, Timer, Zap, Globe, HardDrive, BatteryWarning, Thermometer, Activity,
 } from 'lucide-react';
 import { getSession } from '@/lib/auth/session';
-import { canViewDevices } from '@/lib/auth/permissions';
+import { canViewDevices, canConfigureHardware } from '@/lib/auth/permissions';
 import { fetchAllDevices, fetchCases } from '@/lib/mock/helpers';
 
 export const metadata = { title: 'Bracelets & Balises BLE — SIGEP' };
@@ -13,6 +13,8 @@ export const revalidate = 0;
 export default async function DevicesPage() {
   const session = await getSession();
   if (!session || !canViewDevices(session.role)) redirect('/sigep/dashboard');
+
+  const isHardwareAdmin = canConfigureHardware(session.role);
 
   const [devices, cases] = await Promise.all([
     fetchAllDevices(),
@@ -129,8 +131,8 @@ export default async function DevicesPage() {
         )}
       </div>
 
-      {/* ══ BLE BEACON CONFIG PANEL ══════════════════════════════════════════ */}
-      <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm">
+      {/* ══ BLE BEACON CONFIG PANEL — SUPER_ADMIN only ═══════════════════════ */}
+      {isHardwareAdmin && <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm">
         <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Bluetooth className="w-4 h-4 text-blue-600" />
@@ -237,10 +239,10 @@ export default async function DevicesPage() {
             </button>
           </div>
         </div>
-      </div>
+      </div>}
 
-      {/* ══ GPS TRACKER DEEP CONFIGURATION PANEL ════════════════════════════ */}
-      <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm">
+      {/* ══ GPS TRACKER DEEP CONFIG PANEL — SUPER_ADMIN only ════════════════ */}
+      {isHardwareAdmin && <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm">
         {/* Panel header */}
         <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between flex-wrap gap-2">
           <div className="flex items-center gap-2">
@@ -506,7 +508,7 @@ export default async function DevicesPage() {
             </button>
           </div>
         </div>
-      </div>
+      </div>}
     </div>
   );
 }
