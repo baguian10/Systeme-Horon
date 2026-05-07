@@ -44,12 +44,23 @@ export interface Device {
   created_at: string;
 }
 
+export type GeofenceType  = 'GPS_ZONE' | 'BLE_DOMICILE';
+export type GeofenceShape = 'POLYGON'  | 'CIRCLE';
+
 export interface Geofence {
   id: string;
   case_id: string;
+  device_id?: string | null;
   name: string;
+  geofence_type: GeofenceType;
+  shape_type: GeofenceShape;
   is_exclusion: boolean;
-  area: { type: 'Polygon'; coordinates: number[][][] };
+  // Polygon mode (shape_type === 'POLYGON')
+  area: { type: 'Polygon'; coordinates: number[][][] } | null;
+  // Circle mode (shape_type === 'CIRCLE')
+  center_lat: number | null;
+  center_lon: number | null;
+  radius_m: number | null;
   active_start: string | null;
   active_end: string | null;
   created_by: string;

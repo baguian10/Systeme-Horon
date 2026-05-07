@@ -32,7 +32,12 @@
       "Bash(taskkill *)",
       "PowerShell(npm run *)",
       "PowerShell(Get-NetTCPConnection *)",
-      "Bash(node *)"
+      "Bash(node *)",
+      "Bash(Get-ChildItem -Path . -Filter \"*.next\" -Recurse -ErrorAction SilentlyContinue)",
+      "Bash(Select-Object FullName)",
+      "Bash(npx plugins *)",
+      "Bash(vercel *)",
+      "Bash(npx vercel *)"
     ]
   }
 }

@@ -5,12 +5,13 @@ import { usePathname } from 'next/navigation';
 import {
   LayoutDashboard, FolderOpen, Bell, Map,
   BarChart2, Users, ShieldCheck, ChevronRight,
-  Activity, ClipboardList, Watch,
+  Activity, ClipboardList, Watch, Hexagon,
 } from 'lucide-react';
 import type { UserRole } from '@/lib/supabase/types';
 import {
   canViewUsers, canViewStats, canViewDevices,
   canViewCases, canViewRealtime, canViewAudit,
+  canManageGeofences,
 } from '@/lib/auth/permissions';
 
 interface NavItem {
@@ -36,6 +37,11 @@ function buildNav(role: UserRole): NavItem[] {
   // Real-time monitoring — not for STRATEGIC
   if (canViewRealtime(role)) {
     items.push({ href: '/sigep/dashboard/monitoring', label: 'Temps réel', icon: <Activity className="w-4 h-4" /> });
+  }
+
+  // Geofences — JUDGE + SUPER_ADMIN
+  if (canManageGeofences(role)) {
+    items.push({ href: '/sigep/dashboard/geofences', label: 'Géofences', icon: <Hexagon className="w-4 h-4" /> });
   }
 
   // Statistics — SUPER_ADMIN + STRATEGIC

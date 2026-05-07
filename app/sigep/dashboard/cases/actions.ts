@@ -163,7 +163,9 @@ export async function addGeofenceAction(
   if (isDemoMode()) {
     const { MOCK_GEOFENCES, MOCK_CASES } = await import('@/lib/mock/data');
     const newGeo = {
-      id: `g-${Date.now()}`, case_id, name, is_exclusion, area: polygon,
+      id: `g-${Date.now()}`, case_id, device_id: null, name, is_exclusion,
+      geofence_type: 'GPS_ZONE' as const, shape_type: 'POLYGON' as const,
+      area: polygon, center_lat: center_lat, center_lon: center_lon, radius_m: Math.round(radius_km * 1000),
       active_start: active_start || null, active_end: active_end || null,
       created_by: session.id, created_at: new Date().toISOString(),
     };

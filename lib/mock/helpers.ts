@@ -1,7 +1,8 @@
 import {
-  MOCK_CASES, MOCK_ALERTS, MOCK_USERS, MOCK_STATS, MOCK_POSITIONS, MOCK_DEVICES, MOCK_CASE_ASSIGNMENTS,
+  MOCK_CASES, MOCK_ALERTS, MOCK_USERS, MOCK_STATS, MOCK_POSITIONS, MOCK_DEVICES,
+  MOCK_CASE_ASSIGNMENTS, MOCK_GEOFENCES,
 } from './data';
-import type { Case, Alert, User, OverviewStats, UserRole, Position, Device } from '@/lib/supabase/types';
+import type { Case, Alert, User, OverviewStats, UserRole, Position, Device, Geofence } from '@/lib/supabase/types';
 
 export const IS_DEMO_MODE =
   !process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -148,4 +149,18 @@ export async function fetchLatestPositions(): Promise<(Position & { case_number:
     }));
   }
   return [];
+}
+
+export async function fetchGeofences(caseId?: string): Promise<Geofence[]> {
+  if (IS_DEMO_MODE) {
+    return caseId
+      ? MOCK_GEOFENCES.filter((g) => g.case_id === caseId)
+      : MOCK_GEOFENCES;
+  }
+  const { createAdminClient } = await import('@/lib/supabase/admin');
+  const supabase = createAdminClient();
+  if (!supabase) return [];
+  const query = supabase.from('geofences').select('*').order('created_at', { ascending: false });
+  const { data } = caseId ? await query.eq('case_id', caseId) : await query;
+  return (data ?? []) as Geofence[];
 }
