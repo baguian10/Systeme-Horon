@@ -1,10 +1,19 @@
 import Link from 'next/link';
 import { ShieldCheck } from 'lucide-react';
 
-const LINKS = [
-  { href: '/',               label: 'Accueil' },
-  { href: '/initiative',    label: "L'Initiative Présidentielle" },
-  { href: '/fonctionnement', label: 'Fonctionnement du système' },
+const LINKS_PROGRAMME = [
+  { href: '/',                   label: 'Accueil' },
+  { href: '/initiative',         label: "L'Initiative Présidentielle" },
+  { href: '/fonctionnement',     label: 'Fonctionnement du système' },
+  { href: '/programme-tig',      label: 'Programme TIG' },
+  { href: '/statistiques',       label: 'Statistiques & Bilan' },
+];
+
+const LINKS_INFO = [
+  { href: '/guide-beneficiaire', label: 'Guide du bénéficiaire' },
+  { href: '/actualites',         label: 'Actualités & Communiqués' },
+  { href: '/faq',                label: 'Questions fréquentes' },
+  { href: '/contact',            label: 'Contact & Infoline' },
 ];
 
 export default function SiteFooter() {
@@ -31,11 +40,11 @@ export default function SiteFooter() {
             <p className="text-[10px] text-gray-700 mt-0.5">Unité — Progrès — Justice</p>
           </div>
 
-          {/* Navigation */}
+          {/* Programme */}
           <div>
-            <p className="text-xs font-semibold text-gray-300 uppercase tracking-wider mb-4">Navigation</p>
+            <p className="text-xs font-semibold text-gray-300 uppercase tracking-wider mb-4">Le Programme</p>
             <ul className="space-y-2.5">
-              {LINKS.map(({ href, label }) => (
+              {LINKS_PROGRAMME.map(({ href, label }) => (
                 <li key={href}>
                   <Link href={href} className="text-xs text-gray-500 hover:text-white transition-colors">
                     {label}
@@ -45,15 +54,23 @@ export default function SiteFooter() {
             </ul>
           </div>
 
-          {/* Legal */}
+          {/* Infos pratiques */}
           <div>
-            <p className="text-xs font-semibold text-gray-300 uppercase tracking-wider mb-4">Avis légal</p>
-            <p className="text-xs text-gray-500 leading-relaxed mb-3">
-              Ce site est à usage institutionnel exclusif. Les données relatives au programme sont soumises au secret judiciaire et à la législation sur la protection des données personnelles.
-            </p>
-            <p className="text-xs text-gray-600">
-              Toute divulgation non autorisée est passible de poursuites judiciaires conformément au Code Pénal burkinabè.
-            </p>
+            <p className="text-xs font-semibold text-gray-300 uppercase tracking-wider mb-4">Informations pratiques</p>
+            <ul className="space-y-2.5 mb-5">
+              {LINKS_INFO.map(({ href, label }) => (
+                <li key={href}>
+                  <Link href={href} className="text-xs text-gray-500 hover:text-white transition-colors">
+                    {label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+            <div className="border-t border-gray-800 pt-4">
+              <p className="text-[10px] text-gray-600 uppercase tracking-wider mb-1">Infoline</p>
+              <p className="text-sm font-semibold text-white">+226 25 33 06 19</p>
+              <p className="text-[10px] text-gray-500">Lun–Ven · 07h30–17h30</p>
+            </div>
           </div>
         </div>
 

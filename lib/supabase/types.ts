@@ -173,3 +173,94 @@ export interface TigSite {
   longitude: number;
   created_at: string;
 }
+
+export type RevocationStatus  = 'PENDING' | 'UNDER_REVIEW' | 'APPROVED' | 'REJECTED';
+export type JournalEntryType  = 'POSITIVE' | 'NEUTRAL' | 'NEGATIVE' | 'INCIDENT';
+export type MaintenanceType   = 'BATTERY' | 'FIRMWARE' | 'HARDWARE' | 'CALIBRATION' | 'REPLACEMENT';
+export type MaintenanceStatus = 'PENDING' | 'IN_PROGRESS' | 'DONE' | 'CANCELLED';
+export type ObligationType    = 'TIG_SHIFT' | 'CURFEW_CHECK' | 'COURT_DATE' | 'MONITORING_VISIT';
+
+export interface RevocationRequest {
+  id: string;
+  case_id: string;
+  case_number: string;
+  individual_name: string;
+  requested_by_id: string;
+  requested_by_name: string;
+  reason: string;
+  violation_count: number;
+  status: RevocationStatus;
+  judge_decision: string | null;
+  decided_at: string | null;
+  created_at: string;
+}
+
+export interface JournalEntry {
+  id: string;
+  case_id: string;
+  author_id: string;
+  author_name: string;
+  author_role: UserRole;
+  entry_type: JournalEntryType;
+  content: string;
+  created_at: string;
+}
+
+export interface MaintenanceTick {
+  id: string;
+  device_id: string;
+  device_imei: string;
+  maintenance_type: MaintenanceType;
+  status: MaintenanceStatus;
+  priority: 1 | 2 | 3;
+  description: string;
+  assigned_to: string | null;
+  scheduled_at: string | null;
+  completed_at: string | null;
+  notes: string | null;
+  created_at: string;
+}
+
+export interface AgendaObligation {
+  id: string;
+  case_id: string;
+  case_number: string;
+  individual_name: string;
+  obligation_type: ObligationType;
+  title: string;
+  scheduled_date: string;
+  start_time: string | null;
+  end_time: string | null;
+  location: string | null;
+  is_confirmed: boolean;
+}
+
+export interface MessageThread {
+  id: string;
+  case_id: string | null;
+  case_number: string | null;
+  subject: string;
+  participant_ids: string[];
+  last_message_at: string;
+  last_message_preview: string;
+  created_by: string;
+  created_at: string;
+}
+
+export interface Message {
+  id: string;
+  thread_id: string;
+  sender_id: string;
+  sender_name: string;
+  sender_role: UserRole;
+  content: string;
+  is_read_by: string[];
+  created_at: string;
+}
+
+export interface ViolationHeatPoint {
+  lat: number;
+  lng: number;
+  intensity: number;
+  alert_type: AlertType;
+}

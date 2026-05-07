@@ -4,18 +4,19 @@ import {
   ArrowLeft, User, Calendar, FileText, Wifi, WifiOff,
   Battery, MapPin, ShieldCheck, Clock,
 } from 'lucide-react';
-import { fetchCaseById, fetchCaseAssignments, fetchOperationalUsers } from '@/lib/mock/helpers';
+import { fetchCaseById, fetchCaseAssignments, fetchOperationalUsers, fetchJournalEntries } from '@/lib/mock/helpers';
 import { getSession } from '@/lib/auth/session';
 import { CaseStatusBadge, AlertTypeBadge, SeverityDot } from '@/components/ui/StatusBadge';
-import { canViewPII, canManageGeofences, canUpdateCaseStatus, canManageAssignments } from '@/lib/auth/permissions';
+import { canViewPII, canManageGeofences, canUpdateCaseStatus, canManageAssignments, canWriteJournal } from '@/lib/auth/permissions';
 import StatusControls from '@/components/cases/StatusControls';
 import GeofenceManager from '@/components/cases/GeofenceManager';
 import AssignmentManager from '@/components/cases/AssignmentManager';
+import JournalPanel from '@/components/cases/JournalPanel';
 
 export default async function CaseDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const [session, caseData, assignments, allOperationals] = await Promise.all([
-    getSession(), fetchCaseById(id), fetchCaseAssignments(id), fetchOperationalUsers(),
+  const [session, caseData, assignments, allOperationals, journalEntries] = await Promise.all([
+    getSession(), fetchCaseById(id), fetchCaseAssignments(id), fetchOperationalUsers(), fetchJournalEntries(id),
   ]);
   if (!session || !caseData) notFound();
 
@@ -23,6 +24,7 @@ export default async function CaseDetailPage({ params }: { params: Promise<{ id:
   const canGeo = canManageGeofences(session.role);
   const canStatus = canUpdateCaseStatus(session.role);
   const canAssign = canManageAssignments(session.role);
+  const canJournal = canWriteJournal(session.role);
   const individual = caseData.individual;
   const device = caseData.device;
   const openAlerts = (caseData.alerts ?? []).filter((a) => !a.is_resolved);
@@ -219,6 +221,13 @@ export default async function CaseDetailPage({ params }: { params: Promise<{ id:
             assigned={assignments.map((a) => ({ id: a.id, full_name: a.full_name, badge_number: a.badge_number, assigned_at: a.assigned_at }))}
             available={availableOperationals.map((u) => ({ id: u.id, full_name: u.full_name, badge_number: u.badge_number }))}
             canManage={canAssign && caseData.status !== 'TERMINATED'}
+          />
+
+          {/* Journal comportemental */}
+          <JournalPanel
+            caseId={caseData.id}
+            entries={journalEntries}
+            canWrite={canJournal && caseData.status !== 'TERMINATED'}
           />
         </div>
       </div>

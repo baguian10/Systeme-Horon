@@ -1,8 +1,10 @@
 import {
   MOCK_CASES, MOCK_ALERTS, MOCK_USERS, MOCK_STATS, MOCK_POSITIONS, MOCK_DEVICES,
   MOCK_CASE_ASSIGNMENTS, MOCK_GEOFENCES, MOCK_TIG_SITES,
+  MOCK_REVOCATIONS, MOCK_JOURNAL_ENTRIES, MOCK_MAINTENANCE_TICKETS, MOCK_AGENDA,
+  MOCK_THREADS, MOCK_MESSAGES, MOCK_VIOLATION_HEATPOINTS,
 } from './data';
-import type { Case, Alert, User, OverviewStats, UserRole, Position, Device, Geofence, TigSite } from '@/lib/supabase/types';
+import type { Case, Alert, User, OverviewStats, UserRole, Position, Device, Geofence, TigSite, RevocationRequest, JournalEntry, MaintenanceTick, AgendaObligation, MessageThread, Message, ViolationHeatPoint } from '@/lib/supabase/types';
 
 export const IS_DEMO_MODE =
   !process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -179,4 +181,72 @@ export async function fetchViolations(role: UserRole): Promise<Alert[]> {
   return alerts
     .filter((a) => ['GEOFENCE_EXIT', 'TAMPER_DETECTED'].includes(a.alert_type))
     .sort((a, b) => new Date(b.triggered_at).getTime() - new Date(a.triggered_at).getTime());
+}
+
+export async function fetchRevocations(role: UserRole, userId: string): Promise<RevocationRequest[]> {
+  if (IS_DEMO_MODE) {
+    if (role === 'JUDGE') {
+      const judgedCases = MOCK_CASES.filter((c) => c.judge_id === userId).map((c) => c.id);
+      return MOCK_REVOCATIONS.filter((r) => judgedCases.includes(r.case_id));
+    }
+    if (role === 'OPERATIONAL') {
+      const assignedCaseIds = MOCK_CASE_ASSIGNMENTS.filter((a) => a.operational_id === userId).map((a) => a.case_id);
+      return MOCK_REVOCATIONS.filter((r) => assignedCaseIds.includes(r.case_id));
+    }
+    return MOCK_REVOCATIONS;
+  }
+  return MOCK_REVOCATIONS;
+}
+
+export async function fetchJournalEntries(caseId: string): Promise<JournalEntry[]> {
+  if (IS_DEMO_MODE) {
+    return MOCK_JOURNAL_ENTRIES.filter((e) => e.case_id === caseId)
+      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+  }
+  return [];
+}
+
+export async function fetchMaintenanceTickets(): Promise<MaintenanceTick[]> {
+  if (IS_DEMO_MODE) {
+    return MOCK_MAINTENANCE_TICKETS.sort((a, b) => b.priority - a.priority);
+  }
+  return [];
+}
+
+export async function fetchAgenda(role: UserRole, userId: string): Promise<AgendaObligation[]> {
+  if (IS_DEMO_MODE) {
+    if (role === 'OPERATIONAL') {
+      const assignedCaseIds = MOCK_CASE_ASSIGNMENTS.filter((a) => a.operational_id === userId).map((a) => a.case_id);
+      return MOCK_AGENDA.filter((a) => assignedCaseIds.includes(a.case_id));
+    }
+    if (role === 'JUDGE') {
+      const judgedCaseIds = MOCK_CASES.filter((c) => c.judge_id === userId).map((c) => c.id);
+      return MOCK_AGENDA.filter((a) => judgedCaseIds.includes(a.case_id));
+    }
+    return MOCK_AGENDA;
+  }
+  return [];
+}
+
+export async function fetchThreads(userId: string): Promise<MessageThread[]> {
+  if (IS_DEMO_MODE) {
+    return MOCK_THREADS
+      .filter((t) => t.participant_ids.includes(userId))
+      .sort((a, b) => new Date(b.last_message_at).getTime() - new Date(a.last_message_at).getTime());
+  }
+  return [];
+}
+
+export async function fetchMessages(threadId: string): Promise<Message[]> {
+  if (IS_DEMO_MODE) {
+    return MOCK_MESSAGES
+      .filter((m) => m.thread_id === threadId)
+      .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+  }
+  return [];
+}
+
+export async function fetchViolationHeatPoints(): Promise<ViolationHeatPoint[]> {
+  if (IS_DEMO_MODE) return MOCK_VIOLATION_HEATPOINTS;
+  return [];
 }

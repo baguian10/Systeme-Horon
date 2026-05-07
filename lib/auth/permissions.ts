@@ -50,3 +50,22 @@ export const canViewViolations    = (role: UserRole) => role !== 'STRATEGIC';
 // ── TIG sites: everyone except STRATEGIC ─────────────────────────────────────
 export const canViewTigSites      = (role: UserRole) => role !== 'STRATEGIC';
 export const canManageTigSites    = (role: UserRole) => role === 'SUPER_ADMIN' || role === 'JUDGE';
+
+// ── Revocations: all non-STRATEGIC ───────────────────────────────────────────
+export const canViewRevocations   = (role: UserRole) => role !== 'STRATEGIC';
+export const canManageRevocations = (role: UserRole) => role === 'SUPER_ADMIN' || role === 'JUDGE';
+
+// ── Journal: all non-STRATEGIC ───────────────────────────────────────────────
+export const canWriteJournal      = (role: UserRole) => role !== 'STRATEGIC';
+
+// ── Maintenance: SUPER_ADMIN + JUDGE ─────────────────────────────────────────
+export const canViewMaintenance   = (role: UserRole) => role === 'SUPER_ADMIN' || role === 'JUDGE';
+
+// ── Agenda: all non-STRATEGIC ────────────────────────────────────────────────
+export const canViewAgenda        = (role: UserRole) => role !== 'STRATEGIC';
+
+// ── Notifications: everyone ──────────────────────────────────────────────────
+export const canViewNotifications = (_role: UserRole) => true;
+
+// ── System parameters: SUPER_ADMIN only ──────────────────────────────────────
+export const canViewParametres    = (role: UserRole) => role === 'SUPER_ADMIN';
