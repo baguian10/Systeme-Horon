@@ -2,20 +2,87 @@
 
 import { useActionState, useState } from 'react';
 import Link from 'next/link';
-import { ShieldCheck, Users } from 'lucide-react';
+import { ShieldCheck, Users, CheckCircle } from 'lucide-react';
 import { createUserAction } from '@/app/sigep/dashboard/users/actions';
 import type { UserRole } from '@/lib/supabase/types';
 
 const INPUT = 'w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent';
 
-const ROLES_FOR_SUPER_ADMIN = [
-  { value: 'JUDGE',     label: 'Juge (JUDGE)' },
-  { value: 'STRATEGIC', label: 'Stratégique (STRATEGIC)' },
+/* ── Role definitions with level, description, and example profiles ── */
+const ROLE_CARDS_SUPER_ADMIN = [
+  {
+    value: 'STRATEGIC',
+    level: 'N1',
+    color: 'purple',
+    title: 'Niveau Stratégique',
+    subtitle: 'Direction & Ministère',
+    desc: "Accès aux statistiques agrégées et tableaux de bord nationaux. Aucun accès aux dossiers individuels.",
+    profiles: [
+      'Directeur de Cabinet',
+      'Secrétaire Général',
+      'Directeur des Affaires Juridiques',
+      'Contrôleur Général',
+    ],
+  },
+  {
+    value: 'JUDGE',
+    level: 'N2',
+    color: 'blue',
+    title: 'Niveau Judiciaire',
+    subtitle: 'Magistrats & Parquet',
+    desc: "Gestion complète des dossiers de sa juridiction, création des périmètres, et délégation aux agents opérationnels.",
+    profiles: [
+      "Juge d'instruction",
+      'Juge de fond / TGI',
+      'Procureur du Faso',
+      'Substitut du Procureur',
+    ],
+  },
 ];
 
-const ROLES_FOR_JUDGE = [
-  { value: 'OPERATIONAL', label: 'Opérationnel — Police / Agent de terrain' },
+const ROLE_CARDS_JUDGE = [
+  {
+    value: 'OPERATIONAL',
+    level: 'N3',
+    color: 'emerald',
+    title: 'Niveau Opérationnel',
+    subtitle: 'Agents de terrain',
+    desc: "Accès restreint aux dossiers qui lui sont assignés. Réception des alertes et rapports de terrain.",
+    profiles: [
+      'Officier de Police Judiciaire (OPJ)',
+      'Agent de Police Judiciaire (APJ)',
+      'Gendarme / Brigade territoriale',
+      'Greffier — suivi électronique',
+    ],
+  },
 ];
+
+const COLOR_MAP: Record<string, { ring: string; bg: string; badge: string; dot: string; text: string; check: string }> = {
+  purple: {
+    ring:  'border-purple-400 bg-purple-50',
+    bg:    'border-purple-100',
+    badge: 'bg-purple-100 text-purple-700',
+    dot:   'bg-purple-400',
+    text:  'text-purple-700',
+    check: 'text-purple-500',
+  },
+  blue: {
+    ring:  'border-blue-400 bg-blue-50',
+    bg:    'border-blue-100',
+    badge: 'bg-blue-100 text-blue-700',
+    dot:   'bg-blue-400',
+    text:  'text-blue-700',
+    check: 'text-blue-500',
+  },
+  emerald: {
+    ring:  'border-emerald-400 bg-emerald-50',
+    bg:    'border-emerald-100',
+    badge: 'bg-emerald-100 text-emerald-700',
+    dot:   'bg-emerald-400',
+    text:  'text-emerald-700',
+    check: 'text-emerald-500',
+  },
+};
 
 interface Props {
   creatorRole: UserRole;
@@ -23,10 +90,11 @@ interface Props {
 
 export default function UserForm({ creatorRole }: Props) {
   const [state, formAction, isPending] = useActionState(createUserAction, null);
+  const [selectedRole, setSelectedRole] = useState('');
   const [accessScope, setAccessScope] = useState<'FULL' | 'RESTRICTED'>('FULL');
 
   const isJudge = creatorRole === 'JUDGE';
-  const roles = isJudge ? ROLES_FOR_JUDGE : ROLES_FOR_SUPER_ADMIN;
+  const roleCards = isJudge ? ROLE_CARDS_JUDGE : ROLE_CARDS_SUPER_ADMIN;
 
   return (
     <form action={formAction} className="space-y-5">
@@ -36,6 +104,7 @@ export default function UserForm({ creatorRole }: Props) {
         </div>
       )}
 
+      {/* ── Identité ─────────────────────────────────────────────────── */}
       <div className="bg-white rounded-2xl border border-gray-100 p-5 space-y-4">
         <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Identité</h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -54,35 +123,100 @@ export default function UserForm({ creatorRole }: Props) {
         </div>
       </div>
 
+      {/* ── Niveau d'accès ───────────────────────────────────────────── */}
+      <div className="bg-white rounded-2xl border border-gray-100 p-5 space-y-4">
+        <div>
+          <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-0.5">
+            Niveau d&apos;accès *
+          </h3>
+          <p className="text-[11px] text-gray-400">
+            Sélectionnez le niveau hiérarchique correspondant au profil de l&apos;utilisateur.
+          </p>
+        </div>
+
+        <div className={`grid gap-4 ${roleCards.length === 1 ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2'}`}>
+          {roleCards.map((card) => {
+            const c = COLOR_MAP[card.color];
+            const isSelected = selectedRole === card.value;
+            return (
+              <button
+                key={card.value}
+                type="button"
+                onClick={() => setSelectedRole(card.value)}
+                className={`w-full text-left rounded-2xl border-2 p-4 transition-all ${
+                  isSelected ? c.ring : 'border-gray-100 hover:border-gray-200'
+                }`}
+              >
+                <div className="flex items-start justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${c.badge}`}>
+                      {card.level}
+                    </span>
+                    <span className={`text-sm font-bold ${isSelected ? c.text : 'text-gray-800'}`}>
+                      {card.title}
+                    </span>
+                  </div>
+                  {isSelected && <CheckCircle className={`w-4 h-4 flex-shrink-0 ${c.check}`} />}
+                </div>
+
+                <p className={`text-xs font-semibold mb-1 ${isSelected ? c.text : 'text-gray-500'}`}>
+                  {card.subtitle}
+                </p>
+                <p className="text-xs text-gray-500 leading-relaxed mb-3">
+                  {card.desc}
+                </p>
+
+                <div className={`rounded-xl border p-3 ${isSelected ? c.bg : 'border-gray-100 bg-gray-50'}`}>
+                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">
+                    Profils concernés
+                  </p>
+                  <ul className="space-y-1">
+                    {card.profiles.map((p) => (
+                      <li key={p} className="flex items-center gap-2 text-xs text-gray-600">
+                        <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${isSelected ? c.dot : 'bg-gray-300'}`} />
+                        {p}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Hidden input carrying the selected role value */}
+        <input type="hidden" name="role" value={selectedRole} />
+        {!selectedRole && state && (
+          <p className="text-xs text-red-500">Veuillez sélectionner un niveau d&apos;accès.</p>
+        )}
+      </div>
+
+      {/* ── Affectation ──────────────────────────────────────────────── */}
       <div className="bg-white rounded-2xl border border-gray-100 p-5 space-y-4">
         <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
-          {isJudge ? "Affectation & portée d'accès" : 'Rôle & juridiction'}
+          {isJudge ? "Affectation & portée d'accès" : 'Affectation'}
         </h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1.5">Rôle *</label>
-            <select name="role" required className={`${INPUT} bg-white`}>
-              <option value="">— Choisir un rôle —</option>
-              {roles.map((r) => (
-                <option key={r.value} value={r.value}>{r.label}</option>
-              ))}
-            </select>
+            <label className="block text-xs font-medium text-gray-600 mb-1.5">N° de badge</label>
+            <input
+              name="badge_number"
+              type="text"
+              placeholder={isJudge ? 'OPJ-001' : 'JUG-001'}
+              className={INPUT}
+            />
           </div>
           <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1.5">N° de badge</label>
-            <input name="badge_number" type="text" placeholder={isJudge ? 'PJ-001' : 'JUG-001'} className={INPUT} />
-          </div>
-          <div className="sm:col-span-2">
             <label className="block text-xs font-medium text-gray-600 mb-1.5">Juridiction / Affectation</label>
             <input
               name="jurisdiction"
               type="text"
-              placeholder={isJudge ? 'Direction Centrale de la Police Judiciaire...' : 'TGI Ouagadougou...'}
+              placeholder={isJudge ? 'Brigade PJ Ouagadougou...' : 'TGI Ouagadougou...'}
               className={INPUT}
             />
           </div>
 
-          {/* ── Scope of Access toggle — JUDGE only ─────────────────────── */}
+          {/* ── Scope of Access — JUDGE only ────────────────────────── */}
           {isJudge && (
             <div className="sm:col-span-2 space-y-2">
               <label className="block text-xs font-medium text-gray-600 mb-1">
@@ -136,8 +270,9 @@ export default function UserForm({ creatorRole }: Props) {
 
       <div className="flex items-center gap-3">
         <button
-          type="submit" disabled={isPending}
-          className="px-5 py-2.5 rounded-xl bg-emerald-600 text-white text-sm font-medium hover:bg-emerald-500 disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
+          type="submit"
+          disabled={isPending || !selectedRole}
+          className="px-5 py-2.5 rounded-xl bg-emerald-600 text-white text-sm font-medium hover:bg-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
           {isPending ? 'Création en cours...' : isJudge ? 'Créer le compte agent' : 'Créer le compte'}
         </button>
