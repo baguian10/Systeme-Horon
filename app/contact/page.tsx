@@ -1,5 +1,7 @@
 import { Phone, Mail, MapPin, Clock, AlertTriangle, Shield, ExternalLink } from 'lucide-react';
 import ContactForm from './ContactForm';
+import SiteHeader from '@/components/public/SiteHeader';
+import SiteFooter from '@/components/public/SiteFooter';
 
 export const metadata = {
   title: 'Contact & Infoline — Système Horon',
@@ -44,7 +46,9 @@ const OFFICES = [
 
 export default function ContactPage() {
   return (
-    <main className="min-h-screen bg-gray-50">
+    <>
+      <SiteHeader />
+      <main className="min-h-screen bg-gray-50 pt-16">
 
       {/* Header */}
       <section className="bg-white border-b border-gray-100 py-12 px-6">
@@ -167,5 +171,7 @@ export default function ContactPage() {
         </div>
       </div>
     </main>
+      <SiteFooter />
+    </>
   );
 }

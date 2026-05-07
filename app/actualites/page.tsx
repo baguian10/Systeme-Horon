@@ -1,5 +1,7 @@
 import Link from 'next/link';
 import { Newspaper, Calendar, Tag, ChevronRight, ExternalLink } from 'lucide-react';
+import SiteHeader from '@/components/public/SiteHeader';
+import SiteFooter from '@/components/public/SiteFooter';
 
 export const metadata = {
   title: 'Actualités & Communiqués — Système Horon',
@@ -107,7 +109,9 @@ export default function ActualitesPage() {
   const byCategory = (cat: Category) => ARTICLES.filter((a) => a.category === cat).length;
 
   return (
-    <main className="min-h-screen bg-gray-50">
+    <>
+      <SiteHeader />
+      <main className="min-h-screen bg-gray-50 pt-16">
 
       {/* Header */}
       <section className="bg-white border-b border-gray-100 py-12 px-6">
@@ -193,5 +197,7 @@ export default function ActualitesPage() {
         </div>
       </div>
     </main>
+      <SiteFooter />
+    </>
   );
 }

@@ -9,6 +9,7 @@ import SiteFooter from '@/components/public/SiteFooter';
 import StatsStrip from '@/components/public/StatsStrip';
 import RevealSection from '@/components/public/RevealSection';
 import HeroContent from '@/components/public/HeroContent';
+import HeroSlideshow from '@/components/public/HeroSlideshow';
 
 export const metadata = {
   title: "Système Horon — Justice Active & TIG · Burkina Faso",
@@ -53,20 +54,9 @@ export default function HomePage() {
 
         {/* ══ HERO ══════════════════════════════════════════════════════════════ */}
         <section className="relative min-h-screen flex flex-col justify-center bg-slate-900 overflow-hidden">
-          <div className="absolute inset-0">
-            <Image
-              src="/reinsertion-sociale.jpg"
-              alt=""
-              fill
-              priority
-              sizes="100vw"
-              className="object-cover object-center opacity-30"
-            />
-            <div className="absolute inset-0 bg-gradient-to-r from-slate-900 via-slate-900/88 to-slate-900/40" />
-            <div className="absolute inset-0 bg-gradient-to-t from-slate-900/70 via-transparent to-transparent" />
-          </div>
+          <HeroSlideshow />
 
-          <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-emerald-600 via-amber-500 to-red-600" />
+          <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-emerald-600 via-amber-500 to-red-600 z-10" />
 
           <div className="relative z-10 max-w-7xl mx-auto px-6 pt-32 pb-20 w-full">
             <HeroContent />

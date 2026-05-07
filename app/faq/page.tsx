@@ -2,12 +2,16 @@ import { metadata as meta } from './metadata';
 import FaqAccordion from './FaqAccordion';
 import { HelpCircle, Phone } from 'lucide-react';
 import Link from 'next/link';
+import SiteHeader from '@/components/public/SiteHeader';
+import SiteFooter from '@/components/public/SiteFooter';
 
 export const metadata = meta;
 
 export default function FaqPage() {
   return (
-    <main className="min-h-screen bg-gray-50">
+    <>
+      <SiteHeader />
+      <main className="min-h-screen bg-gray-50 pt-16">
 
       {/* Header */}
       <section className="bg-white border-b border-gray-100 py-12 px-6">
@@ -52,5 +56,7 @@ export default function FaqPage() {
         </div>
       </div>
     </main>
+      <SiteFooter />
+    </>
   );
 }

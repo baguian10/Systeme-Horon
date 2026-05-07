@@ -1,4 +1,7 @@
-import { BookOpen, Shield, Clock, MapPin, Phone, AlertTriangle, CheckCircle, FileText, Wifi, ChevronRight, Download } from 'lucide-react';
+import { BookOpen, Shield, Clock, MapPin, Phone, AlertTriangle, CheckCircle, FileText, Wifi, ChevronRight } from 'lucide-react';
+import SiteHeader from '@/components/public/SiteHeader';
+import SiteFooter from '@/components/public/SiteFooter';
+import PrintButton from './PrintButton';
 
 export const metadata = {
   title: 'Guide du bénéficiaire — Système Horon',
@@ -38,7 +41,9 @@ const EMERGENCY_CONTACTS = [
 
 export default function GuideBeneficiairePage() {
   return (
-    <main className="min-h-screen bg-white">
+    <>
+      <SiteHeader />
+      <main className="min-h-screen bg-white pt-16">
 
       {/* Hero */}
       <section className="bg-gradient-to-br from-gray-950 via-gray-900 to-emerald-950 text-white py-20 px-6">
@@ -56,13 +61,7 @@ export default function GuideBeneficiairePage() {
             vos droits, vos obligations, le fonctionnement du bracelet GPS et les contacts en cas de besoin.
           </p>
           <div className="flex flex-wrap gap-3">
-            <button
-              onClick={() => typeof window !== 'undefined' && window.print()}
-              className="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white px-5 py-2.5 rounded-xl text-sm font-semibold transition-colors print:hidden"
-            >
-              <Download className="w-4 h-4" />
-              Télécharger en PDF
-            </button>
+            <PrintButton />
             <a href="/contact" className="inline-flex items-center gap-2 border border-white/20 hover:bg-white/10 text-white px-5 py-2.5 rounded-xl text-sm font-medium transition-colors print:hidden">
               <Phone className="w-4 h-4" />
               Contacter un agent
@@ -279,5 +278,7 @@ export default function GuideBeneficiairePage() {
         </div>
       </div>
     </main>
+      <SiteFooter />
+    </>
   );
 }
