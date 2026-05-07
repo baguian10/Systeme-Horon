@@ -6,10 +6,11 @@ const ContentSecurityPolicy = [
   "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
   // Tailwind utility classes are injected at runtime
   "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' data: blob: https://images.unsplash.com",
+  // Local images + Leaflet tiles (OpenStreetMap)
+  "img-src 'self' data: blob: https://*.tile.openstreetmap.org",
   "font-src 'self'",
-  // Supabase REST + Realtime WebSocket
-  "connect-src 'self' https://*.supabase.co wss://*.supabase.co",
+  // Supabase REST + Realtime WebSocket + OSM tile requests
+  "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.tile.openstreetmap.org",
   "frame-ancestors 'none'",
   "base-uri 'self'",
   "form-action 'self'",
@@ -19,7 +20,7 @@ const nextConfig: NextConfig = {
   poweredByHeader: false,
   compress: true,
   images: {
-    remotePatterns: [{ hostname: 'images.unsplash.com' }],
+    remotePatterns: [],
   },
 
   async headers() {
