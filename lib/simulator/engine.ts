@@ -19,7 +19,7 @@ function jitter(val: number, scale = 0.002): number {
   return val + (Math.random() - 0.5) * scale;
 }
 
-class SimulatorEngine {
+export class SimulatorEngine {
   private listeners: Set<SimulatorListener> = new Set();
   private intervalId: ReturnType<typeof setInterval> | null = null;
   private positions: Map<string, SimulatedPosition> = new Map();

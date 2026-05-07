@@ -128,7 +128,7 @@ export async function fetchCaseAssignments(caseId: string): Promise<Array<User &
     .from('case_assignments')
     .select('assigned_at, operational:users!operational_id(*)')
     .eq('case_id', caseId);
-  return (data ?? []).map((r) => ({ ...(r.operational as User), assigned_at: r.assigned_at }));
+  return (data ?? []).map((r) => ({ ...(r.operational as unknown as User), assigned_at: r.assigned_at }));
 }
 
 export async function fetchAllDevices(): Promise<Device[]> {
