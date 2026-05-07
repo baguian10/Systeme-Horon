@@ -1,3 +1,4 @@
+import Image from 'next/image';
 import Link from 'next/link';
 import {
   ArrowLeft, ArrowRight, FileText, Settings, Radio,
@@ -195,6 +196,15 @@ export default function FonctionnementPage() {
 
         {/* ══ BLE BEACON SECTION ═══════════════════════════════════════════════ */}
         <section className="py-24 px-6 bg-slate-900 relative overflow-hidden">
+          <div className="absolute inset-0">
+            <Image
+              src="/centre-controle-sigep.jpg"
+              alt=""
+              fill
+              sizes="100vw"
+              className="object-cover opacity-10"
+            />
+          </div>
           <div className="absolute inset-0 opacity-5" style={{ backgroundImage: 'radial-gradient(circle at 70% 50%, #3b82f6 0%, transparent 60%)' }} />
           <div className="max-w-7xl mx-auto">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
@@ -290,6 +300,13 @@ export default function FonctionnementPage() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
               {/* Large GPS card */}
               <div className="md:col-span-2 bg-slate-900 rounded-2xl p-10 flex flex-col justify-between min-h-72 relative overflow-hidden">
+                <Image
+                  src="/suivi-precision.jpg"
+                  alt=""
+                  fill
+                  sizes="(max-width: 768px) 100vw, 66vw"
+                  className="object-cover opacity-10"
+                />
                 <div className="absolute -right-12 -bottom-12 w-64 h-64 rounded-full bg-emerald-600/10" />
                 <div className="absolute right-8 bottom-8 w-40 h-40 rounded-full bg-emerald-600/10" />
                 <div>

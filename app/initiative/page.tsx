@@ -71,7 +71,7 @@ export default function InitiativePage() {
         <section className="relative pt-40 pb-24 px-6 bg-slate-900 overflow-hidden">
           <div className="absolute inset-0">
             <Image
-              src="https://images.unsplash.com/photo-1589829085413-56de8ae18c73?q=80&w=2000"
+              src="/justice-rehabilitation.jpg"
               alt=""
               fill
               priority
@@ -139,7 +139,7 @@ export default function InitiativePage() {
               <div className="relative">
                 <div className="relative aspect-[4/5] rounded-2xl overflow-hidden shadow-2xl shadow-slate-200">
                   <Image
-                    src="https://images.unsplash.com/photo-1594708767771-a7502209ff51?q=80&w=1200"
+                    src="/reinsertion-sociale.jpg"
                     alt="Travaux d'intérêt général au Burkina Faso"
                     fill
                     sizes="(max-width: 768px) 100vw, 50vw"

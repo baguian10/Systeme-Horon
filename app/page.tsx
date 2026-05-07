@@ -86,7 +86,7 @@ export default function HomePage() {
         <section className="relative min-h-screen flex flex-col justify-center bg-slate-900 overflow-hidden">
           <div className="absolute inset-0">
             <Image
-              src="https://images.unsplash.com/photo-1594708767771-a7502209ff51?q=80&w=2000"
+              src="/reinsertion-sociale.jpg"
               alt=""
               fill
               priority
@@ -189,7 +189,7 @@ export default function HomePage() {
               <div className="relative">
                 <div className="relative aspect-[4/3] rounded-2xl overflow-hidden shadow-2xl shadow-slate-200">
                   <Image
-                    src="https://images.unsplash.com/photo-1594708767771-a7502209ff51?q=80&w=1200"
+                    src="/reinsertion-sociale.jpg"
                     alt="Travaux d'intérêt général — travail communautaire"
                     fill
                     sizes="(max-width: 768px) 100vw, 50vw"
