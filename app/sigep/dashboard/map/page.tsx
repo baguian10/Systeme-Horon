@@ -67,8 +67,8 @@ export default async function MapPage() {
         </div>
       </div>
 
-      {/* Leaflet map */}
-      <div className="rounded-2xl overflow-hidden border border-gray-100 shadow-sm" style={{ height: 480 }}>
+      {/* Leaflet map — explicit h-[600px] so MapContainer height:100% resolves correctly */}
+      <div className="h-[600px] w-full rounded-2xl overflow-hidden border border-gray-100 shadow-sm">
         <LeafletMapWrapper markers={markers} />
       </div>
 

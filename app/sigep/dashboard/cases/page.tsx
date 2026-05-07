@@ -1,10 +1,11 @@
 import { Suspense } from 'react';
 import Link from 'next/link';
+import { redirect } from 'next/navigation';
 import { FolderOpen, Plus, Battery, Wifi, WifiOff } from 'lucide-react';
 import { getSession } from '@/lib/auth/session';
 import { fetchCases } from '@/lib/mock/helpers';
 import { CaseStatusBadge } from '@/components/ui/StatusBadge';
-import { canCreateCase, canViewPII } from '@/lib/auth/permissions';
+import { canCreateCase, canViewPII, canViewCases } from '@/lib/auth/permissions';
 import EmptyState from '@/components/ui/EmptyState';
 import CaseSearch from '@/components/cases/CaseSearch';
 import type { CaseStatus } from '@/lib/supabase/types';
@@ -18,6 +19,8 @@ export default async function CasesPage({
 }) {
   const [{ q = '', status = '' }, session] = await Promise.all([searchParams, getSession()]);
   if (!session) return null;
+  // STRATEGIC has no individual case access — redirect to dashboard (aggregate stats only)
+  if (!canViewCases(session.role)) redirect('/sigep/dashboard');
 
   const cases = await fetchCases(session.role, session.id);
   const showPII = canViewPII(session.role);

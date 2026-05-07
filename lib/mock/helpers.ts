@@ -8,9 +8,14 @@ export const IS_DEMO_MODE =
 
 export async function fetchCases(role: UserRole, userId: string): Promise<Case[]> {
   if (IS_DEMO_MODE) {
-    if (role === 'OPERATIONAL') return MOCK_CASES.slice(0, 2);
-    if (role === 'JUDGE') return MOCK_CASES;
-    return MOCK_CASES;
+    if (role === 'OPERATIONAL') {
+      const assigned = MOCK_CASE_ASSIGNMENTS
+        .filter((a) => a.operational_id === userId)
+        .map((a) => a.case_id);
+      return MOCK_CASES.filter((c) => assigned.includes(c.id));
+    }
+    if (role === 'JUDGE') return MOCK_CASES.filter((c) => c.judge_id === userId);
+    return MOCK_CASES; // SUPER_ADMIN / STRATEGIC see all (STRATEGIC blocked at page level)
   }
   // Real Supabase query — RLS handles filtering automatically
   const { createClient } = await import('@/lib/supabase/server');

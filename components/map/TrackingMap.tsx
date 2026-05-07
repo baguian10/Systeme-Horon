@@ -3,7 +3,7 @@
 import { useEffect } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, Circle, useMap } from 'react-leaflet';
 import L from 'leaflet';
-import 'leaflet/dist/leaflet.css';
+// leaflet/dist/leaflet.css is imported globally in app/layout.tsx
 
 delete (L.Icon.Default.prototype as any)._getIconUrl;
 L.Icon.Default.mergeOptions({
@@ -82,7 +82,7 @@ export default function TrackingMap({ markers, center = [12.3647, -1.5332], zoom
     <MapContainer
       center={center}
       zoom={zoom}
-      style={{ height: '100%', width: '100%', minHeight: 480 }}
+      style={{ height: '100%', width: '100%' }}
       scrollWheelZoom
     >
       <RecenterMap center={center} />
