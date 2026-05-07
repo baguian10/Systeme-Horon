@@ -10,7 +10,7 @@ const LINKS = [
 export default function SiteFooter() {
   return (
     <footer className="bg-gray-950 text-gray-400">
-      <div className="h-1 bg-gradient-to-r from-bf-green via-bf-gold to-bf-red" />
+      <div className="h-0.5 bg-gradient-to-r from-emerald-600 via-amber-500 to-red-600" />
 
       <div className="max-w-7xl mx-auto px-6 py-14">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-10 mb-12">
