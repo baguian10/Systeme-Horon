@@ -1,5 +1,8 @@
 import { redirect } from 'next/navigation';
-import { Wifi, WifiOff, Battery, Package, Bluetooth, Radio, Signal } from 'lucide-react';
+import {
+  Wifi, WifiOff, Battery, Package, Bluetooth, Radio, Signal,
+  Cpu, Timer, Zap, Globe, HardDrive, BatteryWarning, Thermometer, Activity,
+} from 'lucide-react';
 import { getSession } from '@/lib/auth/session';
 import { canViewDevices } from '@/lib/auth/permissions';
 import { fetchAllDevices, fetchCases } from '@/lib/mock/helpers';
@@ -231,6 +234,275 @@ export default async function DevicesPage() {
               className="px-4 py-2 rounded-xl bg-blue-600/30 text-blue-400 text-sm font-semibold cursor-not-allowed"
             >
               Enregistrer la configuration
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* ══ GPS TRACKER DEEP CONFIGURATION PANEL ════════════════════════════ */}
+      <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm">
+        {/* Panel header */}
+        <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between flex-wrap gap-2">
+          <div className="flex items-center gap-2">
+            <Cpu className="w-4 h-4 text-emerald-600" />
+            <h3 className="text-sm font-semibold text-gray-700">Configuration Technique du Bracelet GPS</h3>
+            <span className="ml-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-100 px-2 py-0.5 rounded-full uppercase tracking-wide">
+              Intégration API en attente
+            </span>
+          </div>
+          <span className="text-xs text-gray-400">Paramètres matériels — lecture seule</span>
+        </div>
+
+        <div className="p-6 space-y-6">
+          <p className="text-sm text-gray-500 leading-relaxed">
+            Ces paramètres seront transmis directement au firmware du Dispositif Électronique Sécurisé via l&apos;API matérielle lors de la mise en production. Les valeurs ci-dessous représentent la configuration cible recommandée par défaut.
+          </p>
+
+          {/* ── 1. Fréquence de Transmission ──────────────────────────────── */}
+          <div className="bg-slate-50 border border-slate-100 rounded-xl p-5">
+            <div className="flex items-center gap-2 mb-4">
+              <div className="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center">
+                <Timer className="w-4 h-4" />
+              </div>
+              <div>
+                <p className="text-sm font-bold text-slate-800">Fréquence de transmission GPS</p>
+                <p className="text-[10px] text-slate-500">Ping rate adaptatif pour optimiser la consommation batterie</p>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">
+                  En mouvement (secondes)
+                </label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="number"
+                    defaultValue={30}
+                    min={10}
+                    max={300}
+                    disabled
+                    className="flex-1 px-3.5 py-2.5 text-sm border border-gray-200 rounded-xl bg-gray-50 text-gray-400 cursor-not-allowed"
+                  />
+                  <span className="text-xs text-gray-400 whitespace-nowrap">sec</span>
+                </div>
+                <p className="text-[10px] text-gray-400">Accéléromètre actif → transmission fréquente</p>
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">
+                  Immobile / veille (minutes)
+                </label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="number"
+                    defaultValue={10}
+                    min={1}
+                    max={60}
+                    disabled
+                    className="flex-1 px-3.5 py-2.5 text-sm border border-gray-200 rounded-xl bg-gray-50 text-gray-400 cursor-not-allowed"
+                  />
+                  <span className="text-xs text-gray-400 whitespace-nowrap">min</span>
+                </div>
+                <p className="text-[10px] text-gray-400">Aucune activité détectée → mode économie</p>
+              </div>
+            </div>
+          </div>
+
+          {/* ── 2. Sensibilité Anti-Sabotage ──────────────────────────────── */}
+          <div className="bg-slate-50 border border-slate-100 rounded-xl p-5">
+            <div className="flex items-center gap-2 mb-4">
+              <div className="w-8 h-8 rounded-lg bg-red-100 text-red-700 flex items-center justify-center">
+                <Zap className="w-4 h-4" />
+              </div>
+              <div>
+                <p className="text-sm font-bold text-slate-800">Sensibilité anti-sabotage</p>
+                <p className="text-[10px] text-slate-500">Déclencheurs d&apos;alerte de niveau maximum en cas de manipulation</p>
+              </div>
+            </div>
+            <div className="space-y-3">
+              {[
+                {
+                  icon: <Activity className="w-4 h-4" />,
+                  label: 'Coupure de la sangle (fibre optique)',
+                  desc: 'Rupture du circuit optique intégré dans la sangle → alerte immédiate',
+                  on: true,
+                },
+                {
+                  icon: <Thermometer className="w-4 h-4" />,
+                  label: 'Chute anormale de température',
+                  desc: 'Baisse de > 15 °C en < 60 secondes → tentative de retrait par réfrigération',
+                  on: true,
+                },
+                {
+                  icon: <Zap className="w-4 h-4" />,
+                  label: 'Choc violent (accéléromètre)',
+                  desc: 'Impact > 4G détecté → tentative de destruction mécanique',
+                  on: true,
+                },
+              ].map((item) => (
+                <div key={item.label} className="flex items-start justify-between gap-4 bg-white rounded-xl px-4 py-3 border border-slate-100">
+                  <div className="flex items-start gap-3 min-w-0">
+                    <div className="w-7 h-7 rounded-lg bg-red-50 text-red-600 flex items-center justify-center flex-shrink-0 mt-0.5">
+                      {item.icon}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-slate-700 leading-tight">{item.label}</p>
+                      <p className="text-[10px] text-slate-400 mt-0.5 leading-relaxed">{item.desc}</p>
+                    </div>
+                  </div>
+                  {/* Visual toggle — ON, disabled */}
+                  <div className="flex-shrink-0 flex items-center gap-2 mt-0.5">
+                    <span className="text-[10px] font-bold text-emerald-600">ACTIF</span>
+                    <div className="w-11 h-6 bg-emerald-500 rounded-full relative opacity-60 cursor-not-allowed">
+                      <div className="absolute top-0.5 right-0.5 w-5 h-5 bg-white rounded-full shadow-sm" />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* ── 3. Gestion Réseau ─────────────────────────────────────────── */}
+          <div className="bg-slate-50 border border-slate-100 rounded-xl p-5">
+            <div className="flex items-center gap-2 mb-4">
+              <div className="w-8 h-8 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center">
+                <Globe className="w-4 h-4" />
+              </div>
+              <div>
+                <p className="text-sm font-bold text-slate-800">Gestion réseau &amp; bascule automatique</p>
+                <p className="text-[10px] text-slate-500">Mode de connexion primaire et repli SMS en zone dégradée</p>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">
+                  Mode de connexion primaire
+                </label>
+                <select
+                  disabled
+                  className="w-full px-3.5 py-2.5 text-sm border border-gray-200 rounded-xl bg-gray-50 text-gray-400 cursor-not-allowed"
+                >
+                  <option>4G / LTE (Prioritaire)</option>
+                  <option>3G / UMTS</option>
+                  <option>2G / GPRS</option>
+                </select>
+                <p className="text-[10px] text-gray-400">Réseau cellulaire utilisé pour la transmission GPS</p>
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">
+                  Bascule SMS automatique
+                </label>
+                <div className="flex items-center justify-between bg-white rounded-xl px-4 py-2.5 border border-slate-100 h-[42px]">
+                  <p className="text-xs text-slate-600">Activer si données indisponibles</p>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-bold text-emerald-600">ACTIF</span>
+                    <div className="w-11 h-6 bg-emerald-500 rounded-full relative opacity-60 cursor-not-allowed">
+                      <div className="absolute top-0.5 right-0.5 w-5 h-5 bg-white rounded-full shadow-sm" />
+                    </div>
+                  </div>
+                </div>
+                <p className="text-[10px] text-gray-400">Repli SMS si perte réseau en zone rurale</p>
+              </div>
+            </div>
+          </div>
+
+          {/* ── 4. Seuils d'Alerte Batterie ───────────────────────────────── */}
+          <div className="bg-slate-50 border border-slate-100 rounded-xl p-5">
+            <div className="flex items-center gap-2 mb-4">
+              <div className="w-8 h-8 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center">
+                <BatteryWarning className="w-4 h-4" />
+              </div>
+              <div>
+                <p className="text-sm font-bold text-slate-800">Seuils d&apos;alerte batterie</p>
+                <p className="text-[10px] text-slate-500">Déclencher des notifications automatiques aux agents selon le niveau de charge</p>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">
+                  Niveau 1 — Avertissement (%)
+                </label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="number"
+                    defaultValue={20}
+                    min={5}
+                    max={50}
+                    disabled
+                    className="flex-1 px-3.5 py-2.5 text-sm border border-amber-200 rounded-xl bg-amber-50/50 text-amber-600 cursor-not-allowed font-semibold"
+                  />
+                  <span className="text-xs text-gray-400">%</span>
+                </div>
+                <p className="text-[10px] text-gray-400">Notification agent — recharge recommandée</p>
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">
+                  Niveau 2 — Critique (%)
+                </label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="number"
+                    defaultValue={10}
+                    min={1}
+                    max={20}
+                    disabled
+                    className="flex-1 px-3.5 py-2.5 text-sm border border-red-200 rounded-xl bg-red-50/50 text-red-600 cursor-not-allowed font-semibold"
+                  />
+                  <span className="text-xs text-gray-400">%</span>
+                </div>
+                <p className="text-[10px] text-gray-400">Alerte critique — intervention urgente requise</p>
+              </div>
+            </div>
+            <div className="mt-3 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">
+              <p className="text-[10px] text-amber-700 leading-relaxed">
+                <strong>Note :</strong> En dessous du seuil critique, le dispositif bascule en mode survie (transmission GPS toutes les 5 minutes uniquement) et une alerte est transmise au juge responsable du dossier.
+              </p>
+            </div>
+          </div>
+
+          {/* ── 5. Mise en Cache Geofence ─────────────────────────────────── */}
+          <div className="bg-slate-50 border border-slate-100 rounded-xl p-5">
+            <div className="flex items-center gap-2 mb-4">
+              <div className="w-8 h-8 rounded-lg bg-purple-100 text-purple-700 flex items-center justify-center">
+                <HardDrive className="w-4 h-4" />
+              </div>
+              <div>
+                <p className="text-sm font-bold text-slate-800">Mise en cache des règles de géofencing</p>
+                <p className="text-[10px] text-slate-500">Synchroniser les périmètres judiciaires dans la mémoire interne du bracelet pour application hors ligne</p>
+              </div>
+            </div>
+            <div className="flex items-start justify-between gap-4 bg-white rounded-xl px-4 py-4 border border-slate-100">
+              <div className="space-y-1">
+                <p className="text-sm font-semibold text-slate-700">Cache géofence embarqué</p>
+                <p className="text-xs text-slate-500 max-w-sm leading-relaxed">
+                  Lorsqu&apos;activé, les règles de périmètre définies par le juge sont stockées dans la mémoire flash du dispositif. Le bracelet peut ainsi déclencher des alertes localement, même sans connexion réseau.
+                </p>
+                <div className="flex items-center gap-3 mt-2">
+                  <div className="flex items-center gap-1.5 text-[10px] text-slate-400">
+                    <HardDrive className="w-3 h-3" />
+                    Capacité : jusqu&apos;à 50 zones configurées simultanément
+                  </div>
+                </div>
+              </div>
+              {/* Visual toggle — OFF, disabled */}
+              <div className="flex-shrink-0 flex items-center gap-2">
+                <span className="text-[10px] font-bold text-slate-400">INACTIF</span>
+                <div className="w-11 h-6 bg-slate-200 rounded-full relative opacity-60 cursor-not-allowed">
+                  <div className="absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow-sm" />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Footer */}
+          <div className="pt-2 border-t border-gray-100 flex items-center justify-between gap-4 flex-wrap">
+            <p className="text-xs text-gray-400 italic max-w-lg">
+              L&apos;intégration API matérielle est en cours de développement. Ces paramètres seront transmis au firmware du dispositif via l&apos;API SIGEP lors de la mise en production complète du module.
+            </p>
+            <button
+              disabled
+              className="px-4 py-2 rounded-xl bg-emerald-600/25 text-emerald-600/60 text-sm font-semibold cursor-not-allowed whitespace-nowrap"
+            >
+              Appliquer au dispositif
             </button>
           </div>
         </div>

@@ -30,7 +30,9 @@
       "Bash(node -e \"require\\('./node_modules/next/package.json'\\); console.log\\('next ok'\\)\")",
       "Bash(git commit *)",
       "Bash(taskkill *)",
-      "PowerShell(npm run *)"
+      "PowerShell(npm run *)",
+      "PowerShell(Get-NetTCPConnection *)",
+      "Bash(node *)"
     ]
   }
 }
