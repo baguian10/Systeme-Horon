@@ -58,13 +58,9 @@ const nextConfig: NextConfig = {
         ],
       },
 
-      // ── Static assets — immutable cache ──────────────────────
-      {
-        source: '/_next/static/(.*)',
-        headers: [
-          { key: 'Cache-Control', value: 'public, max-age=31536000, immutable' },
-        ],
-      },
+      // NOTE: /_next/static immutable caching is handled automatically by Next.js
+      // in production (content-hashed filenames). A custom rule here breaks
+      // Turbopack in dev by caching chunks whose names don't change between builds.
     ];
   },
 };
