@@ -43,6 +43,18 @@ export default function NewGeofencePage() {
       .catch(() => {});
   }, []);
 
+  // When a different person is picked, recenter the map on their last position.
+  async function handleCaseChange(id: string) {
+    setCaseId(id);
+    if (!id) { setDevicePos(null); return; }
+    try {
+      const r = await fetch(`/api/track/history?caseId=${encodeURIComponent(id)}&limit=1`, { cache: 'no-store' });
+      const d = await r.json();
+      const trail = Array.isArray(d.trail) ? d.trail : [];
+      setDevicePos(trail.length ? trail[trail.length - 1] : null);
+    } catch { setDevicePos(null); }
+  }
+
   // When geofence type changes, auto-switch to matching shape
   function handleGeoType(t: GeoType) {
     setGeoType(t);
@@ -213,7 +225,7 @@ export default function NewGeofencePage() {
                 <label className="block text-xs font-medium text-slate-400 mb-1.5">Personne / dossier *</label>
                 <CaseSearchSelect
                   value={caseId}
-                  onChange={setCaseId}
+                  onChange={handleCaseChange}
                   selectedLabel={caseLabel}
                   onSelectedLabel={setCaseLabel}
                 />

@@ -97,6 +97,14 @@ function DrawControl({ drawMode, onShapeDrawn }: DrawControlProps) {
   return null;
 }
 
+/* ── Recenter when the selected device's position changes ────────────────── */
+
+function RecenterOnDevice({ pos }: { pos: [number, number] | null }) {
+  const map = useMap();
+  useEffect(() => { if (pos) map.setView(pos, 16); }, [pos, map]);
+  return null;
+}
+
 /* ── Existing geofence display layer ─────────────────────────────────────── */
 
 function ExistingGeofences({ geofences }: { geofences: Geofence[] }) {
@@ -175,6 +183,7 @@ export default function GeofenceDrawMap({
           />
         </LayersControl.BaseLayer>
       </LayersControl>
+      <RecenterOnDevice pos={devicePosition} />
       {devicePosition && (
         <Marker position={devicePosition}>
           <Tooltip permanent direction="top">Position actuelle du bracelet</Tooltip>
