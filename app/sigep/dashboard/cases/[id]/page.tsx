@@ -7,10 +7,11 @@ import {
 import { fetchCaseById, fetchCaseAssignments, fetchOperationalUsers, fetchJournalEntries } from '@/lib/mock/helpers';
 import { getSession } from '@/lib/auth/session';
 import { CaseStatusBadge, AlertTypeBadge, SeverityDot } from '@/components/ui/StatusBadge';
-import { canViewPII, canManageGeofences, canUpdateCaseStatus, canManageAssignments, canWriteJournal } from '@/lib/auth/permissions';
+import { canViewPII, canManageGeofences, canUpdateCaseStatus, canManageAssignments, canWriteJournal, canConfigureHardware } from '@/lib/auth/permissions';
 import StatusControls from '@/components/cases/StatusControls';
 import GeofenceManager from '@/components/cases/GeofenceManager';
 import CaseBeaconManager from '@/components/cases/CaseBeaconManager';
+import CaseDeviceManager from '@/components/cases/CaseDeviceManager';
 import AssignmentManager from '@/components/cases/AssignmentManager';
 import JournalPanel from '@/components/cases/JournalPanel';
 
@@ -33,16 +34,24 @@ export default async function CaseDetailPage({ params }: { params: Promise<{ id:
 
   // BLE beacon associated with this dossier's bracelet (+ spares to attach).
   type BeaconRow = { id: string; uid: string; label: string | null; status: string };
+  const canHardware = canConfigureHardware(session.role);
   let currentBeacon: BeaconRow | null = null;
   let spareBeacons: BeaconRow[] = [];
-  if (process.env.NEXT_PUBLIC_SUPABASE_URL && device?.id) {
+  let spareDevices: { id: string; imei: string }[] = [];
+  if (process.env.NEXT_PUBLIC_SUPABASE_URL) {
     const { createAdminClient } = await import('@/lib/supabase/admin');
     const sb = createAdminClient();
     if (sb) {
-      const { data: cur } = await sb.from('beacons').select('id, uid, label, status').eq('device_id', device.id).maybeSingle();
-      currentBeacon = (cur as BeaconRow) ?? null;
+      if (device?.id) {
+        const { data: cur } = await sb.from('beacons').select('id, uid, label, status').eq('device_id', device.id).maybeSingle();
+        currentBeacon = (cur as BeaconRow) ?? null;
+      }
       const { data: sp } = await sb.from('beacons').select('id, uid, label, status').is('device_id', null).limit(50);
       spareBeacons = (sp as BeaconRow[]) ?? [];
+      if (canHardware) {
+        const { data: sd } = await sb.from('devices').select('id, imei').is('case_id', null).limit(100);
+        spareDevices = (sd as { id: string; imei: string }[]) ?? [];
+      }
     }
   }
 
@@ -231,6 +240,16 @@ export default async function CaseDetailPage({ params }: { params: Promise<{ id:
             geofences={geofences}
             canManage={canGeo && caseData.status !== 'TERMINATED'}
           />
+
+          {/* GPS bracelet assignment (SUPER_ADMIN) */}
+          {canHardware && (
+            <CaseDeviceManager
+              caseId={caseData.id}
+              current={device ? { id: device.id, imei: device.imei } : null}
+              spares={spareDevices}
+              canManage={caseData.status !== 'TERMINATED'}
+            />
+          )}
 
           {/* BLE beacon */}
           <CaseBeaconManager
