@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useActionState, useCallback } from 'react';
+import { useState, useActionState, useCallback, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import {
@@ -27,6 +27,19 @@ export default function NewGeofencePage() {
   const [shapeType, setShape]   = useState<ShapeType>('POLYGON');
   const [isExclusion, setExcl]  = useState(false);
   const [drawnShape, setDrawn]  = useState<DrawnShape | null>(null);
+  const [devicePos, setDevicePos] = useState<[number, number] | null>(null);
+  const [caseId, setCaseId] = useState('');
+
+  // Load the live tracker position so the user can draw around the real location.
+  useEffect(() => {
+    fetch('/api/track/markers', { cache: 'no-store' })
+      .then((r) => r.json())
+      .then((d) => {
+        const m = d.markers?.[0];
+        if (m) { setDevicePos([m.lat, m.lng]); setCaseId(m.caseId); }
+      })
+      .catch(() => {});
+  }, []);
 
   // When geofence type changes, auto-switch to matching shape
   function handleGeoType(t: GeoType) {
@@ -196,7 +209,7 @@ export default function NewGeofencePage() {
               </div>
               <div>
                 <label className="block text-xs font-medium text-slate-400 mb-1.5">Référence dossier *</label>
-                <input name="case_id" type="text" required placeholder="c-0001" className={INPUT} />
+                <input name="case_id" type="text" required placeholder="c-0001" className={INPUT} value={caseId} onChange={(e) => setCaseId(e.target.value)} />
               </div>
               <div>
                 <label className="block text-xs font-medium text-slate-400 mb-1.5">ID Bracelet / Balise (optionnel)</label>
@@ -269,6 +282,7 @@ export default function NewGeofencePage() {
                 <GeofenceDrawMap
                   drawMode={drawMode}
                   onShapeDrawn={onShapeDrawn}
+                  devicePosition={devicePos}
                 />
               </div>
             </div>

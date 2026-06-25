@@ -1,8 +1,9 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, Circle, Polygon, Polyline, LayersControl, ZoomControl, useMap } from 'react-leaflet';
 import L from 'leaflet';
+import type { DrawnShape } from '@/components/geofences/GeofenceDrawMap';
 // leaflet/dist/leaflet.css is imported globally in app/layout.tsx
 
 // Use self-hosted icons — avoids CSP issues with external CDNs
@@ -100,6 +101,62 @@ function getIcon(status: TrackerMarker['status']) {
   return activeIcon;
 }
 
+// Leaflet-draw control for tracing a geofence directly on the surveillance map.
+function DrawControl({ onShapeDrawn }: { onShapeDrawn: (s: DrawnShape) => void }) {
+  const map = useMap();
+  const cleanupRef = useRef<() => void>(() => {});
+
+  const setup = useCallback(async () => {
+    const Lmod = (await import('leaflet')).default;
+    await import('leaflet-draw');
+    cleanupRef.current();
+
+    const drawnItems = new Lmod.FeatureGroup();
+    map.addLayer(drawnItems);
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const DrawCtl = (Lmod.Control as any).Draw;
+    const control = new DrawCtl({
+      position: 'topleft',
+      draw: {
+        rectangle: false, polyline: false, marker: false, circlemarker: false,
+        polygon: { allowIntersection: false, showArea: true, shapeOptions: { color: '#2563eb', fillColor: '#2563eb', fillOpacity: 0.12, weight: 2 } },
+        circle: { shapeOptions: { color: '#2563eb', fillColor: '#2563eb', fillOpacity: 0.12, weight: 2 } },
+      },
+      edit: { featureGroup: drawnItems, remove: true },
+    });
+    map.addControl(control);
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    function onCreated(e: any) {
+      drawnItems.clearLayers();
+      drawnItems.addLayer(e.layer);
+      if (e.layerType === 'circle') {
+        const c = e.layer.getLatLng();
+        onShapeDrawn({ type: 'circle', center: [c.lat, c.lng], radius_m: Math.round(e.layer.getRadius()) });
+      } else if (e.layerType === 'polygon') {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const latlngs: any[] = e.layer.getLatLngs()[0];
+        const coords = latlngs.map((ll) => [ll.lng, ll.lat]);
+        coords.push(coords[0]);
+        onShapeDrawn({ type: 'polygon', coordinates: coords });
+      }
+    }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    map.on((Lmod as any).Draw.Event.CREATED, onCreated);
+
+    cleanupRef.current = () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      map.off((Lmod as any).Draw.Event.CREATED, onCreated);
+      map.removeControl(control);
+      map.removeLayer(drawnItems);
+    };
+  }, [map, onShapeDrawn]);
+
+  useEffect(() => { setup(); return () => cleanupRef.current(); }, [setup]);
+  return null;
+}
+
 // Recenters on the target whenever it moves — only while "follow" is enabled.
 function FollowController({ target, follow }: { target: [number, number] | null; follow: boolean }) {
   const map = useMap();
@@ -113,6 +170,12 @@ export default function TrackingMap({ markers, geofences = [], center = [12.3647
   const [follow, setFollow] = useState(false);
   const [showTrail, setShowTrail] = useState(false);
   const [trail, setTrail] = useState<[number, number][]>([]);
+  const [drawing, setDrawing] = useState(false);
+  const [drawnShape, setDrawnShape] = useState<DrawnShape | null>(null);
+  const [gfName, setGfName] = useState('');
+  const [gfExclusion, setGfExclusion] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [saveErr, setSaveErr] = useState<string | null>(null);
   const mapRef = useRef<L.Map | null>(null);
   const primary = markers[0];
   const target: [number, number] | null = primary ? [primary.lat, primary.lng] : null;
@@ -121,6 +184,20 @@ export default function TrackingMap({ markers, geofences = [], center = [12.3647
     if (mapRef.current && target) {
       mapRef.current.setView(target, Math.max(mapRef.current.getZoom(), 16));
     }
+  };
+
+  const saveGeofence = async () => {
+    if (!drawnShape || !primary?.caseId || !gfName.trim()) { setSaveErr('Nom et tracé requis'); return; }
+    setSaving(true); setSaveErr(null);
+    const payload = drawnShape.type === 'circle'
+      ? { caseId: primary.caseId, name: gfName.trim(), isExclusion: gfExclusion, shape: 'circle', center: drawnShape.center, radiusM: drawnShape.radius_m }
+      : { caseId: primary.caseId, name: gfName.trim(), isExclusion: gfExclusion, shape: 'polygon', coordinates: drawnShape.coordinates };
+    try {
+      const res = await fetch('/api/track/geofence', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+      const d = await res.json();
+      if (!res.ok) { setSaveErr(d.error ?? 'Erreur'); setSaving(false); return; }
+      setDrawnShape(null); setGfName(''); setDrawing(false); setSaving(false);
+    } catch { setSaveErr('Erreur réseau'); setSaving(false); }
   };
 
   // Fetch the GPS trail when "Trajet" is enabled (and refresh it as the device moves).
@@ -147,6 +224,7 @@ export default function TrackingMap({ markers, geofences = [], center = [12.3647
       <ZoomControl position="bottomleft" />
       <InitialView markers={markers} />
       <FollowController target={target} follow={follow} />
+      {drawing && <DrawControl onShapeDrawn={setDrawnShape} />}
       <LayersControl position="topright">
         <LayersControl.BaseLayer checked name="Plan (rues)">
           <TileLayer
@@ -258,12 +336,46 @@ export default function TrackingMap({ markers, geofences = [], center = [12.3647
         >
           {showTrail ? '🛣️ Trajet ON' : '🛣️ Trajet'}
         </button>
-        <a
-          href="/sigep/dashboard/geofences/new"
-          style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 10, padding: '8px 12px', fontSize: 12, fontWeight: 600, color: '#0f172a', boxShadow: '0 2px 8px rgba(0,0,0,.12)', cursor: 'pointer', textAlign: 'center', textDecoration: 'none' }}
+        <button
+          onClick={() => { setDrawing((d) => !d); setDrawnShape(null); setSaveErr(null); }}
+          style={{ background: drawing ? '#2563eb' : '#fff', border: '1px solid ' + (drawing ? '#2563eb' : '#e2e8f0'), borderRadius: 10, padding: '8px 12px', fontSize: 12, fontWeight: 600, color: drawing ? '#fff' : '#0f172a', boxShadow: '0 2px 8px rgba(0,0,0,.12)', cursor: 'pointer' }}
         >
-          ➕ Zone
-        </a>
+          {drawing ? '✏️ Dessin ON' : '✏️ Tracer zone'}
+        </button>
+      </div>
+    )}
+
+    {/* Drawing hint + save form */}
+    {drawing && (
+      <div style={{ position: 'absolute', top: 12, left: '50%', transform: 'translateX(-50%)', zIndex: 1000, background: '#fff', borderRadius: 12, boxShadow: '0 4px 16px rgba(0,0,0,.18)', padding: '12px 14px', width: 300, fontSize: 12 }}>
+        {!drawnShape ? (
+          <div style={{ color: '#475569' }}>
+            Utilise l&apos;outil polygone ou cercle (haut-gauche) pour tracer la zone autour de {primary?.label ?? 'la cible'}.
+          </div>
+        ) : (
+          <div>
+            <div style={{ fontWeight: 700, marginBottom: 8 }}>Enregistrer la zone</div>
+            <input
+              value={gfName}
+              onChange={(e) => setGfName(e.target.value)}
+              placeholder="Nom de la zone"
+              style={{ width: '100%', border: '1px solid #cbd5e1', borderRadius: 8, padding: '6px 8px', fontSize: 12, marginBottom: 8 }}
+            />
+            <label style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10, cursor: 'pointer' }}>
+              <input type="checkbox" checked={gfExclusion} onChange={(e) => setGfExclusion(e.target.checked)} />
+              <span>{gfExclusion ? 'Zone interdite (sortie autorisée → alerte si entre)' : 'Zone autorisée (doit rester dedans)'}</span>
+            </label>
+            {saveErr && <div style={{ color: '#dc2626', marginBottom: 8 }}>{saveErr}</div>}
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button onClick={saveGeofence} disabled={saving} style={{ flex: 1, background: '#2563eb', color: '#fff', border: 'none', borderRadius: 8, padding: '7px 0', fontSize: 12, fontWeight: 600, cursor: 'pointer', opacity: saving ? 0.6 : 1 }}>
+                {saving ? 'Enregistrement…' : 'Enregistrer'}
+              </button>
+              <button onClick={() => { setDrawnShape(null); setGfName(''); setSaveErr(null); }} style={{ background: '#f1f5f9', color: '#0f172a', border: 'none', borderRadius: 8, padding: '7px 12px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+                Annuler
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     )}
     </div>

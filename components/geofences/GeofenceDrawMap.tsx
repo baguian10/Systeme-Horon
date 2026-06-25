@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useCallback } from 'react';
 import {
-  MapContainer, TileLayer, Polygon, Circle, Tooltip, useMap,
+  MapContainer, TileLayer, Polygon, Circle, Tooltip, Marker, LayersControl, useMap,
 } from 'react-leaflet';
 import type { Geofence } from '@/lib/supabase/types';
 
@@ -140,6 +140,7 @@ interface GeofenceDrawMapProps {
   drawMode: 'circle' | 'polygon';
   onShapeDrawn: (shape: DrawnShape) => void;
   existingGeofences?: Geofence[];
+  devicePosition?: [number, number] | null;
   center?: [number, number];
   zoom?: number;
 }
@@ -148,20 +149,37 @@ export default function GeofenceDrawMap({
   drawMode,
   onShapeDrawn,
   existingGeofences = [],
+  devicePosition = null,
   center = [12.3647, -1.5332],
   zoom = 14,
 }: GeofenceDrawMapProps) {
   return (
     <MapContainer
-      center={center}
-      zoom={zoom}
+      center={devicePosition ?? center}
+      zoom={devicePosition ? 16 : zoom}
       style={{ height: '100%', width: '100%' }}
       className="rounded-xl"
     >
-      <TileLayer
-        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-      />
+      <LayersControl position="topright">
+        <LayersControl.BaseLayer checked name="Plan (rues)">
+          <TileLayer
+            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+          />
+        </LayersControl.BaseLayer>
+        <LayersControl.BaseLayer name="Satellite">
+          <TileLayer
+            url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+            attribution='Tiles &copy; Esri'
+            maxZoom={19}
+          />
+        </LayersControl.BaseLayer>
+      </LayersControl>
+      {devicePosition && (
+        <Marker position={devicePosition}>
+          <Tooltip permanent direction="top">Position actuelle du bracelet</Tooltip>
+        </Marker>
+      )}
       <ExistingGeofences geofences={existingGeofences} />
       <DrawControl drawMode={drawMode} onShapeDrawn={onShapeDrawn} />
     </MapContainer>
