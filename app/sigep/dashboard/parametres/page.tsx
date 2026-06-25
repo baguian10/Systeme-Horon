@@ -2,7 +2,9 @@ import { redirect } from 'next/navigation';
 import { Settings, Shield, Wifi, Clock, Bell, Database, Globe, Lock, CheckCircle2 } from 'lucide-react';
 import { getSession } from '@/lib/auth/session';
 import { canViewParametres } from '@/lib/auth/permissions';
+import { getSettings } from '@/lib/settings';
 import ParametresForm from './ParametresForm';
+import ActiveSettingsForm from '@/components/settings/ActiveSettingsForm';
 
 export const metadata = { title: 'Paramètres système — SIGEP' };
 
@@ -18,6 +20,8 @@ export default async function ParametresPage() {
   const session = await getSession();
   if (!session || !canViewParametres(session.role)) redirect('/sigep/dashboard');
 
+  const settings = await getSettings();
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -31,6 +35,8 @@ export default async function ParametresPage() {
           Zone sécurisée — Niveau 0
         </span>
       </div>
+
+      <ActiveSettingsForm settings={settings} />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left: System info */}

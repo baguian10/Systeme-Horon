@@ -42,6 +42,8 @@ export default async function DevicesPage() {
   const caseMap = new Map(cases.map((c) => [c.id, c]));
   const online    = devices.filter((d) => d.is_online).length;
   const unassigned = devices.filter((d) => !d.case_id).length;
+  const lowBattery = devices.filter((d) => (d.battery_pct ?? 100) < 20).length;
+  const staleContact = devices.filter((d) => d.last_seen_at && (Date.now() - new Date(d.last_seen_at).getTime()) > 86400000).length;
 
   function timeAgo(iso: string) {
     const d = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
@@ -64,12 +66,14 @@ export default async function DevicesPage() {
       </div>
 
       {/* Summary tiles */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
         {[
-          { label: 'Total',        value: devices.length,           color: 'text-gray-700',   bg: 'bg-gray-50 border-gray-100' },
-          { label: 'En ligne',     value: online,                   color: 'text-green-700',  bg: 'bg-green-50 border-green-100' },
-          { label: 'Hors ligne',   value: devices.length - online,  color: 'text-slate-600',  bg: 'bg-slate-50 border-slate-100' },
-          { label: 'Non assignés', value: unassigned,               color: 'text-amber-700',  bg: 'bg-amber-50 border-amber-100' },
+          { label: 'Total',         value: devices.length,           color: 'text-gray-700',   bg: 'bg-gray-50 border-gray-100' },
+          { label: 'En ligne',      value: online,                   color: 'text-green-700',  bg: 'bg-green-50 border-green-100' },
+          { label: 'Hors ligne',    value: devices.length - online,  color: 'text-slate-600',  bg: 'bg-slate-50 border-slate-100' },
+          { label: 'Batterie faible', value: lowBattery,             color: 'text-red-700',    bg: 'bg-red-50 border-red-100' },
+          { label: 'Sans contact >24h', value: staleContact,         color: 'text-orange-700', bg: 'bg-orange-50 border-orange-100' },
+          { label: 'Non assignés',  value: unassigned,               color: 'text-amber-700',  bg: 'bg-amber-50 border-amber-100' },
         ].map((t) => (
           <div key={t.label} className={`${t.bg} border rounded-2xl p-4 text-center`}>
             <p className={`text-2xl font-bold ${t.color}`}>{t.value}</p>

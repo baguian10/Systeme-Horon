@@ -312,3 +312,22 @@ ALTER TABLE geofences
   ADD COLUMN IF NOT EXISTS status       TEXT NOT NULL DEFAULT 'ACTIVE',  -- REQUESTED | ACTIVE
   ADD COLUMN IF NOT EXISTS defined_by   UUID,
   ADD COLUMN IF NOT EXISTS request_note TEXT;
+
+-- ── Added: functional system settings (single row) ───────────────────────
+CREATE TABLE IF NOT EXISTS system_settings (
+  id INT PRIMARY KEY DEFAULT 1,
+  battery_alert_pct INT NOT NULL DEFAULT 20,
+  signal_lost_min INT NOT NULL DEFAULT 15,
+  geofence_buffer_m INT NOT NULL DEFAULT 25,
+  position_retention_days INT NOT NULL DEFAULT 90,
+  audit_retention_days INT NOT NULL DEFAULT 365,
+  session_timeout_min INT NOT NULL DEFAULT 30,
+  escalate_minutes INT NOT NULL DEFAULT 30,
+  sms_enabled BOOLEAN NOT NULL DEFAULT false,
+  sms_provider TEXT,
+  timezone TEXT NOT NULL DEFAULT 'Africa/Ouagadougou',
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  CONSTRAINT one_row CHECK (id = 1)
+);
+INSERT INTO system_settings (id) VALUES (1) ON CONFLICT (id) DO NOTHING;
+ALTER TABLE system_settings ENABLE ROW LEVEL SECURITY;

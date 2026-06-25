@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { isTraxbeanConfigured, getDeviceLocation, getHomePresence } from '@/lib/traxbean/client';
+import { getSettings } from '@/lib/settings';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -70,6 +71,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ ok: true, polled: 0, note: 'no assigned devices' });
   }
 
+  const settings = await getSettings();
   const origin = request.nextUrl.origin;
   const ingestKey = process.env.INGEST_API_KEY ?? '';
 
@@ -151,7 +153,7 @@ export async function GET(request: NextRequest) {
 
       // Health alerts (deduped by the alert ingest? — keep simple: emit on threshold)
       const alerts: { type: string }[] = [];
-      if (live.battery !== null && live.battery <= BATTERY_LOW_PCT) {
+      if (live.battery !== null && live.battery <= settings.battery_alert_pct) {
         alerts.push({ type: 'BATTERY_LOW' });
       }
       if (live.signal !== null && live.signal <= SIGNAL_LOW) {
