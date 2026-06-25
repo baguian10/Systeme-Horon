@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, Circle, Polygon, LayersControl, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, Circle, Polygon, Polyline, LayersControl, useMap } from 'react-leaflet';
 import L from 'leaflet';
 // leaflet/dist/leaflet.css is imported globally in app/layout.tsx
 
@@ -39,6 +39,7 @@ const offlineIcon = new L.DivIcon({
 
 export interface TrackerMarker {
   id: string;
+  caseId: string;
   caseRef: string;
   label: string;
   lat: number;
@@ -110,6 +111,8 @@ function FollowController({ target, follow }: { target: [number, number] | null;
 
 export default function TrackingMap({ markers, geofences = [], center = [12.3647, -1.5332], zoom = 13 }: TrackingMapProps) {
   const [follow, setFollow] = useState(false);
+  const [showTrail, setShowTrail] = useState(false);
+  const [trail, setTrail] = useState<[number, number][]>([]);
   const mapRef = useRef<L.Map | null>(null);
   const primary = markers[0];
   const target: [number, number] | null = primary ? [primary.lat, primary.lng] : null;
@@ -119,6 +122,17 @@ export default function TrackingMap({ markers, geofences = [], center = [12.3647
       mapRef.current.setView(target, Math.max(mapRef.current.getZoom(), 16));
     }
   };
+
+  // Fetch the GPS trail when "Trajet" is enabled (and refresh it as the device moves).
+  useEffect(() => {
+    if (!showTrail || !primary?.caseId) { setTrail([]); return; }
+    let active = true;
+    fetch(`/api/track/history?caseId=${encodeURIComponent(primary.caseId)}`, { cache: 'no-store' })
+      .then((r) => r.json())
+      .then((d) => { if (active && Array.isArray(d.trail)) setTrail(d.trail); })
+      .catch(() => {});
+    return () => { active = false; };
+  }, [showTrail, primary?.caseId, primary?.lat, primary?.lng]);
 
   return (
     <div style={{ position: 'relative', height: '100%', width: '100%' }}>
@@ -166,6 +180,11 @@ export default function TrackingMap({ markers, geofences = [], center = [12.3647
         }
         return null;
       })}
+
+      {/* GPS trail (history) */}
+      {showTrail && trail.length > 1 && (
+        <Polyline positions={trail} pathOptions={{ color: '#7c3aed', weight: 3, opacity: 0.8 }} />
+      )}
 
       {markers.map((m) => (
         <div key={m.id}>
@@ -231,6 +250,18 @@ export default function TrackingMap({ markers, geofences = [], center = [12.3647
         >
           {follow ? '🎯 Suivi ON' : '🎯 Suivre'}
         </button>
+        <button
+          onClick={() => setShowTrail((t) => !t)}
+          style={{ background: showTrail ? '#7c3aed' : '#fff', border: '1px solid ' + (showTrail ? '#7c3aed' : '#e2e8f0'), borderRadius: 10, padding: '8px 12px', fontSize: 12, fontWeight: 600, color: showTrail ? '#fff' : '#0f172a', boxShadow: '0 2px 8px rgba(0,0,0,.12)', cursor: 'pointer' }}
+        >
+          {showTrail ? '🛣️ Trajet ON' : '🛣️ Trajet'}
+        </button>
+        <a
+          href="/sigep/dashboard/geofences/new"
+          style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 10, padding: '8px 12px', fontSize: 12, fontWeight: 600, color: '#0f172a', boxShadow: '0 2px 8px rgba(0,0,0,.12)', cursor: 'pointer', textAlign: 'center', textDecoration: 'none' }}
+        >
+          ➕ Zone
+        </a>
       </div>
     )}
     </div>

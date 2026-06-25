@@ -40,6 +40,7 @@ export async function GET() {
     const device = relatedCase?.device;
     return {
       id: pos.id,
+      caseId: pos.case_id,
       caseRef: pos.case_number,
       label: relatedCase?.individual?.full_name ?? pos.case_number,
       lat: pos.latitude,

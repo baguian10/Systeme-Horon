@@ -42,6 +42,7 @@ export default async function MapPage({
     const relatedCase = cases.find((c) => c.id === pos.case_id);
     return {
       id:             pos.id,
+      caseId:         pos.case_id,
       caseRef:        pos.case_number,
       label:          relatedCase?.individual?.full_name ?? pos.case_number,
       lat:            pos.latitude,
