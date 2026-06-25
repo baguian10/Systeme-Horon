@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server';
-import { isTraxbeanConfigured, getDeviceLocation } from '@/lib/traxbean/client';
+import { isTraxbeanConfigured, getDeviceLocation, getHomePresence } from '@/lib/traxbean/client';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -118,22 +118,29 @@ export async function GET(request: NextRequest) {
           }
           const elapsedMin = (now - outSince) / 60000;
           if (elapsedMin >= (beacon.grace_minutes ?? 0)) {
-            const { count } = await supabase
-              .from('alerts')
-              .select('id', { count: 'exact', head: true })
-              .eq('case_id', device.case_id)
-              .eq('alert_type', 'GEOFENCE_EXIT')
-              .eq('is_resolved', false);
-            if (!count) {
-              await supabase.from('alerts').insert({
-                case_id: device.case_id,
-                device_id: device.id,
-                alert_type: 'GEOFENCE_EXIT',
-                severity: 4,
-                description: `Éloignement du domicile : ${Math.round(dist)} m (max ${beacon.max_distance_m} m) depuis ${beacon.grace_minutes} min.`,
-                position_lat: live.lat,
-                position_lon: live.lng,
-              });
+            // Combined logic: GPS says "far", but if the home BLE beacon is still
+            // detected, the person is actually home (indoor GPS drift) → suppress.
+            const presence = await getHomePresence(device.imei);
+            if (presence.atHome) {
+              await supabase.from('beacons').update({ out_since: null }).eq('id', beacon.id);
+            } else {
+              const { count } = await supabase
+                .from('alerts')
+                .select('id', { count: 'exact', head: true })
+                .eq('case_id', device.case_id)
+                .eq('alert_type', 'GEOFENCE_EXIT')
+                .eq('is_resolved', false);
+              if (!count) {
+                await supabase.from('alerts').insert({
+                  case_id: device.case_id,
+                  device_id: device.id,
+                  alert_type: 'GEOFENCE_EXIT',
+                  severity: 4,
+                  description: `Éloignement du domicile : ${Math.round(dist)} m (max ${beacon.max_distance_m} m) depuis ${beacon.grace_minutes} min, beacon non détecté.`,
+                  position_lat: live.lat,
+                  position_lon: live.lng,
+                });
+              }
             }
           }
         } else if (beacon.out_since) {
