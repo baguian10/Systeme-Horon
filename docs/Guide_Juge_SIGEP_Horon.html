@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Guide du Juge — SIGEP / Système Horon</title>
+<style>
+  @page { size: A4; margin: 22mm 18mm 20mm 18mm; }
+  * { box-sizing: border-box; }
+  body { font-family: "Segoe UI", Arial, sans-serif; color: #1f2937; font-size: 11pt; line-height: 1.5; }
+  h1 { font-size: 21pt; color: #064e3b; margin: 0 0 4px; }
+  h2 { font-size: 15pt; color: #065f46; border-bottom: 2px solid #10b981; padding-bottom: 4px; margin-top: 26px; page-break-after: avoid; }
+  h3 { font-size: 12.5pt; color: #047857; margin-top: 18px; page-break-after: avoid; }
+  h4 { font-size: 11pt; color: #0f172a; margin: 12px 0 4px; }
+  p { margin: 6px 0; }
+  ul, ol { margin: 6px 0 6px 18px; }
+  li { margin: 3px 0; }
+  code { background: #f1f5f9; padding: 1px 5px; border-radius: 4px; font-family: Consolas, monospace; font-size: 9.5pt; }
+  table { width: 100%; border-collapse: collapse; margin: 10px 0; font-size: 10pt; }
+  th, td { border: 1px solid #cbd5e1; padding: 6px 8px; text-align: left; vertical-align: top; }
+  th { background: #ecfdf5; color: #065f46; }
+  .cover { text-align: center; padding-top: 60mm; page-break-after: always; }
+  .cover .badge { display: inline-block; background: #064e3b; color: #fff; padding: 6px 16px; border-radius: 20px; font-size: 10pt; letter-spacing: 1px; }
+  .cover h1 { font-size: 30pt; margin: 24px 0 8px; }
+  .cover .sub { font-size: 13pt; color: #475569; }
+  .cover .meta { margin-top: 40mm; font-size: 10pt; color: #64748b; }
+  .toc { page-break-after: always; }
+  .toc li { margin: 5px 0; }
+  .callout { background: #ecfdf5; border-left: 4px solid #10b981; padding: 8px 12px; margin: 10px 0; border-radius: 4px; }
+  .warn { background: #fef2f2; border-left: 4px solid #ef4444; padding: 8px 12px; margin: 10px 0; border-radius: 4px; }
+  .info { background: #eff6ff; border-left: 4px solid #3b82f6; padding: 8px 12px; margin: 10px 0; border-radius: 4px; }
+  .implique { background: #fffbeb; border-left: 4px solid #f59e0b; padding: 8px 12px; margin: 8px 0; border-radius: 4px; }
+  .step { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 8px 12px; margin: 8px 0; }
+  .step b { color: #065f46; }
+  .pill { display:inline-block; background:#e2e8f0; color:#334155; border-radius: 10px; padding: 1px 8px; font-size: 9pt; }
+  .section { page-break-before: always; }
+  footer { font-size: 8pt; color: #94a3b8; }
+</style>
+</head>
+<body>
+
+<div class="cover">
+  <div class="badge">RÉPUBLIQUE — SIGEP · SYSTÈME HORON</div>
+  <h1>Guide du Juge</h1>
+  <div class="sub">Surveillance électronique judiciaire<br>Manuel complet d'utilisation à l'usage des magistrats</div>
+  <div class="meta">
+    Système Intégré de Gestion de l'Exécution des Peines (SIGEP)<br>
+    Version 1.0 — Document de référence officiel<br>
+    Confidentiel — réservé aux magistrats habilités
+  </div>
+</div>
+
+<div class="toc">
+  <h2>Sommaire</h2>
+  <ol>
+    <li>Présentation &amp; rôle du juge dans le système</li>
+    <li>Connexion et sécurité du compte</li>
+    <li>Le tableau de bord et la navigation</li>
+    <li>Créer un dossier de surveillance (pas à pas)</li>
+    <li>La mesure judiciaire : types et implications</li>
+    <li>Définir un périmètre (obligation de géofence)</li>
+    <li>Assigner des agents opérationnels (délégation)</li>
+    <li>Suivi en temps réel : carte, trajet, présence</li>
+    <li>Les alertes : ce que le juge traite</li>
+    <li>Statut du dossier &amp; aménagement de la mesure</li>
+    <li>Révocation (sanction judiciaire)</li>
+    <li>Journal comportemental, rapports, agenda, messagerie</li>
+    <li>Gérer ses agents de terrain</li>
+    <li>Ce que le juge NE fait PAS (et pourquoi)</li>
+    <li>Bonnes pratiques &amp; confidentialité</li>
+    <li>Glossaire</li>
+  </ol>
+</div>
+
+<!-- 1 -->
+<div class="section">
+<h2>1. Présentation &amp; rôle du juge dans le système</h2>
+<p>Le SIGEP / Système Horon permet le placement et le suivi de personnes sous <b>surveillance électronique</b> (bracelet GPS / balise domicile). Le système repose sur une <b>séparation stricte des pouvoirs</b> entre quatre fonctions :</p>
+<table>
+  <tr><th>Fonction</th><th>Rôle</th></tr>
+  <tr><td><b>Juge (magistrat)</b></td><td>DÉCIDE : ordonne la mesure, définit les obligations légales (zones, horaires), examine les violations, prolonge / lève / révoque la mesure.</td></tr>
+  <tr><td><b>Administrateur technique</b></td><td>EXÉCUTE : équipe le bracelet, trace techniquement les périmètres définis par le juge, gère le matériel (BLE, SIM, stock), la maintenance.</td></tr>
+  <tr><td><b>Agent opérationnel</b></td><td>TERRAIN : supervise les dossiers qui lui sont assignés, répond aux alertes de terrain, rédige des rapports.</td></tr>
+  <tr><td><b>Stratégique / Direction</b></td><td>Statistiques agrégées, sans accès aux données individuelles.</td></tr>
+</table>
+<div class="callout"><b>Principe fondateur.</b> Le juge <b>décide</b> ; le technicien <b>met en œuvre</b>. Le juge n'a pas à manipuler le matériel ni à tracer techniquement une zone : il en exprime l'obligation légale, et l'administrateur la réalise précisément. Cette séparation garantit la traçabilité et évite tout cumul de pouvoir.</div>
+</div>
+
+<!-- 2 -->
+<div class="section">
+<h2>2. Connexion et sécurité du compte</h2>
+<h3>2.1 Se connecter</h3>
+<div class="step"><b>Étape 1.</b> Ouvrir l'adresse du système dans le navigateur, page de connexion <code>/sigep/login</code>.</div>
+<div class="step"><b>Étape 2.</b> Saisir l'<b>e-mail</b> et le <b>mot de passe</b> fournis par le Super Administrateur.</div>
+<div class="step"><b>Étape 3.</b> Saisir le <b>code de vérification (MFA)</b> à 6 chiffres puis valider.</div>
+<div class="implique"><b>Ce que cela implique :</b> votre compte est <b>nominatif</b>. Toutes vos actions sont enregistrées dans le journal d'audit avec votre nom et votre rôle. Vous êtes responsable de toute action effectuée sous votre session.</div>
+<h3>2.2 Se déconnecter</h3>
+<p>Cliquer sur l'icône de déconnexion en haut à droite. <b>Toujours se déconnecter</b> en quittant un poste partagé.</p>
+<div class="warn"><b>Compte suspendu.</b> Si le Super Administrateur suspend votre compte, vous ne pouvez plus vous connecter du tout (session bloquée). Un compte supprimé est définitivement retiré.</div>
+</div>
+
+<!-- 3 -->
+<div class="section">
+<h2>3. Le tableau de bord et la navigation</h2>
+<p>Le menu latéral présente uniquement les fonctions autorisées à votre rôle. Pour un juge :</p>
+<table>
+  <tr><th>Menu</th><th>Usage</th></tr>
+  <tr><td>Vue d'ensemble</td><td>Synthèse : dossiers actifs, alertes, état général.</td></tr>
+  <tr><td>Dossiers</td><td>Liste et gestion de vos dossiers de surveillance.</td></tr>
+  <tr><td>Alertes</td><td>Incidents nécessitant une réponse judiciaire.</td></tr>
+  <tr><td>Surveillance</td><td>Carte temps réel des personnes suivies.</td></tr>
+  <tr><td>Temps réel</td><td>Monitoring détaillé des positions.</td></tr>
+  <tr><td>Rapports</td><td>Rapports de vos dossiers.</td></tr>
+  <tr><td>Infractions</td><td>Historique des violations.</td></tr>
+  <tr><td>Sites TIG</td><td>Consultation des sites de travail d'intérêt général.</td></tr>
+  <tr><td>Agenda</td><td>Audiences et échéances d'obligations.</td></tr>
+  <tr><td>Révocations</td><td>Demandes et décisions de révocation.</td></tr>
+  <tr><td>Messagerie</td><td>Communication interne.</td></tr>
+  <tr><td>Utilisateurs</td><td>Vos agents opérationnels.</td></tr>
+</table>
+<div class="info">Les menus <b>Géofences (tracé technique)</b>, <b>Bracelets</b>, <b>Maintenance</b>, <b>Paramètres</b>, <b>Audit global</b> ne s'affichent pas : ce sont des fonctions de l'administrateur technique (voir §14).</div>
+</div>
+
+<!-- 4 -->
+<div class="section">
+<h2>4. Créer un dossier de surveillance (pas à pas)</h2>
+<p>Le dossier matérialise la décision de placement d'une personne sous surveillance. C'est l'acte fondateur du suivi.</p>
+<div class="step"><b>Étape 1.</b> Menu <b>Dossiers</b> → bouton <b>Nouveau dossier</b>.</div>
+
+<h3>4.1 Identité de la personne</h3>
+<table>
+  <tr><th>Champ</th><th>Détail</th><th>Obligatoire</th></tr>
+  <tr><td>Nom complet</td><td>Identité de la personne placée.</td><td>Oui</td></tr>
+  <tr><td>Identifiant national</td><td>Numéro de pièce / identifiant unique. Doit être unique dans le système.</td><td>Oui</td></tr>
+  <tr><td>Date de naissance</td><td>Format date.</td><td>Oui</td></tr>
+  <tr><td>Adresse</td><td>Domicile (utile pour l'assignation à domicile).</td><td>Non</td></tr>
+</table>
+
+<h3>4.2 Ordonnance &amp; mesure</h3>
+<table>
+  <tr><th>Champ</th><th>Détail</th></tr>
+  <tr><td>Date de l'ordonnance</td><td>Date de la décision judiciaire (obligatoire).</td></tr>
+  <tr><td>Type de mesure</td><td>DEAS, PSE, placement extérieur, contrôle judiciaire, TIG, semi-liberté (voir §5).</td></tr>
+  <tr><td>Base légale (article)</td><td>Référence de l'article fondant la mesure (ex. <code>Art. 712-6 CPP</code>).</td></tr>
+  <tr><td>Référence ordonnance</td><td>Numéro de l'ordonnance / jugement.</td></tr>
+  <tr><td>Lien pièce (PDF)</td><td>Lien vers la copie numérique de l'ordonnance (justificatif légal).</td></tr>
+  <tr><td>Obligations</td><td>Horaires de présence, zones autorisées/interdites, interdictions de contact, etc., en clair.</td></tr>
+  <tr><td>Notes du juge</td><td>Contexte, précisions internes.</td></tr>
+  <tr><td>Bracelet assigné</td><td>Optionnel à ce stade — l'équipement matériel est réalisé par l'administrateur.</td></tr>
+</table>
+<div class="step"><b>Étape 2.</b> Renseigner les champs puis <b>Enregistrer</b>.</div>
+
+<div class="implique"><b>Ce que cela implique :</b>
+<ul>
+  <li>Le dossier reçoit un <b>numéro</b> automatique (ex. <code>OUAG-2025-0042</code>) et passe en statut <b>ACTIF</b>.</li>
+  <li>Vous en êtes le <b>juge responsable</b> ; vous seul (et le Super Admin) y avez accès.</li>
+  <li>La personne n'est <b>pas encore suivie physiquement</b> tant que l'administrateur n'a pas posé/affecté le bracelet.</li>
+  <li>L'action est inscrite au journal d'audit (<code>CREATE_CASE</code>).</li>
+</ul></div>
+<div class="warn"><b>Important.</b> Renseignez le <b>type de mesure</b>, la <b>base légale</b> et les <b>obligations</b> : ce sont les éléments qui donnent une valeur juridique au suivi. Un dossier sans mesure structurée n'est qu'une fiche.</div>
+</div>
+
+<!-- 5 -->
+<div class="section">
+<h2>5. La mesure judiciaire : types et implications</h2>
+<table>
+  <tr><th>Type</th><th>Signification</th><th>Implication de suivi</th></tr>
+  <tr><td><b>DEAS</b></td><td>Détention à domicile sous surveillance électronique.</td><td>Présence imposée au domicile selon des horaires ; périmètre domicile + horaires.</td></tr>
+  <tr><td><b>PSE</b></td><td>Placement sous surveillance électronique.</td><td>Suivi GPS, zones autorisées/interdites, horaires.</td></tr>
+  <tr><td><b>Placement extérieur</b></td><td>Activité hors établissement encadrée.</td><td>Zones et plages horaires de l'activité.</td></tr>
+  <tr><td><b>Contrôle judiciaire</b></td><td>Mesure pré-sentencielle avec obligations.</td><td>Interdictions de zones/contacts, pointages.</td></tr>
+  <tr><td><b>TIG</b></td><td>Travail d'intérêt général.</td><td>Présence sur un site TIG ; suivi de l'exécution.</td></tr>
+  <tr><td><b>Semi-liberté</b></td><td>Sorties encadrées, retour imposé.</td><td>Périmètre + horaires de retour.</td></tr>
+</table>
+<div class="implique"><b>Ce que cela implique :</b> le type de mesure oriente les <b>obligations</b> que vous définirez ensuite (périmètre, horaires) et la lecture des violations. Choisissez-le avec soin : il structure tout le suivi.</div>
+</div>
+
+<!-- 6 -->
+<div class="section">
+<h2>6. Définir un périmètre (obligation de géofence)</h2>
+<p>Le périmètre (zone où la personne <b>doit rester</b> ou qu'elle <b>ne doit pas approcher</b>) est une <b>obligation judiciaire</b>. Vous en exprimez l'intention ; l'administrateur la trace précisément et la valide.</p>
+
+<h3>6.1 Créer l'obligation</h3>
+<div class="step"><b>Étape 1.</b> Ouvrir le dossier concerné.</div>
+<div class="step"><b>Étape 2.</b> Dans le bloc <b>Géofences</b>, cliquer <b>« Définir un périmètre (obligation) »</b>.</div>
+<div class="step"><b>Étape 3.</b> Renseigner :
+<ul>
+  <li><b>Libellé</b> — ex. « Assignation domicile — Dapoya ».</li>
+  <li><b>Type</b> — <span class="pill">Zone autorisée</span> (doit rester dedans) ou <span class="pill">Zone interdite</span> (ne doit pas entrer).</li>
+  <li><b>Rayon (m)</b> — taille approximative de la zone.</li>
+  <li><b>Horaire de … à …</b> — plage où l'obligation s'applique (vide = permanente).</li>
+  <li><b>Note pour l'administrateur</b> — précisions sur le tracé attendu.</li>
+</ul></div>
+<div class="step"><b>Étape 4.</b> <b>Envoyer l'obligation</b>.</div>
+<div class="info">Le centre de la zone est pris automatiquement sur la <b>dernière position connue</b> du bracelet : vous n'avez aucune manipulation cartographique technique à faire.</div>
+
+<h3>6.2 Cycle de vie de l'obligation</h3>
+<table>
+  <tr><th>Statut</th><th>Signification</th></tr>
+  <tr><td><span class="pill">À valider</span> (REQUESTED)</td><td>Obligation exprimée par le juge, en attente de tracé/validation technique.</td></tr>
+  <tr><td><span class="pill">Active</span> (ACTIVE)</td><td>Tracée et validée par l'administrateur ; surveillée par le système.</td></tr>
+</table>
+<div class="implique"><b>Ce que cela implique :</b>
+<ul>
+  <li>Tant que l'obligation est <b>À valider</b>, elle n'est pas encore appliquée techniquement.</li>
+  <li>L'administrateur la <b>trace précisément</b> (polygone, balise BLE domicile si besoin) puis la <b>valide</b> → elle devient <b>Active</b> et déclenche des alertes en cas de sortie/entrée.</li>
+  <li>L'action est tracée (<code>DEFINE_OBLIGATION</code>, puis <code>VALIDATE_GEOFENCE</code> côté admin).</li>
+</ul></div>
+<div class="warn"><b>Vous ne tracez pas vous-même la zone exacte.</b> Le tracé GPS fin et la calibration matérielle relèvent de l'administrateur. Votre rôle est de définir l'obligation <b>légale</b>.</div>
+</div>
+
+<!-- 7 -->
+<div class="section">
+<h2>7. Assigner des agents opérationnels (délégation)</h2>
+<p>Vous pouvez confier le suivi de terrain d'un dossier à un ou plusieurs agents opérationnels.</p>
+<div class="step"><b>Étape 1.</b> Ouvrir le dossier → bloc <b>Affectations</b>.</div>
+<div class="step"><b>Étape 2.</b> Sélectionner l'agent dans la liste → <b>Assigner</b>.</div>
+<div class="implique"><b>Ce que cela implique :</b>
+<ul>
+  <li>L'agent <b>voit désormais ce dossier</b> et ses positions/alertes (isolation stricte : il ne voit que les dossiers qui lui sont assignés).</li>
+  <li>Il peut résoudre des alertes de terrain et rédiger des rapports selon sa portée.</li>
+  <li>Retirer l'affectation lui retire immédiatement l'accès.</li>
+</ul></div>
+</div>
+
+<!-- 8 -->
+<div class="section">
+<h2>8. Suivi en temps réel : carte, trajet, présence</h2>
+<div class="step"><b>Carte (Surveillance).</b> Visualise en direct la position des personnes suivies. Recharge automatique. Vue plan ou satellite. Bouton <b>Centrer</b> / <b>Suivre</b>.</div>
+<div class="step"><b>Trajet.</b> Bouton <b>Trajet</b> : affiche l'historique GPS (itinéraire passé) de la personne.</div>
+<div class="step"><b>Présence domicile.</b> Sur le dossier, l'indicateur <b>« À domicile / Absent »</b> indique si le bracelet détecte la balise domicile (BLE). « Signal » = puissance de détection.</div>
+<div class="implique"><b>Ce que cela implique :</b> vous suivez la conformité de la personne à ses obligations (reste-t-elle dans la zone ? respecte-t-elle les horaires ?). Toute sortie de zone active génère une <b>alerte</b>.</div>
+</div>
+
+<!-- 9 -->
+<div class="section">
+<h2>9. Les alertes : ce que le juge traite</h2>
+<p>Les alertes se répartissent selon leur nature. Le juge traite les <b>violations à valeur judiciaire</b> ; les alertes techniques relèvent de l'administrateur / du terrain.</p>
+<table>
+  <tr><th>Alerte</th><th>Nature</th><th>Traitée par</th></tr>
+  <tr><td><b>Sortie de zone</b> (GEOFENCE_EXIT)</td><td>Judiciaire</td><td><b>Juge</b></td></tr>
+  <tr><td><b>Sangle coupée / sabotage</b> (TAMPER)</td><td>Judiciaire (évasion possible)</td><td><b>Juge</b></td></tr>
+  <tr><td><b>Bouton panique</b> (PANIC)</td><td>Judiciaire / sécurité</td><td><b>Juge</b></td></tr>
+  <tr><td>Batterie faible</td><td>Technique</td><td>Admin / terrain</td></tr>
+  <tr><td>Perte de signal</td><td>Technique</td><td>Admin / terrain</td></tr>
+  <tr><td>Santé / capteur</td><td>Technique</td><td>Admin / terrain</td></tr>
+</table>
+<div class="step"><b>Résoudre une alerte.</b> Menu <b>Alertes</b> → ouvrir l'alerte → <b>Résoudre</b>. Le système n'autorise le juge à résoudre que les alertes de type judiciaire.</div>
+<div class="implique"><b>Ce que cela implique :</b> une sortie de zone ou une sangle coupée appelle une <b>réponse judiciaire</b> (rappel, journal, et éventuellement révocation). Vous n'avez pas à gérer les pannes matérielles.</div>
+</div>
+
+<!-- 10 -->
+<div class="section">
+<h2>10. Statut du dossier &amp; aménagement de la mesure</h2>
+<h3>10.1 Statuts</h3>
+<table>
+  <tr><th>Statut</th><th>Signification</th></tr>
+  <tr><td>ACTIF</td><td>Mesure en cours.</td></tr>
+  <tr><td>SUSPENDU</td><td>Suspension temporaire.</td></tr>
+  <tr><td>VIOLATION</td><td>Violation constatée, dossier sous tension.</td></tr>
+  <tr><td>TERMINÉ</td><td>Mesure close.</td></tr>
+</table>
+<h3>10.2 Aménager la mesure</h3>
+<p>Dans le bloc <b>Mesure judiciaire</b> du dossier :</p>
+<div class="step"><b>Prolonger.</b> Bouton <b>Prolonger</b> → choisir la nouvelle date de fin. La mesure est étendue.</div>
+<div class="step"><b>Mainlevée.</b> Bouton <b>Mainlevée</b> → confirme. La mesure prend fin de manière <b>anticipée et non sanctionnante</b> (le dossier passe TERMINÉ).</div>
+<div class="implique"><b>Ce que cela implique :</b>
+<ul>
+  <li>La <b>mainlevée</b> est une fin normale (bon comportement, fin d'opportunité) — <b>ce n'est pas une sanction</b>.</li>
+  <li>La <b>révocation</b> (§11) est une <b>sanction</b> suite à manquement.</li>
+  <li>Chaque aménagement est journalisé (<code>EXTEND_MEASURE</code>, <code>LIFT_MEASURE</code>).</li>
+</ul></div>
+</div>
+
+<!-- 11 -->
+<div class="section">
+<h2>11. Révocation (sanction judiciaire)</h2>
+<p>La révocation sanctionne un manquement grave (sorties répétées, sabotage, refus des obligations).</p>
+<div class="step"><b>Étape 1.</b> Menu <b>Révocations</b> (ou depuis le dossier).</div>
+<div class="step"><b>Étape 2.</b> Créer/gérer la demande de révocation, motiver la décision.</div>
+<div class="implique"><b>Ce que cela implique :</b> la révocation entraîne la fin de la mesure de surveillance et, le cas échéant, le retour en détention selon votre décision. Distinguez-la bien de la simple mainlevée.</div>
+</div>
+
+<!-- 12 -->
+<div class="section">
+<h2>12. Journal comportemental, rapports, agenda, messagerie</h2>
+<div class="step"><b>Journal comportemental.</b> Sur le dossier, ajoutez des notes datées de suivi (entretiens, incidents, évolutions). Constitue l'historique de suivi.</div>
+<div class="step"><b>Rapports.</b> Menu <b>Rapports</b> : synthèses et états relatifs à vos dossiers.</div>
+<div class="step"><b>Agenda.</b> Échéances : audiences, fins de mesure, obligations à vérifier.</div>
+<div class="step"><b>Messagerie.</b> Communication interne (agents, administration).</div>
+</div>
+
+<!-- 13 -->
+<div class="section">
+<h2>13. Gérer ses agents de terrain</h2>
+<div class="step"><b>Créer un agent.</b> Menu <b>Utilisateurs</b> → <b>Créer un agent</b> → renseigner identité, e-mail, mot de passe, <b>portée d'accès</b> (Complète / Restreinte).</div>
+<div class="implique"><b>Ce que cela implique :</b>
+<ul>
+  <li>Vous créez uniquement des comptes <b>opérationnels</b> placés sous votre autorité.</li>
+  <li>La <b>portée</b> détermine l'étendue de ce que l'agent peut voir/faire sur les dossiers assignés.</li>
+  <li>Vous ne voyez que <b>vos</b> agents, pas les autres comptes du système.</li>
+</ul></div>
+</div>
+
+<!-- 14 -->
+<div class="section">
+<h2>14. Ce que le juge NE fait PAS (et pourquoi)</h2>
+<table>
+  <tr><th>Fonction</th><th>Pourquoi pas le juge</th><th>Qui le fait</th></tr>
+  <tr><td>Poser / configurer le bracelet, BLE, SIM</td><td>Acte technique matériel.</td><td>Administrateur</td></tr>
+  <tr><td>Tracer précisément la géofence</td><td>Le juge définit l'obligation ; le tracé fin est technique.</td><td>Administrateur</td></tr>
+  <tr><td>Envoyer des commandes au bracelet (localiser, redémarrer, éteindre)</td><td>Manipulation matérielle.</td><td>Administrateur</td></tr>
+  <tr><td>Maintenance / réparation du matériel</td><td>Technique.</td><td>Administrateur</td></tr>
+  <tr><td>Résoudre les alertes techniques (batterie, signal)</td><td>Sans portée judiciaire.</td><td>Admin / terrain</td></tr>
+  <tr><td>Gérer le catalogue des sites TIG</td><td>Administratif (le juge assigne, ne crée pas les sites).</td><td>Administrateur</td></tr>
+  <tr><td>Paramètres système, audit global, comptes autres que ses agents</td><td>Gouvernance système.</td><td>Super Administrateur</td></tr>
+</table>
+<div class="callout"><b>En résumé.</b> Le juge porte la <b>décision et le droit</b>. Le matériel et la mise en œuvre technique sont confiés à l'administrateur. Si une zone doit être tracée ou un bracelet configuré, <b>adressez l'obligation à l'administrateur</b> via la fonction « Définir un périmètre » et la note associée.</div>
+</div>
+
+<!-- 15 -->
+<div class="section">
+<h2>15. Bonnes pratiques &amp; confidentialité</h2>
+<ul>
+  <li><b>Confidentialité.</b> Les données des personnes suivies sont sensibles (PII). Ne les divulguez pas hors cadre.</li>
+  <li><b>Déconnexion.</b> Déconnectez-vous systématiquement après usage.</li>
+  <li><b>Traçabilité.</b> Toutes vos actions sont journalisées : agissez conformément à vos décisions.</li>
+  <li><b>Mesure structurée.</b> Renseignez toujours type de mesure, base légale, ordonnance et obligations.</li>
+  <li><b>Coordination.</b> Pour tout besoin technique, passez par l'obligation + note à l'administrateur.</li>
+</ul>
+</div>
+
+<!-- 16 -->
+<div class="section">
+<h2>16. Glossaire</h2>
+<table>
+  <tr><th>Terme</th><th>Définition</th></tr>
+  <tr><td>Géofence</td><td>Périmètre virtuel (zone autorisée ou interdite) surveillé par GPS.</td></tr>
+  <tr><td>Obligation</td><td>Contrainte légale imposée par le juge (zone, horaire, interdiction).</td></tr>
+  <tr><td>Balise BLE / beacon</td><td>Petit émetteur Bluetooth placé au domicile ; détecté par le bracelet pour confirmer la présence.</td></tr>
+  <tr><td>Bracelet / tracker</td><td>Dispositif GPS porté par la personne (IMEI = identifiant unique).</td></tr>
+  <tr><td>RSSI</td><td>Puissance du signal Bluetooth (indique la proximité de la balise).</td></tr>
+  <tr><td>DEAS / PSE</td><td>Détention à domicile / placement sous surveillance électronique.</td></tr>
+  <tr><td>TIG</td><td>Travail d'intérêt général.</td></tr>
+  <tr><td>Mainlevée</td><td>Fin anticipée et non sanctionnante de la mesure.</td></tr>
+  <tr><td>Révocation</td><td>Fin de la mesure à titre de sanction.</td></tr>
+  <tr><td>Journal d'audit</td><td>Enregistrement immuable de toutes les actions (qui, quoi, quand).</td></tr>
+</table>
+<p style="margin-top:30px;"><footer>SIGEP / Système Horon — Guide du Juge v1.0 — Document de référence. Toute reproduction réservée à l'usage interne.</footer></p>
+</div>
+
+</body>
+</html>
