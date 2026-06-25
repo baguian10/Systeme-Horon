@@ -12,6 +12,7 @@ import StatusControls from '@/components/cases/StatusControls';
 import GeofenceManager from '@/components/cases/GeofenceManager';
 import CaseBeaconManager from '@/components/cases/CaseBeaconManager';
 import CaseDeviceManager from '@/components/cases/CaseDeviceManager';
+import CasePresencePanel from '@/components/cases/CasePresencePanel';
 import AssignmentManager from '@/components/cases/AssignmentManager';
 import JournalPanel from '@/components/cases/JournalPanel';
 
@@ -259,6 +260,11 @@ export default async function CaseDetailPage({ params }: { params: Promise<{ id:
             spares={spareBeacons}
             canManage={canGeo && caseData.status !== 'TERMINATED'}
           />
+
+          {/* Home presence + remote commands */}
+          {device && (
+            <CasePresencePanel imei={device.imei} canCommand={canGeo || canHardware} />
+          )}
 
           {/* Assignments */}
           <AssignmentManager

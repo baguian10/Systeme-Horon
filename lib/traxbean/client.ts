@@ -94,3 +94,58 @@ export async function getDeviceLocation(imei: string): Promise<TraxbeanLocation 
     return null;
   }
 }
+
+// ── Generic admin call + commands + BLE home presence ───────────────────────
+// Reverse-engineered from the Traxbean web app's own API map.
+
+const DEPARTMENT_ID = Number(process.env.TRAXBEAN_DEPARTMENT_ID ?? '914');
+
+async function traxbeanPost<T>(path: string, body: unknown): Promise<T | null> {
+  if (!TOKEN) return null;
+  try {
+    const res = await request(`${API_BASE}/admin/${path}`, {
+      method: 'POST',
+      dispatcher,
+      headers: { 'Content-Type': 'application/json', Authorization: TOKEN },
+      body: JSON.stringify(body),
+    });
+    if (res.statusCode < 200 || res.statusCode >= 300) { res.body.dump(); return null; }
+    const json = (await res.body.json()) as { code?: number; data?: T };
+    if (json?.code !== 200) return null;
+    return (json.data ?? null) as T | null;
+  } catch {
+    return null;
+  }
+}
+
+// Map an IMEI to its Traxbean numeric targetId (needed by several endpoints).
+export async function getTargetIdByImei(imei: string): Promise<number | null> {
+  const list = await traxbeanPost<Array<{ id: number; imei: string }>>('business/target/page', { departmentId: DEPARTMENT_ID });
+  if (!Array.isArray(list)) return null;
+  return list.find((x) => x.imei === imei)?.id ?? null;
+}
+
+export type TraxbeanCommand = 'locate';
+
+// Send a remote command to the bracelet. 'locate' = force an immediate fix.
+export async function sendDeviceCommand(imei: string, command: TraxbeanCommand): Promise<boolean> {
+  if (command === 'locate') {
+    const r = await traxbeanPost<number>('business/target/doPosition', { imei, param: '' });
+    return r !== null;
+  }
+  return false;
+}
+
+export type HomePresence = { configured: boolean; atHome: boolean; lastIndoorAt: string | null };
+
+// BLE home presence: is the bracelet currently detected near its home beacon?
+export async function getHomePresence(imei: string): Promise<HomePresence> {
+  const targetId = await getTargetIdByImei(imei);
+  if (!targetId) return { configured: false, atHome: false, lastIndoorAt: null };
+  const home = await traxbeanPost<{ macs?: string[] }>('business/target/getTargetHome', { id: targetId });
+  const configured = Boolean(home && Array.isArray(home.macs) && home.macs.length > 0);
+  const indoor = await traxbeanPost<Array<{ utcTimestamp?: number }>>('business/geo/getGeoLocationLK', { targetId });
+  const atHome = Array.isArray(indoor) && indoor.length > 0;
+  const lastIndoorAt = atHome && indoor[0]?.utcTimestamp ? new Date(indoor[0].utcTimestamp).toISOString() : null;
+  return { configured, atHome, lastIndoorAt };
+}
