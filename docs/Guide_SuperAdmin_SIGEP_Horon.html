@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Guide du Super Administrateur — SIGEP / Système Horon</title>
+<style>
+  @page { size: A4; margin: 22mm 18mm 20mm 18mm; }
+  * { box-sizing: border-box; }
+  body { font-family: "Segoe UI", Arial, sans-serif; color: #1f2937; font-size: 11pt; line-height: 1.5; }
+  h1 { font-size: 21pt; color: #4c1d95; margin: 0 0 4px; }
+  h2 { font-size: 15pt; color: #5b21b6; border-bottom: 2px solid #8b5cf6; padding-bottom: 4px; margin-top: 26px; page-break-after: avoid; }
+  h3 { font-size: 12.5pt; color: #6d28d9; margin-top: 18px; page-break-after: avoid; }
+  p { margin: 6px 0; }
+  ul, ol { margin: 6px 0 6px 18px; } li { margin: 3px 0; }
+  code { background: #f1f5f9; padding: 1px 5px; border-radius: 4px; font-family: Consolas, monospace; font-size: 9.5pt; }
+  table { width: 100%; border-collapse: collapse; margin: 10px 0; font-size: 10pt; }
+  th, td { border: 1px solid #cbd5e1; padding: 6px 8px; text-align: left; vertical-align: top; }
+  th { background: #f5f3ff; color: #5b21b6; }
+  .cover { text-align: center; padding-top: 60mm; page-break-after: always; }
+  .cover .badge { display: inline-block; background: #4c1d95; color: #fff; padding: 6px 16px; border-radius: 20px; font-size: 10pt; letter-spacing: 1px; }
+  .cover h1 { font-size: 30pt; margin: 24px 0 8px; }
+  .cover .sub { font-size: 13pt; color: #475569; }
+  .cover .meta { margin-top: 40mm; font-size: 10pt; color: #64748b; }
+  .toc { page-break-after: always; }
+  .callout { background: #f5f3ff; border-left: 4px solid #8b5cf6; padding: 8px 12px; margin: 10px 0; border-radius: 4px; }
+  .warn { background: #fef2f2; border-left: 4px solid #ef4444; padding: 8px 12px; margin: 10px 0; border-radius: 4px; }
+  .info { background: #eff6ff; border-left: 4px solid #3b82f6; padding: 8px 12px; margin: 10px 0; border-radius: 4px; }
+  .implique { background: #fffbeb; border-left: 4px solid #f59e0b; padding: 8px 12px; margin: 8px 0; border-radius: 4px; }
+  .bf { background: #ecfdf5; border-left: 4px solid #10b981; padding: 8px 12px; margin: 8px 0; border-radius: 4px; }
+  .step { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 8px 12px; margin: 8px 0; }
+  .section { page-break-before: always; }
+  footer { font-size: 8pt; color: #94a3b8; }
+  .pill { display:inline-block; background:#ede9fe; color:#5b21b6; border-radius: 10px; padding: 1px 8px; font-size: 9pt; }
+</style>
+</head>
+<body>
+
+<div class="cover">
+  <div class="badge">RÉPUBLIQUE — SIGEP · SYSTÈME HORON</div>
+  <h1>Guide du Super Administrateur</h1>
+  <div class="sub">Administration, gouvernance et exploitation technique<br>de la plateforme de surveillance électronique</div>
+  <div class="meta">
+    Système Intégré de Gestion de l'Exécution des Peines (SIGEP)<br>
+    Version 1.0 — Document de référence officiel<br>
+    Confidentiel — réservé à l'administrateur système habilité
+  </div>
+</div>
+
+<div class="toc">
+  <h2>Sommaire</h2>
+  <ol>
+    <li>Rôle et responsabilités du Super Administrateur</li>
+    <li>Connexion et sécurité</li>
+    <li>Gestion des comptes (juges, agents, administrateurs délégués)</li>
+    <li>Les administrateurs délégués &amp; permissions granulaires</li>
+    <li>Suspension, réactivation, suppression</li>
+    <li>Parc de bracelets (magasin, enregistrement, SIM)</li>
+    <li>Assignation d'un bracelet à un dossier</li>
+    <li>Balises BLE (beacons) : enregistrement, liaison, options d'alarme</li>
+    <li>Validation des périmètres définis par les juges</li>
+    <li>Commandes à distance des bracelets</li>
+    <li>Paramètres opérationnels du système</li>
+    <li>Santé de la flotte &amp; supervision</li>
+    <li>Journal d'audit global</li>
+    <li>Rétention &amp; purge des données</li>
+    <li>Sauvegarde &amp; migration vers une infrastructure locale</li>
+    <li>Spécificités Burkina Faso</li>
+    <li>Bonnes pratiques de gouvernance</li>
+    <li>Glossaire</li>
+  </ol>
+</div>
+
+<div class="section">
+<h2>1. Rôle et responsabilités du Super Administrateur</h2>
+<p>Le Super Administrateur (Niveau 0) est le garant du fonctionnement <b>technique et de gouvernance</b> de la plateforme. Il dispose d'un accès total. Il met en œuvre les décisions des juges sans les prendre.</p>
+<table>
+  <tr><th>Domaine</th><th>Responsabilité</th></tr>
+  <tr><td>Comptes</td><td>Créer/gérer tous les comptes (juges, agents, administrateurs délégués).</td></tr>
+  <tr><td>Matériel</td><td>Parc de bracelets, balises BLE, SIM, assignation, maintenance.</td></tr>
+  <tr><td>Périmètres</td><td>Tracer et valider techniquement les obligations de zone définies par les juges.</td></tr>
+  <tr><td>Système</td><td>Paramètres, rétention, sécurité, audit, sauvegarde.</td></tr>
+  <tr><td>Supervision</td><td>Santé de la flotte, connectivité, incidents techniques.</td></tr>
+</table>
+<div class="callout"><b>Principe.</b> Le juge <b>décide</b> (mesure, zones, sanction) ; le Super Administrateur <b>exécute et maintient</b>. Cette séparation est inscrite dans les droits du système et garantit la traçabilité.</div>
+</div>
+
+<div class="section">
+<h2>2. Connexion et sécurité</h2>
+<div class="step"><b>Connexion.</b> <code>/sigep/login</code> → e-mail + mot de passe + code MFA à 6 chiffres.</div>
+<div class="warn"><b>Compte le plus sensible du système.</b> Protégez vos identifiants. Activez et imposez la double authentification (voir §11). Toute action est journalisée à votre nom.</div>
+</div>
+
+<div class="section">
+<h2>3. Gestion des comptes</h2>
+<p>Menu <b>Utilisateurs</b>. Le Super Administrateur voit et gère <b>tous</b> les comptes.</p>
+<h3>3.1 Créer un compte</h3>
+<div class="step"><b>Étape 1.</b> Utilisateurs → <b>Créer un compte</b>.</div>
+<div class="step"><b>Étape 2.</b> Choisir le <b>niveau</b> :
+<ul>
+  <li><span class="pill">Administrateur délégué</span> — accès configurable à la carte (voir §4).</li>
+  <li><span class="pill">Stratégique</span> — statistiques agrégées, sans données individuelles.</li>
+  <li><span class="pill">Juge</span> — gestion judiciaire des dossiers de sa juridiction.</li>
+  <li><span class="pill">Opérationnel</span> — agent de terrain, dossiers assignés.</li>
+</ul></div>
+<div class="step"><b>Étape 3.</b> Renseigner identité, e-mail, mot de passe (≥ 8 caractères), badge, juridiction. Pour un administrateur délégué : cocher les accès. <b>Créer</b>.</div>
+<div class="implique"><b>Ce que cela implique :</b> un compte auth est créé ; l'utilisateur peut se connecter ; l'action est journalisée (<code>CREATE_USER</code>). Un juge créé devient autonome sur ses dossiers ; un agent doit être assigné à des dossiers par un juge.</div>
+</div>
+
+<div class="section">
+<h2>4. Administrateurs délégués &amp; permissions granulaires</h2>
+<p>L'<b>administrateur délégué</b> est un assistant technique du Super Administrateur (ex. employé chargé du matériel). Ses accès sont <b>cochés à la carte</b>.</p>
+<h3>4.1 Catalogue de permissions</h3>
+<table>
+  <tr><th>Permission</th><th>Donne accès à</th></tr>
+  <tr><td>Voir tous les dossiers</td><td>Lecture globale des dossiers.</td></tr>
+  <tr><td>Créer des dossiers / Peines</td><td>Création et mesure.</td></tr>
+  <tr><td>Définir périmètre (obligation)</td><td>Volet judiciaire du périmètre.</td></tr>
+  <tr><td>Géofences (tracé technique)</td><td>Tracer et valider les périmètres.</td></tr>
+  <tr><td>Bracelets / hardware / SIM</td><td>Parc, assignation, SIM.</td></tr>
+  <tr><td>Balises BLE</td><td>Beacons et options.</td></tr>
+  <tr><td>Commandes tracker</td><td>Localiser, redémarrer, intervalle…</td></tr>
+  <tr><td>Éteindre un bracelet</td><td>Extinction (sensible).</td></tr>
+  <tr><td>Alertes / Rapports / Statistiques</td><td>Consultation.</td></tr>
+  <tr><td>Gérer les utilisateurs</td><td>Création/gestion de comptes.</td></tr>
+  <tr><td>Audit / TIG / Révocations / Maintenance</td><td>Modules correspondants.</td></tr>
+</table>
+<h3>4.2 Modifier les accès après création</h3>
+<div class="step">Utilisateurs → ligne de l'administrateur → bouton <b>« Permissions »</b> → cocher/décocher → <b>Enregistrer</b>.</div>
+<div class="implique"><b>Ce que cela implique :</b> les accès prennent effet immédiatement (menu et fonctions s'ouvrent/se ferment). Vous pouvez <b>réduire</b> le pouvoir à tout moment. Tracé : <code>UPDATE_PERMISSIONS</code>.</div>
+<div class="info">Un administrateur délégué ne voit que ce qui est coché. Le Super Administrateur, lui, a tout.</div>
+</div>
+
+<div class="section">
+<h2>5. Suspension, réactivation, suppression</h2>
+<table>
+  <tr><th>Action</th><th>Effet</th></tr>
+  <tr><td><b>Désactiver</b></td><td>Le compte ne peut plus se connecter (session bloquée). Réversible.</td></tr>
+  <tr><td><b>Réactiver</b></td><td>Rétablit l'accès.</td></tr>
+  <tr><td><b>Supprimer</b></td><td>Suppression définitive du compte et de son authentification.</td></tr>
+  <tr><td>Réinitialiser mot de passe</td><td>Envoie un lien de réinitialisation.</td></tr>
+</table>
+<div class="warn"><b>Irréversible.</b> La suppression est définitive. Préférez la <b>désactivation</b> en cas de doute. Toutes ces actions sont journalisées.</div>
+</div>
+
+<div class="section">
+<h2>6. Parc de bracelets (magasin)</h2>
+<p>Menu <b>Bracelets</b>. Inventaire complet : en ligne, hors ligne, batterie, SIM, dossier assigné.</p>
+<h3>6.1 Enregistrer un bracelet</h3>
+<div class="step"><b>Enregistrer un bracelet</b> → saisir <b>IMEI</b>, <b>N° SIM</b>, modèle → <b>Ajouter</b>. Le bracelet entre en stock (non assigné).</div>
+<h3>6.2 Numéro SIM</h3>
+<div class="step">Colonne <b>N° SIM</b> → cliquer → saisir le numéro de la carte SIM utilisée par le bracelet → ✓.</div>
+<div class="bf"><b>Burkina Faso.</b> Notez l'opérateur (Orange BF / Moov Africa). L'APN doit correspondre (Orange : <code>613-02</code>, Moov : <code>613-03</code>). Sans APN correct, le bracelet n'a pas de données.</div>
+</div>
+
+<div class="section">
+<h2>7. Assigner un bracelet à un dossier</h2>
+<p>Deux voies :</p>
+<div class="step"><b>Depuis Bracelets.</b> Ligne d'un bracelet disponible → <b>Assigner</b> → rechercher la personne/dossier → confirmer.</div>
+<div class="step"><b>Depuis le dossier.</b> Ouvrir le dossier → bloc <b>Bracelet GPS</b> → choisir un bracelet disponible → <b>Assigner</b>. Bouton <b>Retirer</b> pour le libérer.</div>
+<div class="implique"><b>Ce que cela implique :</b> le bracelet est lié au dossier ; ses positions alimentent le suivi ; un bracelet déjà assigné ailleurs est libéré. Tracé : <code>ASSIGN_DEVICE</code>.</div>
+</div>
+
+<div class="section">
+<h2>8. Balises BLE (beacons)</h2>
+<p>Bracelets → section <b>Balises BLE</b>. La balise domicile permet de confirmer la présence en intérieur (là où le GPS est faible).</p>
+<div class="step"><b>Enregistrer un beacon.</b> Saisir l'<b>UID / MAC</b> + libellé → <b>Enregistrer</b>.</div>
+<div class="step"><b>Lier à un bracelet.</b> Menu déroulant → choisir le bracelet. <b>Réassigner</b> = choisir un autre bracelet (libère l'ancien). <b>Délier</b> = icône chaîne.</div>
+<div class="step"><b>Défaillant / swap.</b> Icône ⚠️ = marquer défaillant ; lier un beacon de rechange au même bracelet.</div>
+<h3>8.1 Options d'alarme (icône ⚙️)</h3>
+<table>
+  <tr><th>Option</th><th>Effet</th></tr>
+  <tr><td>Alarme activée</td><td>Active/désactive l'alarme de domicile.</td></tr>
+  <tr><td>Distance max</td><td>Seuil (m) au-delà duquel l'éloignement déclenche une alerte.</td></tr>
+  <tr><td>Délai de grâce</td><td>Durée d'absence tolérée avant alerte (anti-faux-positif).</td></tr>
+  <tr><td>Horaires actifs</td><td>Plage où l'alarme s'applique.</td></tr>
+  <tr><td>Domicile = position actuelle</td><td>Capture la position du bracelet comme domicile de référence.</td></tr>
+</table>
+<div class="implique"><b>Ce que cela implique :</b> l'alarme combine GPS (distance) et BLE (présence beacon). Si le beacon est détecté, l'éloignement GPS n'alarme pas (évite les faux positifs en intérieur). Les défauts s'appliquent aux futurs beacons.</div>
+<div class="warn"><b>Pré-requis BLE.</b> Le bracelet doit avoir le Bluetooth activé (commande BLE). Vérifiez la détection (le beacon apparaît dans les données de scan) ; sinon, vérifiez pile/portée et activation.</div>
+</div>
+
+<div class="section">
+<h2>9. Valider les périmètres définis par les juges</h2>
+<p>Quand un juge définit une <b>obligation de périmètre</b>, elle arrive en statut <b>« À valider »</b>.</p>
+<div class="step"><b>Étape 1.</b> Ouvrir le dossier (ou la page Géofences).</div>
+<div class="step"><b>Étape 2.</b> Tracer précisément la zone si nécessaire (outil de tracé) puis cliquer <b>Valider</b>.</div>
+<div class="implique"><b>Ce que cela implique :</b> la géofence passe <b>Active</b> et est surveillée (alertes de sortie). Tracé : <code>VALIDATE_GEOFENCE</code>. Tant qu'elle n'est pas validée, elle n'est pas appliquée.</div>
+</div>
+
+<div class="section">
+<h2>10. Commandes à distance des bracelets</h2>
+<p>Sur le dossier (bloc Présence &amp; commandes) :</p>
+<table>
+  <tr><th>Commande</th><th>Effet</th></tr>
+  <tr><td>Localiser</td><td>Force une position immédiate.</td></tr>
+  <tr><td>Activer Bluetooth</td><td>Active le scan BLE (toutes les 120 s).</td></tr>
+  <tr><td>Temps réel intensif</td><td>Position toutes les 10 s.</td></tr>
+  <tr><td>Intervalle</td><td>Règle la fréquence GPS.</td></tr>
+  <tr><td>Redémarrer</td><td>Reboot du bracelet.</td></tr>
+  <tr><td><b>Éteindre</b></td><td>Power off — <b>coupe le suivi</b> (Super Admin, double confirmation).</td></tr>
+</table>
+<div class="warn"><b>Éteindre</b> coupe la surveillance jusqu'au rallumage manuel. À n'utiliser qu'en fin de mesure / restitution du matériel.</div>
+<div class="info"><b>Extensions protocole.</b> Le protocole du bracelet permet aussi : numéro SOS, fuseau horaire, configuration APN, sensibilité de la sangle, statut de port. Ces réglages peuvent être ajoutés au besoin.</div>
+</div>
+
+<div class="section">
+<h2>11. Paramètres opérationnels du système</h2>
+<p>Menu <b>Paramètres</b> → bloc <b>« Paramètres opérationnels (appliqués en temps réel) »</b>. Ces réglages sont <b>réellement appliqués</b> (et journalisés).</p>
+<table>
+  <tr><th>Paramètre</th><th>Effet</th></tr>
+  <tr><td>Seuil batterie faible</td><td>% en dessous duquel l'alerte batterie se déclenche (utilisé par le suivi).</td></tr>
+  <tr><td>Délai perte signal</td><td>Minutes sans contact avant alerte.</td></tr>
+  <tr><td>Tampon géofence</td><td>Tolérance GPS avant violation.</td></tr>
+  <tr><td>Escalade non résolu</td><td>Délai avant escalade d'une alerte non traitée.</td></tr>
+  <tr><td>Rétention positions / audit</td><td>Durée de conservation (voir §14).</td></tr>
+  <tr><td>Expiration session</td><td>Inactivité avant déconnexion.</td></tr>
+  <tr><td>Fuseau horaire</td><td><code>Africa/Ouagadougou</code> (GMT).</td></tr>
+  <tr><td>Notifications SMS</td><td>Active le canal SMS (nécessite un fournisseur).</td></tr>
+</table>
+<div class="implique"><b>Ce que cela implique :</b> modifier un seuil change immédiatement le comportement de surveillance (ex. baisser le seuil batterie réduit les alertes). Réglez selon le terrain.</div>
+</div>
+
+<div class="section">
+<h2>12. Santé de la flotte &amp; supervision</h2>
+<p>Menu <b>Bracelets</b> — tuiles de synthèse :</p>
+<ul>
+  <li><b>En ligne / Hors ligne</b> — connectivité actuelle.</li>
+  <li><b>Batterie faible</b> — bracelets sous 20 %.</li>
+  <li><b>Sans contact &gt; 24 h</b> — bracelets muets (à investiguer : SIM, batterie, hors zone réseau).</li>
+  <li><b>Non assignés</b> — stock disponible.</li>
+</ul>
+<div class="bf"><b>Burkina Faso.</b> Un « sans contact » peut venir d'une zone à faible couverture ou d'un délestage. Vérifiez l'historique avant de conclure à une fraude.</div>
+</div>
+
+<div class="section">
+<h2>13. Journal d'audit global</h2>
+<p>Menu <b>Journal d'audit</b> — réservé au Super Administrateur (et admin habilité). Chaque entrée : <b>qui</b> (nom + rôle), <b>action</b>, <b>cible</b>, <b>quand</b>.</p>
+<p>Actions tracées : création/suppression/suspension de comptes, modification de permissions, création de dossier, statut, géofences (définir/valider/supprimer), assignation bracelet, beacons, commandes, mesure (prolonger/mainlevée), paramètres.</p>
+<div class="implique"><b>Ce que cela implique :</b> traçabilité totale, y compris des actions du Super Administrateur lui-même. Le journal est en <b>lecture seule</b> (immuable).</div>
+</div>
+
+<div class="section">
+<h2>14. Rétention &amp; purge des données</h2>
+<p>Les durées de conservation sont définies dans les Paramètres. Une tâche de purge applique la politique.</p>
+<div class="step"><b>Purge.</b> Endpoint <code>/api/cron/purge?secret=&lt;CRON_SECRET&gt;</code>, à planifier quotidiennement (cron-job.org ou cron Vercel). Supprime les positions et entrées d'audit au-delà de la rétention.</div>
+<div class="warn"><b>Données pénales sensibles.</b> Définissez la rétention conformément au cadre légal. La purge est définitive.</div>
+</div>
+
+<div class="section">
+<h2>15. Sauvegarde &amp; migration vers une infrastructure locale</h2>
+<p>En vue d'une <b>souveraineté nationale</b> des données (hébergement local au Burkina Faso) :</p>
+<div class="step"><b>Export complet.</b> <code>node --use-system-ca scripts/export-all.mjs</code> (avec les variables PG) → instantané JSON de toutes les tables dans <code>backups/&lt;horodatage&gt;/</code>.</div>
+<div class="step"><b>Procédure complète.</b> Voir <code>docs/MIGRATION_LOCAL.md</code> : création de la base cible via <code>supabase/setup.sql</code>, réimport, comptes auth, repointage des variables d'environnement, option serveur tracker local.</div>
+<div class="info">L'application est portable (pilotée par variables d'environnement) ; la base est du PostgreSQL standard. La migration est donc réalisable sans réécriture.</div>
+</div>
+
+<div class="section">
+<h2>16. Spécificités Burkina Faso</h2>
+<table>
+  <tr><th>Aspect</th><th>À prendre en compte</th></tr>
+  <tr><td>Réseau</td><td>Couverture inégale (zones rurales). Calibrer « perte signal » pour éviter les fausses alertes ; le suivi se met à jour dès le retour du réseau.</td></tr>
+  <tr><td>Énergie</td><td>Délestages fréquents — surveiller la batterie, alertes fiables.</td></tr>
+  <tr><td>Opérateurs</td><td>Orange BF (<code>613-02</code>), Moov Africa (<code>613-03</code>) — APN par opérateur sur chaque SIM.</td></tr>
+  <tr><td>Notifications</td><td>Le SMS reste le canal le plus fiable pour joindre magistrats/agents.</td></tr>
+  <tr><td>Identité</td><td>Carte Nationale d'Identité Burkinabè (CNIB) comme identifiant.</td></tr>
+  <tr><td>Juridictions</td><td>TGI Ouagadougou, Bobo-Dioulasso, etc. — renseigner la juridiction des comptes.</td></tr>
+  <tr><td>Fuseau</td><td><code>Africa/Ouagadougou</code> (GMT).</td></tr>
+  <tr><td>Souveraineté</td><td>Prévoir l'hébergement / la sauvegarde nationale (§15).</td></tr>
+</table>
+</div>
+
+<div class="section">
+<h2>17. Bonnes pratiques de gouvernance</h2>
+<ul>
+  <li><b>Moindre privilège.</b> Créez des administrateurs délégués avec uniquement les accès nécessaires ; révisez régulièrement.</li>
+  <li><b>Séparation des pouvoirs.</b> N'outrepassez pas les décisions judiciaires ; exécutez les obligations définies par les juges.</li>
+  <li><b>Sécurité.</b> Imposez la 2FA, des mots de passe robustes, l'expiration de session.</li>
+  <li><b>Sauvegardes.</b> Exportez régulièrement (avant toute opération sensible).</li>
+  <li><b>Audit.</b> Consultez périodiquement le journal pour détecter toute anomalie.</li>
+  <li><b>Matériel.</b> Tenez l'inventaire à jour ; suivez batteries et bracelets muets.</li>
+</ul>
+</div>
+
+<div class="section">
+<h2>18. Glossaire</h2>
+<table>
+  <tr><th>Terme</th><th>Définition</th></tr>
+  <tr><td>Administrateur délégué</td><td>Compte d'assistance à accès configurable (permissions cochées).</td></tr>
+  <tr><td>IMEI</td><td>Identifiant unique du bracelet GPS.</td></tr>
+  <tr><td>SIM / APN</td><td>Carte réseau du bracelet / paramètre de connexion data de l'opérateur.</td></tr>
+  <tr><td>Beacon / balise BLE</td><td>Émetteur Bluetooth domicile ; détecté par le bracelet (présence).</td></tr>
+  <tr><td>Géofence</td><td>Périmètre virtuel surveillé (statut À valider → Active).</td></tr>
+  <tr><td>Obligation</td><td>Périmètre/horaire imposé par le juge ; validé techniquement par l'admin.</td></tr>
+  <tr><td>Rétention</td><td>Durée de conservation des données avant purge.</td></tr>
+  <tr><td>Journal d'audit</td><td>Enregistrement immuable de toutes les actions (qui/quoi/quand).</td></tr>
+  <tr><td>Souveraineté</td><td>Hébergement et contrôle national des données.</td></tr>
+</table>
+<p style="margin-top:30px;"><footer>SIGEP / Système Horon — Guide du Super Administrateur v1.0 — Document de référence. Usage interne réservé.</footer></p>
+</div>
+
+</body>
+</html>
