@@ -300,3 +300,15 @@ ALTER TABLE beacons
 -- ── Added: ADMIN role + granular permissions ────────────────────────────
 ALTER TYPE user_role ADD VALUE IF NOT EXISTS 'ADMIN';
 ALTER TABLE users ADD COLUMN IF NOT EXISTS permissions TEXT[] NOT NULL DEFAULT '{}';
+
+-- ── Added: structured judicial measure + geofence obligation workflow ─────
+ALTER TABLE cases
+  ADD COLUMN IF NOT EXISTS measure_type   TEXT,
+  ADD COLUMN IF NOT EXISTS legal_basis    TEXT,
+  ADD COLUMN IF NOT EXISTS ordonnance_ref TEXT,
+  ADD COLUMN IF NOT EXISTS ordonnance_url TEXT,
+  ADD COLUMN IF NOT EXISTS obligations    TEXT;
+ALTER TABLE geofences
+  ADD COLUMN IF NOT EXISTS status       TEXT NOT NULL DEFAULT 'ACTIVE',  -- REQUESTED | ACTIVE
+  ADD COLUMN IF NOT EXISTS defined_by   UUID,
+  ADD COLUMN IF NOT EXISTS request_note TEXT;

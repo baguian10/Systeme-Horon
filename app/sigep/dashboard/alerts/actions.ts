@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { getSession } from '@/lib/auth/session';
-import { canResolveAlert } from '@/lib/auth/permissions';
+import { canResolveAlert, canResolveAlertType } from '@/lib/auth/permissions';
 
 const isDemoMode = () => !process.env.NEXT_PUBLIC_SUPABASE_URL;
 
@@ -29,6 +29,11 @@ export async function resolveAlertAction(formData: FormData) {
   const { createClient } = await import('@/lib/supabase/server');
   const supabase = await createClient();
   if (!supabase) return;
+
+  // Separation of duties: a judge resolves only JUDICIAL violations; technical
+  // alerts (battery/signal) are handled by admin/operational.
+  const { data: a } = await supabase.from('alerts').select('alert_type').eq('id', alertId).single();
+  if (a && !canResolveAlertType(session.role, a.alert_type)) return;
 
   await supabase
     .from('alerts')

@@ -81,6 +81,9 @@ export interface Geofence {
   active_end: string | null;
   created_by: string;
   created_at: string;
+  status?: 'REQUESTED' | 'ACTIVE';
+  defined_by?: string | null;
+  request_note?: string | null;
 }
 
 export interface Position {
@@ -122,6 +125,11 @@ export interface Case {
   start_date: string | null;
   end_date: string | null;
   notes: string | null;
+  measure_type?: string | null;
+  legal_basis?: string | null;
+  ordonnance_ref?: string | null;
+  ordonnance_url?: string | null;
+  obligations?: string | null;
   created_at: string;
   updated_at: string;
   individual?: Individual;

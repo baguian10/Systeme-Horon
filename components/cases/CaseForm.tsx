@@ -69,6 +69,34 @@ export default function CaseForm({ unassignedDevices }: Props) {
               <p className="text-xs text-amber-600 mt-1">Aucun bracelet disponible actuellement</p>
             )}
           </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1.5">Type de mesure</label>
+            <select name="measure_type" className={`${INPUT} bg-white`}>
+              <option value="">— Sélectionner —</option>
+              <option value="DEAS">Détention à domicile sous surveillance électronique (DEAS)</option>
+              <option value="PSE">Placement sous surveillance électronique (PSE)</option>
+              <option value="PLACEMENT_EXTERIEUR">Placement extérieur</option>
+              <option value="CONTROLE_JUDICIAIRE">Contrôle judiciaire</option>
+              <option value="TIG">Travail d&apos;intérêt général (TIG)</option>
+              <option value="SEMI_LIBERTE">Semi-liberté</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1.5">Base légale (article)</label>
+            <input name="legal_basis" placeholder="Ex : Art. 712-6 CPP" className={INPUT} />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1.5">Référence ordonnance</label>
+            <input name="ordonnance_ref" placeholder="N° ordonnance / jugement" className={INPUT} />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1.5">Lien pièce (ordonnance PDF)</label>
+            <input name="ordonnance_url" type="url" placeholder="https://…" className={INPUT} />
+          </div>
+          <div className="sm:col-span-2">
+            <label className="block text-xs font-medium text-gray-600 mb-1.5">Obligations (horaires, zones, interdictions)</label>
+            <textarea name="obligations" rows={2} placeholder="Ex : présence au domicile 20h–6h ; interdiction d'approcher la victime…" className={`${INPUT} resize-none`} />
+          </div>
           <div className="sm:col-span-2">
             <label className="block text-xs font-medium text-gray-600 mb-1.5">Notes du juge</label>
             <textarea

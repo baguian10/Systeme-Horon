@@ -143,6 +143,68 @@ export async function updateGeofenceAction(
   return { ok: true, caseId: case_id };
 }
 
+// ── Judicial perimeter OBLIGATION (judge defines intent; admin traces) ────────
+// Creates a geofence in status REQUESTED. The technical admin then validates /
+// refines the precise geometry. Center defaults to the case's last position.
+export async function defineObligationAction(
+  _: { error: string } | null,
+  formData: FormData,
+): Promise<{ error: string } | null> {
+  const session = await getSession();
+  if (!session || !allow(session, false, 'geofences.define')) return { error: 'Accès refusé' };
+
+  const case_id = formData.get('case_id') as string;
+  const name = (formData.get('name') as string)?.trim();
+  const is_exclusion = formData.get('is_exclusion') === 'true';
+  const radius_m = parseInt(formData.get('radius_m') as string, 10) || 200;
+  const active_start = (formData.get('active_start') as string) || null;
+  const active_end = (formData.get('active_end') as string) || null;
+  const request_note = (formData.get('request_note') as string)?.trim() || null;
+  if (!case_id || !name) return { error: 'Dossier et libellé requis' };
+
+  if (isDemoMode()) return null;
+  const { createAdminClient } = await import('@/lib/supabase/admin');
+  const supabase = createAdminClient();
+  if (!supabase) return { error: 'Base de données indisponible' };
+
+  // Center = the device's last known position for this case (judge stays non-technical).
+  const { data: pos } = await supabase
+    .from('positions').select('latitude, longitude').eq('case_id', case_id)
+    .order('recorded_at', { ascending: false }).limit(1).maybeSingle();
+  const center_lat = pos?.latitude ?? 12.3714;
+  const center_lon = pos?.longitude ?? -1.5197;
+
+  const { error } = await supabase.from('geofences').insert({
+    case_id, name, geofence_type: 'GPS_ZONE', shape_type: 'CIRCLE',
+    is_exclusion, center_lat, center_lon, radius_m,
+    active_start, active_end, created_by: session.id, defined_by: session.id,
+    status: 'REQUESTED', request_note,
+  });
+  if (error) return { error: error.message };
+  const { writeAudit } = await import('@/lib/audit/log');
+  await writeAudit({ userId: session.id, action: 'DEFINE_OBLIGATION', tableName: 'geofences', recordId: case_id, newData: { name, is_exclusion } });
+  revalidatePath(`/sigep/dashboard/cases/${case_id}`);
+  return null;
+}
+
+// Admin validates a requested obligation → ACTIVE (enforced).
+export async function validateGeofenceAction(formData: FormData): Promise<void> {
+  const session = await getSession();
+  if (!session || !allow(session, canManageGeofences(session.role), 'geofences')) return;
+  const geofence_id = formData.get('geofence_id') as string;
+  const case_id = formData.get('case_id') as string;
+  if (!geofence_id) return;
+  if (isDemoMode()) return;
+  const { createAdminClient } = await import('@/lib/supabase/admin');
+  const supabase = createAdminClient();
+  if (!supabase) return;
+  await supabase.from('geofences').update({ status: 'ACTIVE' }).eq('id', geofence_id);
+  const { writeAudit } = await import('@/lib/audit/log');
+  await writeAudit({ userId: session.id, action: 'VALIDATE_GEOFENCE', tableName: 'geofences', recordId: geofence_id });
+  revalidatePath('/sigep/dashboard/geofences');
+  if (case_id) revalidatePath(`/sigep/dashboard/cases/${case_id}`);
+}
+
 export async function deleteGeofenceAction(formData: FormData): Promise<void> {
   const session = await getSession();
   if (!session || !allow(session, canManageGeofences(session.role), 'geofences')) return;

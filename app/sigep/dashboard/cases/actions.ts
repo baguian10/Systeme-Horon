@@ -25,6 +25,11 @@ export async function createCaseAction(
   const device_id = (formData.get('device_id') as string) || null;
   const court_order_date = formData.get('court_order_date') as string;
   const notes = (formData.get('notes') as string)?.trim() || null;
+  const measure_type = (formData.get('measure_type') as string)?.trim() || null;
+  const legal_basis = (formData.get('legal_basis') as string)?.trim() || null;
+  const ordonnance_ref = (formData.get('ordonnance_ref') as string)?.trim() || null;
+  const ordonnance_url = (formData.get('ordonnance_url') as string)?.trim() || null;
+  const obligations = (formData.get('obligations') as string)?.trim() || null;
 
   if (!full_name || !national_id || !date_of_birth || !court_order_date) {
     return { error: 'Veuillez remplir tous les champs obligatoires' };
@@ -80,6 +85,7 @@ export async function createCaseAction(
     .insert({
       individual_id: ind.id, judge_id: session.id, case_number: caseNumber,
       status: 'ACTIVE', court_order_date, start_date: new Date().toISOString(), notes,
+      measure_type, legal_basis, ordonnance_ref, ordonnance_url, obligations,
     })
     .select('id').single();
   if (caseErr || !newCase) return { error: 'Erreur lors de la création du dossier' };
@@ -272,5 +278,32 @@ export async function deleteGeofenceAction(formData: FormData): Promise<void> {
 
   await supabase.from('geofences').delete().eq('id', geofence_id);
   await writeAudit({ userId: session.id, action: 'DELETE_GEOFENCE', tableName: 'geofences', recordId: geofence_id, oldData: { case_id } });
+  revalidatePath(`/sigep/dashboard/cases/${case_id}`);
+}
+
+// ── Mesure : aménagement (prolongation / mainlevée) — distinct de la révocation ─
+export async function amendMeasureAction(formData: FormData): Promise<void> {
+  const session = await getSession();
+  if (!session || !canUpdateCaseStatus(session.role)) return;
+  const case_id = formData.get('case_id') as string;
+  const kind = formData.get('kind') as 'EXTEND' | 'LIFT';
+  if (!case_id || !kind) return;
+  if (isDemoMode()) { revalidatePath(`/sigep/dashboard/cases/${case_id}`); return; }
+
+  const { createAdminClient } = await import('@/lib/supabase/admin');
+  const supabase = createAdminClient();
+  if (!supabase) return;
+
+  if (kind === 'EXTEND') {
+    const new_end = formData.get('end_date') as string;
+    if (!new_end) return;
+    await supabase.from('cases').update({ end_date: new Date(new_end).toISOString(), updated_at: new Date().toISOString() }).eq('id', case_id);
+    await writeAudit({ userId: session.id, action: 'EXTEND_MEASURE', tableName: 'cases', recordId: case_id, newData: { end_date: new_end } });
+  } else {
+    // Mainlevée : fin anticipée de la mesure (non sanction).
+    const note = (formData.get('note') as string)?.trim() || null;
+    await supabase.from('cases').update({ status: 'TERMINATED', end_date: new Date().toISOString(), updated_at: new Date().toISOString() }).eq('id', case_id);
+    await writeAudit({ userId: session.id, action: 'LIFT_MEASURE', tableName: 'cases', recordId: case_id, newData: { note } });
+  }
   revalidatePath(`/sigep/dashboard/cases/${case_id}`);
 }

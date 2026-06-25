@@ -4,7 +4,8 @@ import dynamic from 'next/dynamic';
 import { useTransition } from 'react';
 import Link from 'next/link';
 import { Plus, Trash2, ShieldAlert, ShieldCheck, Bluetooth, MapPin, ExternalLink, Pencil } from 'lucide-react';
-import { deleteGeofenceAction } from '@/app/sigep/dashboard/geofences/actions';
+import { deleteGeofenceAction, validateGeofenceAction } from '@/app/sigep/dashboard/geofences/actions';
+import PerimeterObligationForm from '@/components/cases/PerimeterObligationForm';
 import type { Geofence } from '@/lib/supabase/types';
 
 const GeofenceDisplayMap = dynamic(
@@ -16,9 +17,11 @@ interface Props {
   caseId: string;
   geofences: Geofence[];
   canManage: boolean;
+  canDefine?: boolean;
+  canValidate?: boolean;
 }
 
-export default function GeofenceManager({ caseId, geofences, canManage }: Props) {
+export default function GeofenceManager({ caseId, geofences, canManage, canDefine, canValidate }: Props) {
   const [isPending, startTransition] = useTransition();
 
   function handleDelete(formData: FormData) {
@@ -49,10 +52,17 @@ export default function GeofenceManager({ caseId, geofences, canManage }: Props)
             href={`/sigep/dashboard/geofences/new?case_id=${caseId}`}
             className="flex items-center gap-1.5 text-xs text-blue-600 hover:text-blue-700 font-medium"
           >
-            <Plus className="w-3.5 h-3.5" /> Nouvelle zone
+            <Plus className="w-3.5 h-3.5" /> Tracer une zone (technique)
           </Link>
         )}
       </div>
+
+      {/* Judge: define a perimeter obligation (non-technical) */}
+      {canDefine && (
+        <div className="px-5 py-3 border-b border-gray-50">
+          <PerimeterObligationForm caseId={caseId} />
+        </div>
+      )}
 
       {/* Mini-map */}
       {geofences.length > 0 && (
@@ -114,8 +124,19 @@ export default function GeofenceManager({ caseId, geofences, canManage }: Props)
                   {g.active_start && (
                     <span className="text-[10px] text-gray-400">{g.active_start} – {g.active_end}</span>
                   )}
+                  {g.status === 'REQUESTED' && (
+                    <span className="text-[10px] font-bold text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded">À valider (obligation)</span>
+                  )}
                 </div>
               </div>
+
+              {canValidate && g.status === 'REQUESTED' && (
+                <form action={validateGeofenceAction} className="mr-1">
+                  <input type="hidden" name="geofence_id" value={g.id} />
+                  <input type="hidden" name="case_id" value={caseId} />
+                  <button type="submit" className="text-[11px] font-semibold px-2 py-1 rounded-lg bg-emerald-600 text-white hover:bg-emerald-500">Valider</button>
+                </form>
+              )}
 
               {canManage && (
                 <div className="flex items-center gap-1">

@@ -10,6 +10,7 @@ import { CaseStatusBadge, AlertTypeBadge, SeverityDot } from '@/components/ui/St
 import { canViewPII, canManageGeofences, canUpdateCaseStatus, canManageAssignments, canWriteJournal, canConfigureHardware, allow } from '@/lib/auth/permissions';
 import StatusControls from '@/components/cases/StatusControls';
 import GeofenceManager from '@/components/cases/GeofenceManager';
+import MeasurePanel from '@/components/cases/MeasurePanel';
 import CaseBeaconManager from '@/components/cases/CaseBeaconManager';
 import CaseDeviceManager from '@/components/cases/CaseDeviceManager';
 import CasePresencePanel from '@/components/cases/CasePresencePanel';
@@ -25,6 +26,7 @@ export default async function CaseDetailPage({ params }: { params: Promise<{ id:
 
   const showPII = canViewPII(session.role);
   const canGeo = allow(session, canManageGeofences(session.role), 'geofences');
+  const canDefineObligation = allow(session, false, 'geofences.define');
   const canStatus = canUpdateCaseStatus(session.role);
   const canAssign = canManageAssignments(session.role);
   const canJournal = canWriteJournal(session.role);
@@ -238,11 +240,26 @@ export default async function CaseDetailPage({ params }: { params: Promise<{ id:
             )}
           </div>
 
+          {/* Mesure judiciaire + aménagement */}
+          <MeasurePanel
+            caseId={caseData.id}
+            measureType={caseData.measure_type}
+            legalBasis={caseData.legal_basis}
+            ordonnanceRef={caseData.ordonnance_ref}
+            ordonnanceUrl={caseData.ordonnance_url}
+            obligations={caseData.obligations}
+            endDate={caseData.end_date}
+            canAmend={canStatus}
+            terminated={caseData.status === 'TERMINATED'}
+          />
+
           {/* Geofences */}
           <GeofenceManager
             caseId={caseData.id}
             geofences={geofences}
             canManage={canGeo && caseData.status !== 'TERMINATED'}
+            canDefine={canDefineObligation && caseData.status !== 'TERMINATED'}
+            canValidate={canGeo && caseData.status !== 'TERMINATED'}
           />
 
           {/* GPS bracelet assignment (SUPER_ADMIN) */}

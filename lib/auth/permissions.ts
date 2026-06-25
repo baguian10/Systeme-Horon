@@ -21,7 +21,8 @@ export const PERMISSIONS = {
   'cases.viewAll':   'Voir tous les dossiers',
   'cases.create':    'Créer des dossiers',
   'penalties':       'Définir les peines',
-  'geofences':       'Géofences (tracé)',
+  'geofences.define': 'Définir périmètre (obligation judiciaire)',
+  'geofences':       'Géofences (tracé technique + validation)',
   'hardware':        'Bracelets / hardware / SIM',
   'beacons':         'Balises BLE',
   'commands':        'Commandes tracker',
@@ -64,7 +65,8 @@ function roleDefault(role: UserRole, key: Permission): boolean {
     case 'cases.viewAll':   return false;
     case 'cases.create':    return role === 'JUDGE';
     case 'penalties':       return role === 'JUDGE';
-    case 'geofences':       return false;            // technical → admin only
+    case 'geofences.define': return role === 'JUDGE'; // perimeter obligation = judicial
+    case 'geofences':       return false;            // technical tracing → admin only
     case 'hardware':        return false;
     case 'beacons':         return false;
     case 'commands':        return false;
@@ -115,9 +117,10 @@ export const canViewReports       = (role: UserRole) => role === 'SUPER_ADMIN' |
 // ── Violations history: everyone except STRATEGIC ────────────────────────────
 export const canViewViolations    = (role: UserRole) => role !== 'STRATEGIC';
 
-// ── TIG sites: everyone except STRATEGIC ─────────────────────────────────────
+// ── TIG sites: view = non-STRATEGIC; managing the SITE CATALOG = admin only ──
+// (a judge assigns a person to an existing site, but doesn't manage the registry)
 export const canViewTigSites      = (role: UserRole) => role !== 'STRATEGIC';
-export const canManageTigSites    = (role: UserRole) => role === 'SUPER_ADMIN' || role === 'JUDGE';
+export const canManageTigSites    = (role: UserRole) => role === 'SUPER_ADMIN';
 
 // ── Revocations: all non-STRATEGIC ───────────────────────────────────────────
 export const canViewRevocations   = (role: UserRole) => role !== 'STRATEGIC';
@@ -126,8 +129,16 @@ export const canManageRevocations = (role: UserRole) => role === 'SUPER_ADMIN' |
 // ── Journal: all non-STRATEGIC ───────────────────────────────────────────────
 export const canWriteJournal      = (role: UserRole) => role !== 'STRATEGIC';
 
-// ── Maintenance: SUPER_ADMIN + JUDGE ─────────────────────────────────────────
-export const canViewMaintenance   = (role: UserRole) => role === 'SUPER_ADMIN' || role === 'JUDGE';
+// ── Maintenance (hardware repair tickets) = technical → SUPER_ADMIN only ─────
+export const canViewMaintenance   = (role: UserRole) => role === 'SUPER_ADMIN';
+
+// ── Alert resolution split: violations are judicial, technical alerts are not ─
+const VIOLATION_ALERTS = new Set(['GEOFENCE_EXIT', 'TAMPER_DETECTED', 'PANIC_BUTTON']);
+export const canResolveAlertType = (role: UserRole, alertType: string): boolean => {
+  if (role === 'STRATEGIC') return false;
+  if (role === 'JUDGE') return VIOLATION_ALERTS.has(alertType); // judge handles judicial violations only
+  return true; // SUPER_ADMIN / ADMIN / OPERATIONAL handle technical + all
+};
 
 // ── Agenda: all non-STRATEGIC ────────────────────────────────────────────────
 export const canViewAgenda        = (role: UserRole) => role !== 'STRATEGIC';
