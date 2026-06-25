@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, Circle, Polygon, Polyline, LayersControl, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, Circle, Polygon, Polyline, LayersControl, ZoomControl, useMap } from 'react-leaflet';
 import L from 'leaflet';
 // leaflet/dist/leaflet.css is imported globally in app/layout.tsx
 
@@ -142,7 +142,9 @@ export default function TrackingMap({ markers, geofences = [], center = [12.3647
       zoom={zoom}
       style={{ height: '100%', width: '100%' }}
       scrollWheelZoom
+      zoomControl={false}
     >
+      <ZoomControl position="bottomleft" />
       <InitialView markers={markers} />
       <FollowController target={target} follow={follow} />
       <LayersControl position="topright">

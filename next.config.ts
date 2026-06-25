@@ -6,8 +6,8 @@ const ContentSecurityPolicy = [
   "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
   // Tailwind utility classes are injected at runtime
   "style-src 'self' 'unsafe-inline'",
-  // Local images + Leaflet tiles (OpenStreetMap)
-  "img-src 'self' data: blob: https://*.tile.openstreetmap.org",
+  // Local images + Leaflet tiles (OpenStreetMap + Esri satellite imagery)
+  "img-src 'self' data: blob: https://*.tile.openstreetmap.org https://server.arcgisonline.com https://*.arcgisonline.com",
   "font-src 'self'",
   // Supabase REST + Realtime WebSocket + OSM tile requests
   "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.tile.openstreetmap.org",
