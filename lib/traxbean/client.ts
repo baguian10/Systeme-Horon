@@ -186,6 +186,23 @@ export async function getLatestBleScan(imei: string): Promise<BleScan> {
   return { at: ts ? new Date(ts).toISOString() : new Date().toISOString(), sightings };
 }
 
+export type DeviceConfigKind = 'sos' | 'timezoneBF' | 'strap' | 'apn';
+
+// Device-level configuration (SUPER_ADMIN / technical).
+export async function configureDevice(imei: string, kind: DeviceConfigKind, value?: string): Promise<boolean> {
+  switch (kind) {
+    case 'sos':        return post('business/target/setSOSNumber', { imei, param: String(value ?? '') });
+    case 'timezoneBF': return post('business/target/setTimezone', { imei, timezone: 'Etc/GMT', lang: 10 }); // Burkina Faso = GMT
+    case 'strap':      return post('business/target/setStrapAlarm', { imei, param: String(value ?? '5') });
+    case 'apn': {
+      const moov = value === 'moov';
+      // Burkina Faso: Orange (613-02) / Moov (613-03), APN "internet".
+      return post('business/device/updateDeviceInitConfig', { imei, apn: 'internet', mcc: 613, mnc: moov ? 3 : 2, apnUser: '', apnPass: '' });
+    }
+  }
+  return false;
+}
+
 export type HomePresence = {
   configured: boolean;
   atHome: boolean;

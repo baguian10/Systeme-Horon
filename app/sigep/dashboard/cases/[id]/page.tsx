@@ -14,6 +14,7 @@ import MeasurePanel from '@/components/cases/MeasurePanel';
 import CaseBeaconManager from '@/components/cases/CaseBeaconManager';
 import CaseDeviceManager from '@/components/cases/CaseDeviceManager';
 import CasePresencePanel from '@/components/cases/CasePresencePanel';
+import DeviceConfigPanel from '@/components/cases/DeviceConfigPanel';
 import AssignmentManager from '@/components/cases/AssignmentManager';
 import JournalPanel from '@/components/cases/JournalPanel';
 
@@ -284,6 +285,11 @@ export default async function CaseDetailPage({ params }: { params: Promise<{ id:
           {/* Home presence + remote commands */}
           {device && (
             <CasePresencePanel imei={device.imei} canCommand={canCommand} canShutdown={canShutdownCmd} />
+          )}
+
+          {/* Device protocol config (SUPER_ADMIN / hardware) */}
+          {device && canHardware && (
+            <DeviceConfigPanel imei={device.imei} />
           )}
 
           {/* Assignments */}
