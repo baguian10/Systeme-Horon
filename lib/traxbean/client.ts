@@ -119,9 +119,10 @@ async function traxbeanPost<T>(path: string, body: unknown): Promise<T | null> {
 }
 
 // Map an IMEI to its Traxbean numeric targetId (needed by several endpoints).
+// target/page returns { list: [...], pagination }.
 export async function getTargetIdByImei(imei: string): Promise<number | null> {
-  const list = await traxbeanPost<Array<{ id: number; imei: string }>>('business/target/page', { departmentId: DEPARTMENT_ID });
-  if (!Array.isArray(list)) return null;
+  const data = await traxbeanPost<{ list?: Array<{ id: number; imei: string }> }>('business/target/page', { departmentId: DEPARTMENT_ID });
+  const list = data?.list ?? [];
   return list.find((x) => x.imei === imei)?.id ?? null;
 }
 
