@@ -91,6 +91,7 @@ export async function createGeofenceAction(
   });
 
   if (error) return { error: 'Erreur lors de la création de la géofence' };
+  { const { writeAudit } = await import('@/lib/audit/log'); await writeAudit({ userId: session.id, action: 'CREATE_GEOFENCE', tableName: 'geofences', recordId: case_id, newData: { name } }); }
   revalidatePath('/sigep/dashboard/geofences');
   revalidatePath(`/sigep/dashboard/cases/${case_id}`);
   return null;
@@ -165,6 +166,7 @@ export async function deleteGeofenceAction(formData: FormData): Promise<void> {
   const supabase = createAdminClient();
   if (!supabase) return;
   await supabase.from('geofences').delete().eq('id', geofence_id);
+  { const { writeAudit } = await import('@/lib/audit/log'); await writeAudit({ userId: session.id, action: 'DELETE_GEOFENCE', tableName: 'geofences', recordId: geofence_id }); }
   revalidatePath('/sigep/dashboard/geofences');
   if (case_id) revalidatePath(`/sigep/dashboard/cases/${case_id}`);
 }

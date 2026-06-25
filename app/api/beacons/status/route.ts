@@ -25,5 +25,6 @@ export async function POST(request: NextRequest) {
   if (!sb) return NextResponse.json({ error: 'DB indisponible' }, { status: 503 });
   const { error } = await sb.from('beacons').update({ status }).eq('id', beaconId);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  { const { writeAudit } = await import('@/lib/audit/log'); await writeAudit({ userId: session.id, action: 'BEACON_STATUS', tableName: 'beacons', recordId: beaconId, newData: { status } }); }
   return NextResponse.json({ ok: true });
 }

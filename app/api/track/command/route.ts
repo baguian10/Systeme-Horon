@@ -34,5 +34,6 @@ export async function POST(request: NextRequest) {
 
   const ok = await sendDeviceCommand(imei, action, value);
   if (!ok) return NextResponse.json({ error: 'Commande refusée par la plateforme' }, { status: 502 });
+  { const { writeAudit } = await import('@/lib/audit/log'); await writeAudit({ userId: session.id, action: 'SEND_COMMAND', recordId: imei, newData: { action } }); }
   return NextResponse.json({ ok: true });
 }

@@ -53,5 +53,6 @@ export async function POST(request: NextRequest) {
   const { error } = await supabase.from('geofences').insert(row);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
+  { const { writeAudit } = await import('@/lib/audit/log'); await writeAudit({ userId: session.id, action: 'DRAW_GEOFENCE', tableName: 'geofences', recordId: caseId, newData: { name } }); }
   return NextResponse.json({ ok: true });
 }

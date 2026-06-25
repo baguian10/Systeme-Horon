@@ -34,5 +34,6 @@ export async function POST(request: NextRequest) {
     const { error } = await sb.from('beacons').update({ device_id: null, status: 'SPARE' }).eq('id', beaconId);
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   }
+  { const { writeAudit } = await import('@/lib/audit/log'); await writeAudit({ userId: session.id, action: 'CASE_BEACON', tableName: 'beacons', recordId: beaconId, newData: { caseId, action } }); }
   return NextResponse.json({ ok: true });
 }

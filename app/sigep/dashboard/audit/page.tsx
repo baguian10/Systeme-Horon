@@ -27,6 +27,18 @@ const ACTION_COLORS: Record<string, string> = {
   CREATE_USER:     'bg-purple-100 text-purple-700',
   DEACTIVATE_USER: 'bg-red-100 text-red-700',
   REACTIVATE_USER: 'bg-green-100 text-green-700',
+  DELETE_USER:     'bg-red-100 text-red-700',
+  UPDATE_PERMISSIONS: 'bg-fuchsia-100 text-fuchsia-700',
+  CREATE_GEOFENCE: 'bg-emerald-100 text-emerald-700',
+  DRAW_GEOFENCE:   'bg-emerald-100 text-emerald-700',
+  SEND_COMMAND:    'bg-indigo-100 text-indigo-700',
+  ASSIGN_DEVICE:   'bg-blue-100 text-blue-700',
+  CREATE_DEVICE:   'bg-blue-100 text-blue-700',
+  UPDATE_SIM:      'bg-slate-100 text-slate-600',
+  CREATE_BEACON:   'bg-cyan-100 text-cyan-700',
+  LINK_BEACON:     'bg-cyan-100 text-cyan-700',
+  BEACON_STATUS:   'bg-amber-100 text-amber-700',
+  CASE_BEACON:     'bg-cyan-100 text-cyan-700',
 };
 
 export default async function AuditPage() {
@@ -35,7 +47,10 @@ export default async function AuditPage() {
 
   const isDemoMode = !process.env.NEXT_PUBLIC_SUPABASE_URL;
 
-  type AuditRow = typeof MOCK_AUDIT[number];
+  type AuditRow = {
+    id: number; action: string; table_name: string | null; user_name: string;
+    user_role?: string | null; record_id: string | null; logged_at: string; details: string;
+  };
   let entries: AuditRow[] = MOCK_AUDIT;
 
   if (!isDemoMode) {
@@ -44,15 +59,16 @@ export default async function AuditPage() {
     if (supabase) {
       const { data } = await supabase
         .from('audit_log')
-        .select('*, user:users(full_name)')
+        .select('*, user:users(full_name, role)')
         .order('logged_at', { ascending: false })
-        .limit(200);
+        .limit(300);
       if (data) {
         entries = data.map((r) => ({
           id: r.id,
           action: r.action,
           table_name: r.table_name,
           user_name: (r.user as { full_name?: string } | null)?.full_name ?? 'Système',
+          user_role: (r.user as { role?: string } | null)?.role ?? null,
           record_id: r.record_id,
           logged_at: r.logged_at,
           details: r.new_data ? JSON.stringify(r.new_data).slice(0, 100) : r.action,
@@ -99,7 +115,10 @@ export default async function AuditPage() {
                 <div className="flex-1 min-w-0">
                   <p className="text-sm text-gray-800 truncate">{entry.details}</p>
                   <div className="flex items-center gap-3 mt-1">
-                    <span className="text-xs font-medium text-gray-500">{entry.user_name}</span>
+                    <span className="text-xs font-medium text-gray-700">{entry.user_name}</span>
+                    {entry.user_role && (
+                      <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-600">{entry.user_role}</span>
+                    )}
                     {entry.table_name && (
                       <span className="text-[10px] text-gray-400 font-mono">{entry.table_name}</span>
                     )}

@@ -39,5 +39,6 @@ export async function POST(request: NextRequest) {
   if (!sb) return NextResponse.json({ error: 'DB indisponible' }, { status: 503 });
   const { error } = await sb.from('beacons').insert({ uid, label: body.label?.trim() || null, status: 'SPARE' });
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  { const { writeAudit } = await import('@/lib/audit/log'); await writeAudit({ userId: session.id, action: 'CREATE_BEACON', tableName: 'beacons', recordId: undefined, newData: { uid } }); }
   return NextResponse.json({ ok: true });
 }

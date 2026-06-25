@@ -34,5 +34,6 @@ export async function POST(request: NextRequest) {
     .eq('id', deviceId);
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  { const { writeAudit } = await import('@/lib/audit/log'); await writeAudit({ userId: session.id, action: 'ASSIGN_DEVICE', tableName: 'devices', recordId: deviceId, newData: { caseId } }); }
   return NextResponse.json({ ok: true });
 }

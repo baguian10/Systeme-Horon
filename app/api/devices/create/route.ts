@@ -28,5 +28,6 @@ export async function POST(request: NextRequest) {
     case_id: null,
   });
   if (error) return NextResponse.json({ error: /duplicate|unique/i.test(error.message) ? 'IMEI déjà existant' : error.message }, { status: 500 });
+  { const { writeAudit } = await import('@/lib/audit/log'); await writeAudit({ userId: session.id, action: 'CREATE_DEVICE', tableName: 'devices', recordId: undefined, newData: { imei } }); }
   return NextResponse.json({ ok: true });
 }
