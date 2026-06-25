@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation';
 import { getSession } from '@/lib/auth/session';
 import { fetchCases, fetchAlerts, fetchAgenda } from '@/lib/mock/helpers';
-import { canViewCases } from '@/lib/auth/permissions';
+import { canViewCases , allow } from '@/lib/auth/permissions';
 import TerrainApp from './TerrainApp';
 
 export const metadata = { title: 'Mode Terrain — SIGEP' };
@@ -9,7 +9,7 @@ export const dynamic = 'force-dynamic';
 
 export default async function TerrainPage() {
   const session = await getSession();
-  if (!session || !canViewCases(session.role)) redirect('/sigep/dashboard');
+  if (!session || !allow(session, canViewCases(session.role), 'cases.viewAll')) redirect('/sigep/dashboard');
 
   const [cases, alerts, agenda] = await Promise.all([
     fetchCases(session.role, session.id),

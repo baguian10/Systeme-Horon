@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { getSession } from '@/lib/auth/session';
-import { canManageGeofences } from '@/lib/auth/permissions';
+import { canManageGeofences , allow } from '@/lib/auth/permissions';
 import type { Geofence, GeofenceType, GeofenceShape } from '@/lib/supabase/types';
 
 function isDemoMode() {
@@ -14,7 +14,7 @@ export async function createGeofenceAction(
   formData: FormData,
 ): Promise<{ error: string } | null> {
   const session = await getSession();
-  if (!session || !canManageGeofences(session.role)) return { error: 'Accès refusé' };
+  if (!session || !allow(session, canManageGeofences(session.role), 'geofences')) return { error: 'Accès refusé' };
 
   const case_id      = formData.get('case_id') as string;
   const device_id    = (formData.get('device_id') as string) || null;
@@ -101,7 +101,7 @@ export async function updateGeofenceAction(
   formData: FormData,
 ): Promise<{ error: string } | { ok: true; caseId: string } | null> {
   const session = await getSession();
-  if (!session || !canManageGeofences(session.role)) return { error: 'Accès refusé' };
+  if (!session || !allow(session, canManageGeofences(session.role), 'geofences')) return { error: 'Accès refusé' };
 
   const geofence_id  = formData.get('geofence_id') as string;
   const case_id      = formData.get('case_id') as string;
@@ -144,7 +144,7 @@ export async function updateGeofenceAction(
 
 export async function deleteGeofenceAction(formData: FormData): Promise<void> {
   const session = await getSession();
-  if (!session || !canManageGeofences(session.role)) return;
+  if (!session || !allow(session, canManageGeofences(session.role), 'geofences')) return;
 
   const geofence_id = formData.get('geofence_id') as string;
   const case_id     = formData.get('case_id') as string;

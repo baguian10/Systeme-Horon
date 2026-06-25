@@ -6,7 +6,7 @@ import {
   Heart, GraduationCap, Wrench, Landmark,
 } from 'lucide-react';
 import { getSession } from '@/lib/auth/session';
-import { canViewTigSites, canManageTigSites } from '@/lib/auth/permissions';
+import { canViewTigSites, canManageTigSites , allow } from '@/lib/auth/permissions';
 import { fetchTigSites } from '@/lib/mock/helpers';
 import { toggleTigSiteAction } from './actions';
 import type { TigSiteCategory } from '@/lib/supabase/types';
@@ -25,7 +25,7 @@ const CAT_META: Record<TigSiteCategory, { label: string; icon: typeof TreePine; 
 
 export default async function TigSitesPage() {
   const session = await getSession();
-  if (!session || !canViewTigSites(session.role)) redirect('/sigep/dashboard');
+  if (!session || !allow(session, canViewTigSites(session.role), 'tig')) redirect('/sigep/dashboard');
 
   const canManage = canManageTigSites(session.role);
   const sites = await fetchTigSites();

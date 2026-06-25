@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation';
 import { Calendar, MapPin, Clock, CheckCircle2, AlertCircle } from 'lucide-react';
 import { getSession } from '@/lib/auth/session';
-import { canViewAgenda, canViewPII } from '@/lib/auth/permissions';
+import { canViewAgenda, canViewPII , allow } from '@/lib/auth/permissions';
 import { fetchAgenda } from '@/lib/mock/helpers';
 import type { ObligationType } from '@/lib/supabase/types';
 
@@ -20,7 +20,7 @@ const MONTH_FR = ['jan', 'fév', 'mar', 'avr', 'mai', 'jun', 'jul', 'aoû', 'sep
 
 export default async function AgendaPage() {
   const session = await getSession();
-  if (!session || !canViewAgenda(session.role)) redirect('/sigep/dashboard');
+  if (!session || !allow(session, canViewAgenda(session.role), 'cases.viewAll')) redirect('/sigep/dashboard');
 
   const showPII = canViewPII(session.role);
   const all = await fetchAgenda(session.role, session.id);

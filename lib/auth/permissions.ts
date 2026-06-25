@@ -49,6 +49,16 @@ export function can(session: PermSession | null | undefined, key: Permission): b
   return roleDefault(session.role, key);
 }
 
+// Gate that layers ADMIN permissions on top of existing role checks WITHOUT
+// changing behavior for other roles. `roleCheck` = the existing canX(role) result.
+//   SUPER_ADMIN → always; ADMIN → only if permission granted; others → roleCheck.
+export function allow(session: PermSession | null | undefined, roleCheck: boolean, key: Permission): boolean {
+  if (!session) return false;
+  if (session.role === 'SUPER_ADMIN') return true;
+  if (session.role === 'ADMIN') return (session.permissions ?? []).includes(key);
+  return roleCheck;
+}
+
 function roleDefault(role: UserRole, key: Permission): boolean {
   switch (key) {
     case 'cases.viewAll':   return false;

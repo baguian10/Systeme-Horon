@@ -17,6 +17,7 @@ import {
   canViewCases, canViewRealtime, canViewAudit,
   canManageGeofences, canViewReports, canViewViolations, canViewTigSites,
   canViewRevocations, canViewMaintenance, canViewAgenda, canViewParametres,
+  allow,
 } from '@/lib/auth/permissions';
 
 interface NavItem {
@@ -25,59 +26,64 @@ interface NavItem {
   icon:  React.ReactNode;
 }
 
-function buildNav(role: UserRole): NavItem[] {
+type Sess = { role: UserRole; permissions?: string[] };
+
+function buildNav(session: Sess): NavItem[] {
+  const role = session.role;
   const items: NavItem[] = [
     { href: '/sigep/dashboard', label: "Vue d'ensemble", icon: <LayoutDashboard className="w-4 h-4" /> },
   ];
 
-  if (canViewCases(role)) {
+  if (allow(session, canViewCases(role), 'cases.viewAll')) {
     items.push({ href: '/sigep/dashboard/cases',  label: 'Dossiers', icon: <FolderOpen className="w-4 h-4" /> });
+  }
+  if (allow(session, canViewCases(role), 'alerts')) {
     items.push({ href: '/sigep/dashboard/alerts', label: 'Alertes',  icon: <Bell className="w-4 h-4" /> });
   }
 
   items.push({ href: '/sigep/dashboard/map', label: 'Surveillance', icon: <Map className="w-4 h-4" /> });
 
-  if (canViewRealtime(role)) {
+  if (allow(session, canViewRealtime(role), 'alerts')) {
     items.push({ href: '/sigep/dashboard/monitoring', label: 'Temps réel', icon: <Activity className="w-4 h-4" /> });
   }
-  if (canManageGeofences(role)) {
+  if (allow(session, canManageGeofences(role), 'geofences')) {
     items.push({ href: '/sigep/dashboard/geofences', label: 'Géofences', icon: <Hexagon className="w-4 h-4" /> });
   }
-  if (canViewStats(role)) {
+  if (allow(session, canViewStats(role), 'stats')) {
     items.push({ href: '/sigep/dashboard/stats', label: 'Statistiques', icon: <BarChart2 className="w-4 h-4" /> });
   }
-  if (canViewDevices(role)) {
+  if (allow(session, canViewDevices(role), 'hardware')) {
     items.push({ href: '/sigep/dashboard/devices', label: 'Bracelets', icon: <Watch className="w-4 h-4" /> });
   }
-  if (canViewUsers(role)) {
+  if (allow(session, canViewUsers(role), 'users.manage')) {
     items.push({ href: '/sigep/dashboard/users', label: 'Utilisateurs', icon: <Users className="w-4 h-4" /> });
   }
-  if (canViewReports(role)) {
+  if (allow(session, canViewReports(role), 'reports')) {
     items.push({ href: '/sigep/dashboard/rapports', label: 'Rapports', icon: <FileText className="w-4 h-4" /> });
   }
-  if (canViewViolations(role)) {
+  if (allow(session, canViewViolations(role), 'reports')) {
     items.push({ href: '/sigep/dashboard/infractions', label: 'Infractions', icon: <AlertTriangle className="w-4 h-4" /> });
   }
-  if (canViewTigSites(role)) {
+  if (allow(session, canViewTigSites(role), 'tig')) {
     items.push({ href: '/sigep/dashboard/tig-sites', label: 'Sites TIG', icon: <Shovel className="w-4 h-4" /> });
   }
-  if (canViewAgenda(role)) {
+  if (allow(session, canViewAgenda(role), 'cases.viewAll')) {
     items.push({ href: '/sigep/dashboard/agenda', label: 'Agenda', icon: <Calendar className="w-4 h-4" /> });
   }
-  if (canViewRevocations(role)) {
+  if (allow(session, canViewRevocations(role), 'revocations')) {
     items.push({ href: '/sigep/dashboard/revocations', label: 'Révocations', icon: <XOctagon className="w-4 h-4" /> });
   }
-  if (canViewCases(role)) {
+  if (allow(session, canViewCases(role), 'cases.viewAll')) {
     items.push({ href: '/sigep/dashboard/messagerie', label: 'Messagerie', icon: <MessageSquare className="w-4 h-4" /> });
   }
   items.push({ href: '/sigep/dashboard/notifications', label: 'Notifications', icon: <BellRing className="w-4 h-4" /> });
-  if (canViewCases(role)) {
+  if (allow(session, canViewCases(role), 'cases.viewAll')) {
     items.push({ href: '/sigep/dashboard/terrain', label: 'Mode terrain', icon: <Smartphone className="w-4 h-4" /> });
   }
-  if (canViewMaintenance(role)) {
+  if (allow(session, canViewMaintenance(role), 'maintenance')) {
     items.push({ href: '/sigep/dashboard/maintenance', label: 'Maintenance', icon: <Wrench className="w-4 h-4" /> });
   }
-  if (canViewAudit(role)) {
+  if (allow(session, canViewAudit(role), 'audit')) {
     items.push({ href: '/sigep/dashboard/audit', label: "Journal d'audit", icon: <ClipboardList className="w-4 h-4" /> });
   }
   if (canViewParametres(role)) {
@@ -97,9 +103,9 @@ const navItem = {
   visible: { opacity: 1, x: 0, transition: { duration: 0.25, ease: 'easeOut' as const } },
 };
 
-export default function Sidebar({ role }: { role: UserRole }) {
+export default function Sidebar({ role, permissions }: { role: UserRole; permissions?: string[] }) {
   const pathname = usePathname();
-  const nav = buildNav(role);
+  const nav = buildNav({ role, permissions });
 
   function isActive(href: string) {
     if (href === '/sigep/dashboard') return pathname === href;

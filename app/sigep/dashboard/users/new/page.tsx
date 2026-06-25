@@ -1,13 +1,13 @@
 import { redirect } from 'next/navigation';
 import { getSession } from '@/lib/auth/session';
-import { canViewUsers } from '@/lib/auth/permissions';
+import { canViewUsers , allow } from '@/lib/auth/permissions';
 import UserForm from '@/components/users/UserForm';
 
 export const metadata = { title: 'Nouvel utilisateur — SIGEP' };
 
 export default async function NewUserPage() {
   const session = await getSession();
-  if (!session || !canViewUsers(session.role)) redirect('/sigep/dashboard');
+  if (!session || !allow(session, canViewUsers(session.role), 'users.manage')) redirect('/sigep/dashboard');
 
   const isJudge = session.role === 'JUDGE';
 

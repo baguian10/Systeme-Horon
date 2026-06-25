@@ -6,7 +6,7 @@ import {
 } from 'lucide-react';
 import type { SyncStatus } from '@/lib/supabase/types';
 import { getSession } from '@/lib/auth/session';
-import { canViewDevices, canConfigureHardware } from '@/lib/auth/permissions';
+import { canViewDevices, canConfigureHardware , allow } from '@/lib/auth/permissions';
 import { fetchAllDevices, fetchCases } from '@/lib/mock/helpers';
 import AssignDeviceControl from '@/components/devices/AssignDeviceControl';
 import SimEditControl from '@/components/devices/SimEditControl';
@@ -18,7 +18,7 @@ export const revalidate = 0;
 
 export default async function DevicesPage() {
   const session = await getSession();
-  if (!session || !canViewDevices(session.role)) redirect('/sigep/dashboard');
+  if (!session || !allow(session, canViewDevices(session.role), 'hardware')) redirect('/sigep/dashboard');
 
   const isHardwareAdmin = canConfigureHardware(session.role);
 

@@ -20,6 +20,7 @@ export interface User {
   updated_at: string;
   created_by?: string | null;
   access_scope?: 'FULL' | 'RESTRICTED' | null;
+  permissions?: string[];
 }
 
 export interface Individual {

@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { getSession } from '@/lib/auth/session';
-import { canConfigureHardware, canManageGeofences } from '@/lib/auth/permissions';
+import { canConfigureHardware, canManageGeofences , allow } from '@/lib/auth/permissions';
 
 export const dynamic = 'force-dynamic';
 
@@ -8,7 +8,7 @@ export const dynamic = 'force-dynamic';
 // Body: { beaconId, alarmEnabled, maxDistanceM, graceMinutes, notifyExit, activeStart, activeEnd }
 export async function POST(request: NextRequest) {
   const session = await getSession();
-  if (!session || (!canConfigureHardware(session.role) && !canManageGeofences(session.role))) {
+  if (!session || !allow(session, canConfigureHardware(session.role), 'beacons')) {
     return NextResponse.json({ error: 'Accès refusé' }, { status: 403 });
   }
   let b: {

@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { getSession } from '@/lib/auth/session';
-import { canConfigureHardware } from '@/lib/auth/permissions';
+import { canConfigureHardware , allow } from '@/lib/auth/permissions';
 
 export const dynamic = 'force-dynamic';
 
@@ -8,7 +8,7 @@ export const dynamic = 'force-dynamic';
 // Body: { beaconId, deviceId }  (deviceId null/empty → unlink). SUPER_ADMIN.
 export async function POST(request: NextRequest) {
   const session = await getSession();
-  if (!session || !canConfigureHardware(session.role)) {
+  if (!session || !allow(session, canConfigureHardware(session.role), 'beacons')) {
     return NextResponse.json({ error: 'Accès refusé (SUPER_ADMIN requis)' }, { status: 403 });
   }
   let body: { beaconId?: string; deviceId?: string | null };

@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation';
 import { ClipboardList } from 'lucide-react';
 import { getSession } from '@/lib/auth/session';
-import { canViewUsers } from '@/lib/auth/permissions';
+import { canViewUsers , allow } from '@/lib/auth/permissions';
 
 export const metadata = { title: "Journal d'audit — SIGEP" };
 export const revalidate = 0;
@@ -31,7 +31,7 @@ const ACTION_COLORS: Record<string, string> = {
 
 export default async function AuditPage() {
   const session = await getSession();
-  if (!session || !canViewUsers(session.role)) redirect('/sigep/dashboard');
+  if (!session || !allow(session, canViewUsers(session.role), 'audit')) redirect('/sigep/dashboard');
 
   const isDemoMode = !process.env.NEXT_PUBLIC_SUPABASE_URL;
 

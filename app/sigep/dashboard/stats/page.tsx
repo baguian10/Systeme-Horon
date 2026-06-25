@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { Download } from 'lucide-react';
 import { getSession } from '@/lib/auth/session';
-import { canViewStats, canExportData } from '@/lib/auth/permissions';
+import { canViewStats, canExportData , allow } from '@/lib/auth/permissions';
 import { fetchOverviewStats, fetchCases, fetchAlerts } from '@/lib/mock/helpers';
 import type { CaseStatus, AlertType } from '@/lib/supabase/types';
 
@@ -30,7 +30,7 @@ function BarChart({ data }: { data: { label: string; value: number; color: strin
 
 export default async function StatsPage() {
   const session = await getSession();
-  if (!session || !canViewStats(session.role)) redirect('/sigep/dashboard');
+  if (!session || !allow(session, canViewStats(session.role), 'stats')) redirect('/sigep/dashboard');
 
   const canExport = canExportData(session.role);
   const [stats, cases, alerts] = await Promise.all([

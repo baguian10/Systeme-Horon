@@ -1,13 +1,14 @@
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { getSession } from '@/lib/auth/session';
-import { canViewUsers, canManageAllUsers } from '@/lib/auth/permissions';
+import { canViewUsers, canManageAllUsers , allow } from '@/lib/auth/permissions';
 import { fetchUsers } from '@/lib/mock/helpers';
 import RoleBadge from '@/components/ui/RoleBadge';
 import { CheckCircle, XCircle, UserPlus, ShieldAlert, Users, ShieldCheck } from 'lucide-react';
 import ToggleUserButton from '@/components/users/ToggleUserButton';
 import ForceResetButton from '@/components/users/ForceResetButton';
 import DeleteUserButton from '@/components/users/DeleteUserButton';
+import EditPermissionsButton from '@/components/users/EditPermissionsButton';
 
 export const metadata = { title: 'Gestion des utilisateurs — SIGEP' };
 
@@ -26,7 +27,7 @@ function ScopeBadge({ scope }: { scope?: string | null }) {
 
 export default async function UsersPage() {
   const session = await getSession();
-  if (!session || !canViewUsers(session.role)) redirect('/sigep/dashboard');
+  if (!session || !allow(session, canViewUsers(session.role), 'users.manage')) redirect('/sigep/dashboard');
 
   const isSuperAdmin = canManageAllUsers(session.role);
   const isJudge = session.role === 'JUDGE';
@@ -206,6 +207,9 @@ export default async function UsersPage() {
                     <td className="px-5 py-3.5">
                       {user.id !== session.id && (
                         <div className="flex items-center justify-end gap-2 flex-wrap">
+                          {user.role === 'ADMIN' && (
+                            <EditPermissionsButton userId={user.id} name={user.full_name} current={user.permissions ?? []} />
+                          )}
                           <ToggleUserButton userId={user.id} isActive={user.is_active} />
                           <ForceResetButton userId={user.id} />
                           <DeleteUserButton userId={user.id} name={user.full_name} />

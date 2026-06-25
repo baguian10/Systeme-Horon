@@ -7,7 +7,7 @@ import {
 import { fetchCaseById, fetchCaseAssignments, fetchOperationalUsers, fetchJournalEntries } from '@/lib/mock/helpers';
 import { getSession } from '@/lib/auth/session';
 import { CaseStatusBadge, AlertTypeBadge, SeverityDot } from '@/components/ui/StatusBadge';
-import { canViewPII, canManageGeofences, canUpdateCaseStatus, canManageAssignments, canWriteJournal, canConfigureHardware } from '@/lib/auth/permissions';
+import { canViewPII, canManageGeofences, canUpdateCaseStatus, canManageAssignments, canWriteJournal, canConfigureHardware, allow } from '@/lib/auth/permissions';
 import StatusControls from '@/components/cases/StatusControls';
 import GeofenceManager from '@/components/cases/GeofenceManager';
 import CaseBeaconManager from '@/components/cases/CaseBeaconManager';
@@ -24,7 +24,7 @@ export default async function CaseDetailPage({ params }: { params: Promise<{ id:
   if (!session || !caseData) notFound();
 
   const showPII = canViewPII(session.role);
-  const canGeo = canManageGeofences(session.role);
+  const canGeo = allow(session, canManageGeofences(session.role), 'geofences');
   const canStatus = canUpdateCaseStatus(session.role);
   const canAssign = canManageAssignments(session.role);
   const canJournal = canWriteJournal(session.role);
@@ -35,7 +35,10 @@ export default async function CaseDetailPage({ params }: { params: Promise<{ id:
 
   // BLE beacon associated with this dossier's bracelet (+ spares to attach).
   type BeaconRow = { id: string; uid: string; label: string | null; status: string };
-  const canHardware = canConfigureHardware(session.role);
+  const canHardware = allow(session, canConfigureHardware(session.role), 'hardware');
+  const canBeacon = allow(session, canConfigureHardware(session.role), 'beacons');
+  const canCommand = allow(session, canConfigureHardware(session.role), 'commands');
+  const canShutdownCmd = allow(session, canConfigureHardware(session.role), 'commands.shutdown');
   let currentBeacon: BeaconRow | null = null;
   let spareBeacons: BeaconRow[] = [];
   let spareDevices: { id: string; imei: string }[] = [];
@@ -258,12 +261,12 @@ export default async function CaseDetailPage({ params }: { params: Promise<{ id:
             hasDevice={!!device}
             current={currentBeacon}
             spares={spareBeacons}
-            canManage={canGeo && caseData.status !== 'TERMINATED'}
+            canManage={canBeacon && caseData.status !== 'TERMINATED'}
           />
 
           {/* Home presence + remote commands */}
           {device && (
-            <CasePresencePanel imei={device.imei} canCommand={canGeo || canHardware} canShutdown={canHardware} />
+            <CasePresencePanel imei={device.imei} canCommand={canCommand} canShutdown={canShutdownCmd} />
           )}
 
           {/* Assignments */}

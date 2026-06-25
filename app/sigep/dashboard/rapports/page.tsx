@@ -5,7 +5,7 @@ import {
   FolderOpen, TrendingUp, Clock, CheckCircle,
 } from 'lucide-react';
 import { getSession } from '@/lib/auth/session';
-import { canViewReports } from '@/lib/auth/permissions';
+import { canViewReports , allow } from '@/lib/auth/permissions';
 import { fetchCases, fetchAlerts, fetchOverviewStats } from '@/lib/mock/helpers';
 
 export const metadata = { title: 'Rapports — SIGEP' };
@@ -63,7 +63,7 @@ const RECENT = [
 
 export default async function RapportsPage() {
   const session = await getSession();
-  if (!session || !canViewReports(session.role)) redirect('/sigep/dashboard');
+  if (!session || !allow(session, canViewReports(session.role), 'reports')) redirect('/sigep/dashboard');
 
   const [cases, alerts, stats] = await Promise.all([
     fetchCases(session.role, session.id),

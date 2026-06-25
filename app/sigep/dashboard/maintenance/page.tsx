@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation';
 import { Wrench, Battery, Cpu, Settings, CheckCircle2, AlertTriangle, Clock, Plus, Zap } from 'lucide-react';
 import { getSession } from '@/lib/auth/session';
-import { canViewMaintenance } from '@/lib/auth/permissions';
+import { canViewMaintenance , allow } from '@/lib/auth/permissions';
 import { fetchMaintenanceTickets } from '@/lib/mock/helpers';
 import { updateMaintenanceStatusAction } from './actions';
 import type { MaintenanceType, MaintenanceStatus } from '@/lib/supabase/types';
@@ -37,7 +37,7 @@ function formatDate(iso: string | null) {
 
 export default async function MaintenancePage() {
   const session = await getSession();
-  if (!session || !canViewMaintenance(session.role)) redirect('/sigep/dashboard');
+  if (!session || !allow(session, canViewMaintenance(session.role), 'maintenance')) redirect('/sigep/dashboard');
 
   const tickets = await fetchMaintenanceTickets();
 

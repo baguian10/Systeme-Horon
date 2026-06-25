@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { getSession } from '@/lib/auth/session';
-import { canConfigureHardware } from '@/lib/auth/permissions';
+import { canConfigureHardware , allow } from '@/lib/auth/permissions';
 
 export const dynamic = 'force-dynamic';
 
@@ -12,7 +12,7 @@ async function admin() {
 // GET /api/beacons — list all BLE beacons (SUPER_ADMIN).
 export async function GET() {
   const session = await getSession();
-  if (!session || !canConfigureHardware(session.role)) {
+  if (!session || !allow(session, canConfigureHardware(session.role), 'beacons')) {
     return NextResponse.json({ beacons: [] }, { status: 403 });
   }
   const sb = await admin();
@@ -27,7 +27,7 @@ export async function GET() {
 // POST /api/beacons — register a new beacon { uid, label }.
 export async function POST(request: NextRequest) {
   const session = await getSession();
-  if (!session || !canConfigureHardware(session.role)) {
+  if (!session || !allow(session, canConfigureHardware(session.role), 'beacons')) {
     return NextResponse.json({ error: 'Accès refusé (SUPER_ADMIN requis)' }, { status: 403 });
   }
   let body: { uid?: string; label?: string };

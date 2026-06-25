@@ -5,7 +5,7 @@ import {
   Zap, WifiOff, Battery, AlertCircle,
 } from 'lucide-react';
 import { getSession } from '@/lib/auth/session';
-import { canViewViolations } from '@/lib/auth/permissions';
+import { canViewViolations , allow } from '@/lib/auth/permissions';
 import { fetchViolations, fetchCases } from '@/lib/mock/helpers';
 import type { AlertType } from '@/lib/supabase/types';
 
@@ -27,7 +27,7 @@ const SEV_BG    = ['', 'bg-green-50', 'bg-yellow-50', 'bg-orange-50', 'bg-red-50
 
 export default async function InfractionsPage() {
   const session = await getSession();
-  if (!session || !canViewViolations(session.role)) redirect('/sigep/dashboard');
+  if (!session || !allow(session, canViewViolations(session.role), 'reports')) redirect('/sigep/dashboard');
 
   const [violations, cases] = await Promise.all([
     fetchViolations(session.role),

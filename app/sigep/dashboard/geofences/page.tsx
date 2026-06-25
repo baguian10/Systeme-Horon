@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { Plus, MapPin, Bluetooth, ShieldAlert, ShieldCheck, Clock, Trash2, Pencil } from 'lucide-react';
 import { getSession } from '@/lib/auth/session';
-import { canManageGeofences } from '@/lib/auth/permissions';
+import { canManageGeofences , allow } from '@/lib/auth/permissions';
 import { fetchGeofences, fetchCases } from '@/lib/mock/helpers';
 import { deleteGeofenceAction } from './actions';
 import GeofenceMapClient from '@/components/geofences/GeofenceMapClient';
@@ -38,7 +38,7 @@ export default async function GeofencesPage() {
   const session = await getSession();
   if (!session) redirect('/sigep/login');
 
-  const canManage = canManageGeofences(session.role);
+  const canManage = allow(session, canManageGeofences(session.role), 'geofences');
   const [geofences, cases] = await Promise.all([fetchGeofences(), fetchCases(session.role, session.id)]);
 
   const gpsZones    = geofences.filter((g) => g.geofence_type === 'GPS_ZONE');

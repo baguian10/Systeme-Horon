@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation';
 import { AlertTriangle, CheckCircle2, XCircle, Clock, FileText, User, ChevronRight } from 'lucide-react';
 import { getSession } from '@/lib/auth/session';
-import { canViewRevocations, canManageRevocations } from '@/lib/auth/permissions';
+import { canViewRevocations, canManageRevocations , allow } from '@/lib/auth/permissions';
 import { fetchRevocations } from '@/lib/mock/helpers';
 import { decideRevocationAction } from './actions';
 import type { RevocationStatus } from '@/lib/supabase/types';
@@ -22,7 +22,7 @@ function formatDate(iso: string) {
 
 export default async function RevocationsPage() {
   const session = await getSession();
-  if (!session || !canViewRevocations(session.role)) redirect('/sigep/dashboard');
+  if (!session || !allow(session, canViewRevocations(session.role), 'revocations')) redirect('/sigep/dashboard');
 
   const canDecide = canManageRevocations(session.role);
   const revocations = await fetchRevocations(session.role, session.id);

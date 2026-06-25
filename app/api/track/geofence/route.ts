@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { getSession } from '@/lib/auth/session';
-import { canManageGeofences } from '@/lib/auth/permissions';
+import { canManageGeofences , allow } from '@/lib/auth/permissions';
 
 export const dynamic = 'force-dynamic';
 
@@ -9,7 +9,7 @@ export const dynamic = 'force-dynamic';
 //         coordinates?: [lng,lat][], center?: [lat,lng], radiusM?: number }
 export async function POST(request: NextRequest) {
   const session = await getSession();
-  if (!session || !canManageGeofences(session.role)) {
+  if (!session || !allow(session, canManageGeofences(session.role), 'geofences')) {
     return NextResponse.json({ error: 'Accès refusé' }, { status: 403 });
   }
 

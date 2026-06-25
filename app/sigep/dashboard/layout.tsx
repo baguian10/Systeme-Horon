@@ -19,7 +19,7 @@ export default async function DashboardLayout({
     <SessionProvider user={session}>
       <AlertToastProvider>
         <div className="min-h-screen bg-gray-50 flex">
-          <Sidebar role={session.role} />
+          <Sidebar role={session.role} permissions={session.permissions} />
           <div className="flex-1 ml-60 flex flex-col min-h-screen">
             <Topbar title="SIGEP" />
             <main className="flex-1 p-6 overflow-auto">{children}</main>

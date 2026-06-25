@@ -1,13 +1,13 @@
 import { notFound, redirect } from 'next/navigation';
 import { getSession } from '@/lib/auth/session';
-import { canManageGeofences } from '@/lib/auth/permissions';
+import { canManageGeofences , allow } from '@/lib/auth/permissions';
 import GeofenceEditor from '@/components/geofences/GeofenceEditor';
 import type { Geofence } from '@/lib/supabase/types';
 
 export default async function EditGeofencePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const session = await getSession();
-  if (!session || !canManageGeofences(session.role)) redirect('/sigep/dashboard');
+  if (!session || !allow(session, canManageGeofences(session.role), 'geofences')) redirect('/sigep/dashboard');
 
   let geofence: Geofence | null = null;
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {

@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { getSession } from '@/lib/auth/session';
-import { canManageGeofences, canConfigureHardware } from '@/lib/auth/permissions';
+import { canManageGeofences, canConfigureHardware , allow } from '@/lib/auth/permissions';
 import { sendDeviceCommand, type TraxbeanCommand } from '@/lib/traxbean/client';
 
 export const dynamic = 'force-dynamic';
@@ -21,11 +21,11 @@ export async function POST(request: NextRequest) {
   if (!imei || !action) return NextResponse.json({ error: 'imei / action manquant' }, { status: 400 });
 
   if (ADMIN_ONLY.includes(action)) {
-    if (!canConfigureHardware(session.role)) {
+    if (!allow(session, canConfigureHardware(session.role), 'commands.shutdown')) {
       return NextResponse.json({ error: 'Réservé SUPER_ADMIN' }, { status: 403 });
     }
   } else if (SAFE.includes(action)) {
-    if (!canManageGeofences(session.role) && !canConfigureHardware(session.role)) {
+    if (!allow(session, canConfigureHardware(session.role), 'commands')) {
       return NextResponse.json({ error: 'Accès refusé' }, { status: 403 });
     }
   } else {
