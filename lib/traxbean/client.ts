@@ -139,22 +139,68 @@ export async function sendDeviceCommand(imei: string, command: TraxbeanCommand):
   if (command === 'enableBle') {
     const targetId = await getTargetIdByImei(imei);
     if (!targetId) return false;
-    const r = await traxbeanPost<number>('business/target/sendCommand', { targetId, imei, command: '>*ble@120*' });
+    // Per ThinkRace IW protocol: >*ble@<interval-seconds>*< opens the BLE module
+    // and uploads an APBL scan packet every <interval> seconds (here 120s).
+    const r = await traxbeanPost<number>('business/target/sendCommand', { targetId, imei, command: '>*ble@120*<' });
     return r !== null;
   }
   return false;
 }
 
-export type HomePresence = { configured: boolean; atHome: boolean; lastIndoorAt: string | null };
+export type BleSighting = { name: string; mac: string; rssi: number };
+export type BleScan = { at: string; sightings: BleSighting[] } | null;
 
-// BLE home presence: is the bracelet currently detected near its home beacon?
+// Parse the device's most recent APBL (BLE scan) packet from the raw log.
+// APBL format: IWAPBL,IMEI, Name|MAC|RSSI&Name2|MAC2|RSSI2, terminalMAC, timestamp#
+export async function getLatestBleScan(imei: string): Promise<BleScan> {
+  const lines = await traxbeanPost<string[]>('business/device/fetchDeviceLog', {
+    imei,
+    startTime: new Date(Date.now() - 15 * 60000).toISOString(),
+  });
+  if (!Array.isArray(lines)) return null;
+  const apbl = lines.filter((l) => typeof l === 'string' && l.includes('IWAPBL,'));
+  if (apbl.length === 0) return null;
+
+  const line = apbl[apbl.length - 1];
+  const payload = line.slice(line.indexOf('IWAPBL,') + 'IWAPBL,'.length).replace(/#.*$/, '');
+  // payload = IMEI , bledata , terminalMAC , timestamp   (MACs use ':' not ',')
+  const parts = payload.split(',');
+  if (parts.length < 4) return null;
+  const bledata = parts[1];
+  const ts = Number(parts[parts.length - 1]);
+  const sightings: BleSighting[] = bledata.split('&').map((seg) => {
+    const [name, mac, rssi] = seg.split('|');
+    return { name: name ?? '', mac: (mac ?? '').trim().toUpperCase(), rssi: Number(rssi) };
+  }).filter((s) => s.mac);
+
+  return { at: ts ? new Date(ts).toISOString() : new Date().toISOString(), sightings };
+}
+
+export type HomePresence = {
+  configured: boolean;
+  atHome: boolean;
+  rssi: number | null;
+  lastIndoorAt: string | null;
+};
+
+// BLE home presence: is the home beacon MAC present in the latest BLE scan?
 export async function getHomePresence(imei: string): Promise<HomePresence> {
   const targetId = await getTargetIdByImei(imei);
-  if (!targetId) return { configured: false, atHome: false, lastIndoorAt: null };
+  if (!targetId) return { configured: false, atHome: false, rssi: null, lastIndoorAt: null };
+
   const home = await traxbeanPost<{ macs?: string[] }>('business/target/getTargetHome', { id: targetId });
-  const configured = Boolean(home && Array.isArray(home.macs) && home.macs.length > 0);
-  const indoor = await traxbeanPost<Array<{ utcTimestamp?: number }>>('business/geo/getGeoLocationLK', { targetId });
-  const atHome = Array.isArray(indoor) && indoor.length > 0;
-  const lastIndoorAt = atHome && indoor[0]?.utcTimestamp ? new Date(indoor[0].utcTimestamp).toISOString() : null;
-  return { configured, atHome, lastIndoorAt };
+  const homeMacs = (home?.macs ?? []).map((m) => m.trim().toUpperCase());
+  const configured = homeMacs.length > 0;
+  if (!configured) return { configured: false, atHome: false, rssi: null, lastIndoorAt: null };
+
+  const scan = await getLatestBleScan(imei);
+  if (!scan) return { configured, atHome: false, rssi: null, lastIndoorAt: null };
+
+  const hit = scan.sightings.find((s) => homeMacs.includes(s.mac));
+  return {
+    configured,
+    atHome: Boolean(hit),
+    rssi: hit ? hit.rssi : null,
+    lastIndoorAt: scan.at,
+  };
 }

@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { Home, MapPin, Loader2, RefreshCw } from 'lucide-react';
 
-interface Presence { configured: boolean; atHome: boolean; lastIndoorAt: string | null }
+interface Presence { configured: boolean; atHome: boolean; rssi: number | null; lastIndoorAt: string | null }
 
 // Shows BLE home-beacon presence (À domicile / Absent) + a "Localiser" command.
 export default function CasePresencePanel({ imei, canCommand }: { imei: string; canCommand: boolean }) {
@@ -60,9 +60,12 @@ export default function CasePresencePanel({ imei, canCommand }: { imei: string; 
             <span className={`text-sm font-semibold ${presence.atHome ? 'text-emerald-700' : 'text-gray-500'}`}>
               {presence.atHome ? 'À domicile (beacon détecté)' : 'Absent du domicile'}
             </span>
+            {presence.atHome && presence.rssi != null && (
+              <span className="text-[11px] text-gray-400">· signal {presence.rssi} dBm</span>
+            )}
             {presence.lastIndoorAt && (
               <span className="text-[11px] text-gray-400">
-                · {new Date(presence.lastIndoorAt).toLocaleString('fr-FR')}
+                · {new Date(presence.lastIndoorAt).toLocaleTimeString('fr-FR')}
               </span>
             )}
           </div>
