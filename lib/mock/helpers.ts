@@ -5,6 +5,7 @@ import {
   MOCK_THREADS, MOCK_MESSAGES, MOCK_VIOLATION_HEATPOINTS,
 } from './data';
 import type { Case, Alert, User, OverviewStats, UserRole, Position, Device, Geofence, TigSite, RevocationRequest, JournalEntry, MaintenanceTick, AgendaObligation, MessageThread, Message, ViolationHeatPoint } from '@/lib/supabase/types';
+import { isTraxbeanConfigured, getDeviceLocation } from '@/lib/traxbean/client';
 
 export const IS_DEMO_MODE =
   !process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -145,12 +146,51 @@ export async function fetchAllDevices(): Promise<Device[]> {
 
 export async function fetchLatestPositions(): Promise<(Position & { case_number: string })[]> {
   if (IS_DEMO_MODE) {
-    return MOCK_POSITIONS.map((p, i) => ({
+    const positions = MOCK_POSITIONS.map((p, i) => ({
       ...p,
       case_number: MOCK_CASES[i]?.case_number ?? '',
     }));
+
+    // Live overlay: replace the first case's position with the real TR40 ankle
+    // tracker pulled from the Traxbean platform, so the SIGEP map shows the
+    // physical device moving in real time during testing. Set TRAXBEAN_TOKEN
+    // and TRAXBEAN_DEMO_IMEI to enable; otherwise the mock position is kept.
+    const demoImei = process.env.TRAXBEAN_DEMO_IMEI;
+    if (isTraxbeanConfigured() && demoImei && positions[0]) {
+      const live = await getDeviceLocation(demoImei);
+      if (live) {
+        positions[0] = {
+          ...positions[0],
+          latitude: live.lat,
+          longitude: live.lng,
+          speed_kmh: live.speedKmh ?? 0,
+          recorded_at: live.recordedAt,
+        };
+      }
+    }
+
+    return positions;
   }
-  return [];
+
+  // Real mode — latest position per case from Supabase (RLS-scoped to the user).
+  const { createClient } = await import('@/lib/supabase/server');
+  const supabase = await createClient();
+  if (!supabase) return [];
+  const { data } = await supabase
+    .from('positions')
+    .select('*, case:cases(case_number)')
+    .order('recorded_at', { ascending: false })
+    .limit(500);
+  if (!data) return [];
+
+  const seen = new Set<string>();
+  const latest: (Position & { case_number: string })[] = [];
+  for (const row of data as (Position & { case?: { case_number: string } | null })[]) {
+    if (seen.has(row.case_id)) continue;
+    seen.add(row.case_id);
+    latest.push({ ...row, case_number: row.case?.case_number ?? '' });
+  }
+  return latest;
 }
 
 export async function fetchGeofences(caseId?: string): Promise<Geofence[]> {

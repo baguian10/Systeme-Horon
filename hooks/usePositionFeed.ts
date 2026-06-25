@@ -59,6 +59,10 @@ export function usePositionFeed(initialPositions: LivePosition[] = []) {
       const supabase = createClient();
       if (!supabase) return;
 
+      // StrictMode re-mount safety: drop any stale channel of the same name.
+      const stale = supabase.getChannels().find((c) => c.topic === 'realtime:positions-live');
+      if (stale) supabase.removeChannel(stale);
+
       const channel = supabase
         .channel('positions-live')
         .on(

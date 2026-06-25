@@ -25,11 +25,19 @@ export function useAlertFeed(onNewAlert: AlertListener) {
       return;
     }
 
+    let cleanup: (() => void) | undefined;
+
     import('@/lib/supabase/client').then(({ createClient }) => {
       const supabase = createClient();
       if (!supabase) return;
 
-      supabase
+      // StrictMode re-mounts the effect; drop any stale channel of the same
+      // name before subscribing, otherwise .on() is called on an already
+      // subscribed channel ("cannot add postgres_changes callbacks ... after subscribe()").
+      const stale = supabase.getChannels().find((c) => c.topic === 'realtime:alerts-live');
+      if (stale) supabase.removeChannel(stale);
+
+      const channel = supabase
         .channel('alerts-live')
         .on(
           'postgres_changes',
@@ -39,6 +47,10 @@ export function useAlertFeed(onNewAlert: AlertListener) {
           }
         )
         .subscribe();
+
+      cleanup = () => { supabase.removeChannel(channel); };
     });
+
+    return () => { cleanup?.(); };
   }, []);
 }

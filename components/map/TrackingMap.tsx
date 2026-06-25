@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, Circle, useMap } from 'react-leaflet';
+import { useEffect, useRef } from 'react';
+import { MapContainer, TileLayer, Marker, Popup, Circle, LayersControl, useMap } from 'react-leaflet';
 import L from 'leaflet';
 // leaflet/dist/leaflet.css is imported globally in app/layout.tsx
 
@@ -54,9 +54,16 @@ interface TrackingMapProps {
   zoom?: number;
 }
 
-function RecenterMap({ center }: { center: [number, number] }) {
+// Center on the first marker ONCE on mount, then never auto-recenter again —
+// so the user's zoom/pan is preserved while markers update live.
+function InitialView({ markers }: { markers: TrackerMarker[] }) {
   const map = useMap();
-  useEffect(() => { map.setView(center, map.getZoom()); }, [center, map]);
+  const done = useRef(false);
+  useEffect(() => {
+    if (done.current || markers.length === 0) return;
+    done.current = true;
+    map.setView([markers[0].lat, markers[0].lng], map.getZoom());
+  }, [markers, map]);
   return null;
 }
 
@@ -86,11 +93,29 @@ export default function TrackingMap({ markers, center = [12.3647, -1.5332], zoom
       style={{ height: '100%', width: '100%' }}
       scrollWheelZoom
     >
-      <RecenterMap center={center} />
-      <TileLayer
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-      />
+      <InitialView markers={markers} />
+      <LayersControl position="topright">
+        <LayersControl.BaseLayer checked name="Plan (rues)">
+          <TileLayer
+            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          />
+        </LayersControl.BaseLayer>
+        <LayersControl.BaseLayer name="Satellite">
+          <TileLayer
+            attribution='Tiles &copy; Esri — Source: Esri, Maxar, Earthstar Geographics'
+            url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+            maxZoom={19}
+          />
+        </LayersControl.BaseLayer>
+        <LayersControl.Overlay name="Noms de lieux (sur satellite)">
+          <TileLayer
+            attribution='Tiles &copy; Esri'
+            url="https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}"
+            maxZoom={19}
+          />
+        </LayersControl.Overlay>
+      </LayersControl>
 
       {markers.map((m) => (
         <div key={m.id}>

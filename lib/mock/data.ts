@@ -59,7 +59,7 @@ export const MOCK_INDIVIDUALS: Individual[] = [
   {
     id: 'i-0001',
     national_id: 'BFA-1988-4421',
-    full_name: 'Daouda Compaoré',
+    full_name: 'DONALD Ouedraogo',
     date_of_birth: '1988-06-14',
     address: 'Secteur 15, Arrondissement de Baskuy, Ouagadougou',
     created_at: '2024-03-01T08:00:00Z',
@@ -94,10 +94,10 @@ export const MOCK_DEVICES: Device[] = [
   {
     id: 'd-0001',
     case_id: 'c-0001',
-    imei: '354851090124756',
-    model: 'Bracelet GPS SIGEP-G3',
+    imei: '355932600157247',
+    model: 'Traxbean TR40 (LIVE)',
     firmware_ver: '3.2.1',
-    battery_pct: 78,
+    battery_pct: 64,
     is_online: true,
     last_seen_at: new Date(Date.now() - 45000).toISOString(),
     assigned_at: '2024-03-02T09:00:00Z',
