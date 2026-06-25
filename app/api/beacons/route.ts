@@ -19,7 +19,7 @@ export async function GET() {
   if (!sb) return NextResponse.json({ beacons: [] }, { status: 503 });
   const { data } = await sb
     .from('beacons')
-    .select('id, uid, label, status, device_id, device:devices(imei, case_id)')
+    .select('id, uid, label, status, device_id, alarm_enabled, max_distance_m, grace_minutes, notify_exit, active_start, active_end, device:devices(imei, case_id)')
     .order('created_at', { ascending: false });
   return NextResponse.json({ beacons: data ?? [] });
 }

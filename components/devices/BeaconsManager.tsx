@@ -1,13 +1,19 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
-import { Bluetooth, Plus, Link2, Unlink, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { useEffect, useState, useCallback, Fragment } from 'react';
+import { Bluetooth, Plus, Link2, Unlink, AlertTriangle, CheckCircle2, Settings } from 'lucide-react';
 
 interface DeviceOpt { id: string; imei: string }
 interface Beacon {
   id: string; uid: string; label: string | null; status: string;
   device_id: string | null;
   device?: { imei: string } | { imei: string }[] | null;
+  alarm_enabled?: boolean;
+  max_distance_m?: number;
+  grace_minutes?: number;
+  notify_exit?: boolean;
+  active_start?: string | null;
+  active_end?: string | null;
 }
 
 const STATUS_STYLE: Record<string, string> = {
@@ -23,6 +29,7 @@ export default function BeaconsManager({ devices }: { devices: DeviceOpt[] }) {
   const [label, setLabel] = useState('');
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [cfgOpen, setCfgOpen] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -96,7 +103,8 @@ export default function BeaconsManager({ devices }: { devices: DeviceOpt[] }) {
             {beacons.map((b) => {
               const imei = imeiOf(b);
               return (
-                <tr key={b.id} className="hover:bg-gray-50/50">
+                <Fragment key={b.id}>
+                <tr className="hover:bg-gray-50/50">
                   <td className="px-5 py-3 font-mono text-xs text-gray-700">{b.uid}</td>
                   <td className="px-5 py-3 text-xs text-gray-600">{b.label ?? '—'}</td>
                   <td className="px-5 py-3">
@@ -128,9 +136,20 @@ export default function BeaconsManager({ devices }: { devices: DeviceOpt[] }) {
                           <CheckCircle2 className="w-3.5 h-3.5" />
                         </button>
                       )}
+                      <button onClick={() => setCfgOpen(cfgOpen === b.id ? null : b.id)} title="Options / alarme" className={`p-1 ${cfgOpen === b.id ? 'text-blue-600' : 'text-gray-500 hover:text-blue-600'}`}>
+                        <Settings className="w-3.5 h-3.5" />
+                      </button>
                     </div>
                   </td>
                 </tr>
+                {cfgOpen === b.id && (
+                  <tr className="bg-gray-50/60">
+                    <td colSpan={5} className="px-5 py-3">
+                      <BeaconConfigForm beacon={b} onSave={(p) => post('/api/beacons/config', { beaconId: b.id, ...p })} />
+                    </td>
+                  </tr>
+                )}
+                </Fragment>
               );
             })}
             {beacons.length === 0 && (
@@ -139,6 +158,60 @@ export default function BeaconsManager({ devices }: { devices: DeviceOpt[] }) {
           </tbody>
         </table>
       </div>
+    </div>
+  );
+}
+
+interface ConfigPayload {
+  alarmEnabled: boolean; maxDistanceM: number; graceMinutes: number;
+  notifyExit: boolean; activeStart: string | null; activeEnd: string | null;
+}
+
+function BeaconConfigForm({ beacon, onSave }: { beacon: Beacon; onSave: (p: ConfigPayload) => Promise<boolean> }) {
+  const [alarmEnabled, setAlarm] = useState(beacon.alarm_enabled ?? true);
+  const [maxDistanceM, setDist] = useState(beacon.max_distance_m ?? 50);
+  const [graceMinutes, setGrace] = useState(beacon.grace_minutes ?? 5);
+  const [notifyExit, setNotify] = useState(beacon.notify_exit ?? true);
+  const [activeStart, setStart] = useState(beacon.active_start ?? '');
+  const [activeEnd, setEnd] = useState(beacon.active_end ?? '');
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+
+  async function save() {
+    setSaving(true); setSaved(false);
+    const ok = await onSave({ alarmEnabled, maxDistanceM: Number(maxDistanceM), graceMinutes: Number(graceMinutes), notifyExit, activeStart: activeStart || null, activeEnd: activeEnd || null });
+    setSaving(false); setSaved(ok);
+  }
+
+  const FIELD = 'border border-gray-300 rounded px-2 py-1 text-xs';
+  return (
+    <div className="flex flex-wrap items-end gap-4">
+      <label className="flex items-center gap-1.5 text-xs text-gray-700">
+        <input type="checkbox" checked={alarmEnabled} onChange={(e) => setAlarm(e.target.checked)} /> Alarme activée
+      </label>
+      <div>
+        <label className="block text-[11px] text-gray-500 mb-0.5">Distance max alarme (m)</label>
+        <input type="number" min={5} max={5000} value={maxDistanceM} onChange={(e) => setDist(Number(e.target.value))} className={FIELD + ' w-24'} />
+      </div>
+      <div>
+        <label className="block text-[11px] text-gray-500 mb-0.5">Délai de grâce (min)</label>
+        <input type="number" min={0} max={120} value={graceMinutes} onChange={(e) => setGrace(Number(e.target.value))} className={FIELD + ' w-20'} />
+      </div>
+      <label className="flex items-center gap-1.5 text-xs text-gray-700">
+        <input type="checkbox" checked={notifyExit} onChange={(e) => setNotify(e.target.checked)} /> Notifier sortie
+      </label>
+      <div>
+        <label className="block text-[11px] text-gray-500 mb-0.5">Actif de</label>
+        <input type="time" value={activeStart} onChange={(e) => setStart(e.target.value)} className={FIELD} />
+      </div>
+      <div>
+        <label className="block text-[11px] text-gray-500 mb-0.5">à</label>
+        <input type="time" value={activeEnd} onChange={(e) => setEnd(e.target.value)} className={FIELD} />
+      </div>
+      <button onClick={save} disabled={saving} className="px-3 py-1.5 rounded-lg bg-blue-600 text-white text-xs font-semibold disabled:opacity-40">
+        {saving ? '…' : 'Enregistrer options'}
+      </button>
+      {saved && <span className="text-xs text-emerald-600">Enregistré ✓</span>}
     </div>
   );
 }

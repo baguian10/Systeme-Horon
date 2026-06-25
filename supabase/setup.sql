@@ -283,3 +283,12 @@ CREATE TABLE IF NOT EXISTS beacons (
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 ALTER TABLE beacons ENABLE ROW LEVEL SECURITY;  -- managed via service role (SUPER_ADMIN)
+
+-- ── Added: beacon activatable options (alarm distance, grace, schedule) ──
+ALTER TABLE beacons
+  ADD COLUMN IF NOT EXISTS alarm_enabled  BOOLEAN NOT NULL DEFAULT true,
+  ADD COLUMN IF NOT EXISTS max_distance_m INTEGER NOT NULL DEFAULT 50,
+  ADD COLUMN IF NOT EXISTS grace_minutes  INTEGER NOT NULL DEFAULT 5,
+  ADD COLUMN IF NOT EXISTS notify_exit    BOOLEAN NOT NULL DEFAULT true,
+  ADD COLUMN IF NOT EXISTS active_start   TIME,
+  ADD COLUMN IF NOT EXISTS active_end     TIME;
