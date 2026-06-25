@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { Plus, MapPin, Bluetooth, ShieldAlert, ShieldCheck, Clock, Trash2 } from 'lucide-react';
+import { Plus, MapPin, Bluetooth, ShieldAlert, ShieldCheck, Clock, Trash2, Pencil } from 'lucide-react';
 import { getSession } from '@/lib/auth/session';
 import { canManageGeofences } from '@/lib/auth/permissions';
 import { fetchGeofences, fetchCases } from '@/lib/mock/helpers';
@@ -47,6 +47,7 @@ export default async function GeofencesPage() {
 
   // Build case lookup for display
   const caseMap = Object.fromEntries(cases.map((c) => [c.id, c.case_number]));
+  const personMap = Object.fromEntries(cases.map((c) => [c.id, c.individual?.full_name]));
 
   return (
     <div className="max-w-7xl mx-auto space-y-6">
@@ -140,6 +141,9 @@ export default async function GeofencesPage() {
                         )}
                       </div>
                       <div className="flex items-center gap-3 mt-1 flex-wrap">
+                        <span className="text-xs text-slate-300 font-medium">
+                          {personMap[g.case_id] ?? '—'}
+                        </span>
                         <span className="text-xs text-slate-500">
                           {caseMap[g.case_id] ? `Dossier ${caseMap[g.case_id]}` : g.case_id}
                         </span>
@@ -153,17 +157,26 @@ export default async function GeofencesPage() {
                       </div>
                     </div>
                     {canManage && (
-                      <form action={deleteGeofenceAction}>
-                        <input type="hidden" name="geofence_id" value={g.id} />
-                        <input type="hidden" name="case_id"     value={g.case_id} />
-                        <button
-                          type="submit"
-                          title="Supprimer"
-                          className="p-1 text-slate-600 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
+                      <div className="flex items-center gap-1">
+                        <Link
+                          href={`/sigep/dashboard/geofences/${g.id}/edit`}
+                          title="Ajuster le périmètre"
+                          className="p-1 text-slate-600 hover:text-blue-400 hover:bg-blue-500/10 rounded-lg transition-colors"
                         >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      </form>
+                          <Pencil className="w-3.5 h-3.5" />
+                        </Link>
+                        <form action={deleteGeofenceAction}>
+                          <input type="hidden" name="geofence_id" value={g.id} />
+                          <input type="hidden" name="case_id"     value={g.case_id} />
+                          <button
+                            type="submit"
+                            title="Supprimer"
+                            className="p-1 text-slate-600 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </form>
+                      </div>
                     )}
                   </li>
                 ))}

@@ -10,6 +10,7 @@ import { CaseStatusBadge, AlertTypeBadge, SeverityDot } from '@/components/ui/St
 import { canViewPII, canManageGeofences, canUpdateCaseStatus, canManageAssignments, canWriteJournal } from '@/lib/auth/permissions';
 import StatusControls from '@/components/cases/StatusControls';
 import GeofenceManager from '@/components/cases/GeofenceManager';
+import CaseBeaconManager from '@/components/cases/CaseBeaconManager';
 import AssignmentManager from '@/components/cases/AssignmentManager';
 import JournalPanel from '@/components/cases/JournalPanel';
 
@@ -29,6 +30,22 @@ export default async function CaseDetailPage({ params }: { params: Promise<{ id:
   const device = caseData.device;
   const openAlerts = (caseData.alerts ?? []).filter((a) => !a.is_resolved);
   const geofences = caseData.geofences ?? [];
+
+  // BLE beacon associated with this dossier's bracelet (+ spares to attach).
+  type BeaconRow = { id: string; uid: string; label: string | null; status: string };
+  let currentBeacon: BeaconRow | null = null;
+  let spareBeacons: BeaconRow[] = [];
+  if (process.env.NEXT_PUBLIC_SUPABASE_URL && device?.id) {
+    const { createAdminClient } = await import('@/lib/supabase/admin');
+    const sb = createAdminClient();
+    if (sb) {
+      const { data: cur } = await sb.from('beacons').select('id, uid, label, status').eq('device_id', device.id).maybeSingle();
+      currentBeacon = (cur as BeaconRow) ?? null;
+      const { data: sp } = await sb.from('beacons').select('id, uid, label, status').is('device_id', null).limit(50);
+      spareBeacons = (sp as BeaconRow[]) ?? [];
+    }
+  }
+
   const assignedIds = new Set(assignments.map((a) => a.id));
   const availableOperationals = allOperationals.filter((u) => !assignedIds.has(u.id));
 
@@ -212,6 +229,15 @@ export default async function CaseDetailPage({ params }: { params: Promise<{ id:
           <GeofenceManager
             caseId={caseData.id}
             geofences={geofences}
+            canManage={canGeo && caseData.status !== 'TERMINATED'}
+          />
+
+          {/* BLE beacon */}
+          <CaseBeaconManager
+            caseId={caseData.id}
+            hasDevice={!!device}
+            current={currentBeacon}
+            spares={spareBeacons}
             canManage={canGeo && caseData.status !== 'TERMINATED'}
           />
 

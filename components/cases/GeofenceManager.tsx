@@ -3,7 +3,7 @@
 import dynamic from 'next/dynamic';
 import { useTransition } from 'react';
 import Link from 'next/link';
-import { Plus, Trash2, ShieldAlert, ShieldCheck, Bluetooth, MapPin, ExternalLink } from 'lucide-react';
+import { Plus, Trash2, ShieldAlert, ShieldCheck, Bluetooth, MapPin, ExternalLink, Pencil } from 'lucide-react';
 import { deleteGeofenceAction } from '@/app/sigep/dashboard/geofences/actions';
 import type { Geofence } from '@/lib/supabase/types';
 
@@ -118,18 +118,27 @@ export default function GeofenceManager({ caseId, geofences, canManage }: Props)
               </div>
 
               {canManage && (
-                <form action={handleDelete}>
-                  <input type="hidden" name="geofence_id" value={g.id} />
-                  <input type="hidden" name="case_id"     value={caseId} />
-                  <button
-                    type="submit"
-                    disabled={isPending}
-                    title="Supprimer cette zone"
-                    className="p-1 rounded text-gray-300 hover:text-red-500 hover:bg-red-50 transition-colors disabled:opacity-40"
+                <div className="flex items-center gap-1">
+                  <Link
+                    href={`/sigep/dashboard/geofences/${g.id}/edit`}
+                    title="Ajuster le périmètre"
+                    className="p-1 rounded text-gray-300 hover:text-blue-500 hover:bg-blue-50 transition-colors"
                   >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
-                </form>
+                    <Pencil className="w-3.5 h-3.5" />
+                  </Link>
+                  <form action={handleDelete}>
+                    <input type="hidden" name="geofence_id" value={g.id} />
+                    <input type="hidden" name="case_id"     value={caseId} />
+                    <button
+                      type="submit"
+                      disabled={isPending}
+                      title="Supprimer cette zone"
+                      className="p-1 rounded text-gray-300 hover:text-red-500 hover:bg-red-50 transition-colors disabled:opacity-40"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </form>
+                </div>
               )}
             </li>
           ))}

@@ -96,6 +96,52 @@ export async function createGeofenceAction(
   return null;
 }
 
+export async function updateGeofenceAction(
+  _: { error: string } | { ok: true; caseId: string } | null,
+  formData: FormData,
+): Promise<{ error: string } | { ok: true; caseId: string } | null> {
+  const session = await getSession();
+  if (!session || !canManageGeofences(session.role)) return { error: 'Accès refusé' };
+
+  const geofence_id  = formData.get('geofence_id') as string;
+  const case_id      = formData.get('case_id') as string;
+  const name         = (formData.get('name') as string)?.trim();
+  const shape_type   = formData.get('shape_type') as GeofenceShape;
+  const is_exclusion = formData.get('is_exclusion') === 'true';
+  if (!geofence_id || !name || !shape_type) return { error: 'Champs obligatoires manquants' };
+
+  const update: Record<string, unknown> = { name, is_exclusion, shape_type, area: null, center_lat: null, center_lon: null, radius_m: null };
+  if (shape_type === 'CIRCLE') {
+    const lat = parseFloat(formData.get('center_lat') as string);
+    const lon = parseFloat(formData.get('center_lon') as string);
+    const r   = parseInt(formData.get('radius_m') as string, 10);
+    if (isNaN(lat) || isNaN(lon) || isNaN(r)) return { error: 'Cercle invalide' };
+    update.center_lat = lat; update.center_lon = lon; update.radius_m = r;
+  } else {
+    const raw = formData.get('coordinates') as string;
+    if (!raw) return { error: 'Polygone non tracé' };
+    try { update.area = { type: 'Polygon', coordinates: [JSON.parse(raw)] }; }
+    catch { return { error: 'Polygone invalide' }; }
+  }
+
+  if (isDemoMode()) {
+    const { MOCK_GEOFENCES } = await import('@/lib/mock/data');
+    const g = MOCK_GEOFENCES.find((x) => x.id === geofence_id);
+    if (g) Object.assign(g, update);
+    revalidatePath('/sigep/dashboard/geofences');
+    return { ok: true, caseId: case_id };
+  }
+
+  const { createAdminClient } = await import('@/lib/supabase/admin');
+  const supabase = createAdminClient();
+  if (!supabase) return { error: 'Base de données indisponible' };
+  const { error } = await supabase.from('geofences').update(update).eq('id', geofence_id);
+  if (error) return { error: error.message };
+  revalidatePath('/sigep/dashboard/geofences');
+  if (case_id) revalidatePath(`/sigep/dashboard/cases/${case_id}`);
+  return { ok: true, caseId: case_id };
+}
+
 export async function deleteGeofenceAction(formData: FormData): Promise<void> {
   const session = await getSession();
   if (!session || !canManageGeofences(session.role)) return;
