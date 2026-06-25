@@ -2,7 +2,7 @@
 
 import dynamic from 'next/dynamic';
 import { useEffect, useState } from 'react';
-import type { TrackerMarker } from './TrackingMap';
+import type { TrackerMarker, MapGeofence } from './TrackingMap';
 
 const TrackingMap = dynamic(() => import('./TrackingMap'), {
   ssr: false,
@@ -20,12 +20,15 @@ const TrackingMap = dynamic(() => import('./TrackingMap'), {
 // current zoom/pan (no server re-render, no remount).
 export default function LeafletMapWrapper({
   markers: initialMarkers,
+  geofences: initialGeofences = [],
   pollMs = 15000,
 }: {
   markers: TrackerMarker[];
+  geofences?: MapGeofence[];
   pollMs?: number;
 }) {
   const [markers, setMarkers] = useState<TrackerMarker[]>(initialMarkers);
+  const [geofences, setGeofences] = useState<MapGeofence[]>(initialGeofences);
 
   useEffect(() => {
     let active = true;
@@ -33,10 +36,10 @@ export default function LeafletMapWrapper({
       try {
         const res = await fetch('/api/track/markers', { cache: 'no-store' });
         if (!res.ok) return;
-        const data = (await res.json()) as { markers: TrackerMarker[] };
-        if (active && Array.isArray(data.markers) && data.markers.length > 0) {
-          setMarkers(data.markers);
-        }
+        const data = (await res.json()) as { markers: TrackerMarker[]; geofences?: MapGeofence[] };
+        if (!active) return;
+        if (Array.isArray(data.markers) && data.markers.length > 0) setMarkers(data.markers);
+        if (Array.isArray(data.geofences)) setGeofences(data.geofences);
       } catch {
         // ignore transient errors
       }
@@ -48,7 +51,7 @@ export default function LeafletMapWrapper({
 
   return (
     <div style={{ height: '100%', width: '100%' }}>
-      <TrackingMap markers={markers} />
+      <TrackingMap markers={markers} geofences={geofences} />
     </div>
   );
 }
