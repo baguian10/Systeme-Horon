@@ -26,16 +26,16 @@ export default function CasePresencePanel({ imei, canCommand }: { imei: string; 
     return () => clearInterval(id);
   }, [load]);
 
-  async function locate() {
+  async function sendCmd(action: 'locate' | 'enableBle', okMsg: string) {
     setLocating(true); setMsg(null);
     try {
       const r = await fetch('/api/track/command', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ imei, action: 'locate' }),
+        body: JSON.stringify({ imei, action }),
       });
       const d = await r.json();
-      setMsg(r.ok ? 'Commande envoyée au bracelet ✓' : (d.error ?? 'Erreur'));
+      setMsg(r.ok ? okMsg : (d.error ?? 'Erreur'));
       setTimeout(load, 4000);
     } catch { setMsg('Erreur réseau'); } finally { setLocating(false); }
   }
@@ -69,12 +69,15 @@ export default function CasePresencePanel({ imei, canCommand }: { imei: string; 
         )}
 
         {canCommand && (
-          <div>
-            <button onClick={locate} disabled={locating} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold disabled:opacity-40">
+          <div className="flex items-center gap-2 flex-wrap">
+            <button onClick={() => sendCmd('locate', 'Localisation demandée ✓')} disabled={locating} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold disabled:opacity-40">
               {locating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <MapPin className="w-3.5 h-3.5" />}
               Localiser maintenant
             </button>
-            {msg && <p className="text-xs text-gray-500 mt-1.5">{msg}</p>}
+            <button onClick={() => sendCmd('enableBle', 'Activation Bluetooth envoyée ✓ (scan 120s)')} disabled={locating} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold disabled:opacity-40">
+              <Home className="w-3.5 h-3.5" /> Activer Bluetooth
+            </button>
+            {msg && <p className="text-xs text-gray-500 w-full">{msg}</p>}
           </div>
         )}
       </div>

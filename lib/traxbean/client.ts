@@ -126,12 +126,20 @@ export async function getTargetIdByImei(imei: string): Promise<number | null> {
   return list.find((x) => x.imei === imei)?.id ?? null;
 }
 
-export type TraxbeanCommand = 'locate';
+export type TraxbeanCommand = 'locate' | 'enableBle';
 
-// Send a remote command to the bracelet. 'locate' = force an immediate fix.
+// Send a remote command to the bracelet.
+//  - 'locate'    → force an immediate position fix.
+//  - 'enableBle' → turn on continuous BLE beacon scanning (every 120s).
 export async function sendDeviceCommand(imei: string, command: TraxbeanCommand): Promise<boolean> {
   if (command === 'locate') {
     const r = await traxbeanPost<number>('business/target/doPosition', { imei, param: '' });
+    return r !== null;
+  }
+  if (command === 'enableBle') {
+    const targetId = await getTargetIdByImei(imei);
+    if (!targetId) return false;
+    const r = await traxbeanPost<number>('business/target/sendCommand', { targetId, imei, command: '>*ble@120*' });
     return r !== null;
   }
   return false;

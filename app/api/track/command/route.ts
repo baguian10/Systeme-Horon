@@ -5,7 +5,7 @@ import { sendDeviceCommand, type TraxbeanCommand } from '@/lib/traxbean/client';
 
 export const dynamic = 'force-dynamic';
 
-const ALLOWED: TraxbeanCommand[] = ['locate'];
+const ALLOWED: TraxbeanCommand[] = ['locate', 'enableBle'];
 
 // POST /api/track/command — send a remote command to a bracelet.
 // Body: { imei, action }. JUDGE or SUPER_ADMIN.
