@@ -14,6 +14,8 @@ interface Beacon {
   notify_exit?: boolean;
   active_start?: string | null;
   active_end?: string | null;
+  home_lat?: number | null;
+  home_lng?: number | null;
 }
 
 const STATUS_STYLE: Record<string, string> = {
@@ -165,6 +167,7 @@ export default function BeaconsManager({ devices }: { devices: DeviceOpt[] }) {
 interface ConfigPayload {
   alarmEnabled: boolean; maxDistanceM: number; graceMinutes: number;
   notifyExit: boolean; activeStart: string | null; activeEnd: string | null;
+  setHomeFromDevice?: boolean;
 }
 
 function BeaconConfigForm({ beacon, onSave }: { beacon: Beacon; onSave: (p: ConfigPayload) => Promise<boolean> }) {
@@ -174,12 +177,14 @@ function BeaconConfigForm({ beacon, onSave }: { beacon: Beacon; onSave: (p: Conf
   const [notifyExit, setNotify] = useState(beacon.notify_exit ?? true);
   const [activeStart, setStart] = useState(beacon.active_start ?? '');
   const [activeEnd, setEnd] = useState(beacon.active_end ?? '');
+  const [setHome, setSetHome] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const homeSet = beacon.home_lat != null && beacon.home_lng != null;
 
   async function save() {
     setSaving(true); setSaved(false);
-    const ok = await onSave({ alarmEnabled, maxDistanceM: Number(maxDistanceM), graceMinutes: Number(graceMinutes), notifyExit, activeStart: activeStart || null, activeEnd: activeEnd || null });
+    const ok = await onSave({ alarmEnabled, maxDistanceM: Number(maxDistanceM), graceMinutes: Number(graceMinutes), notifyExit, activeStart: activeStart || null, activeEnd: activeEnd || null, setHomeFromDevice: setHome });
     setSaving(false); setSaved(ok);
   }
 
@@ -208,9 +213,15 @@ function BeaconConfigForm({ beacon, onSave }: { beacon: Beacon; onSave: (p: Conf
         <label className="block text-[11px] text-gray-500 mb-0.5">à</label>
         <input type="time" value={activeEnd} onChange={(e) => setEnd(e.target.value)} className={FIELD} />
       </div>
+      <label className="flex items-center gap-1.5 text-xs text-gray-700" title="Capture la position actuelle du bracelet comme domicile de référence">
+        <input type="checkbox" checked={setHome} onChange={(e) => setSetHome(e.target.checked)} /> Domicile = position actuelle
+      </label>
       <button onClick={save} disabled={saving} className="px-3 py-1.5 rounded-lg bg-blue-600 text-white text-xs font-semibold disabled:opacity-40">
         {saving ? '…' : 'Enregistrer options'}
       </button>
+      <span className={`text-xs ${homeSet ? 'text-emerald-600' : 'text-amber-600'}`}>
+        {homeSet ? 'Domicile défini ✓' : 'Domicile non défini'}
+      </span>
       {saved && <span className="text-xs text-emerald-600">Enregistré ✓</span>}
     </div>
   );

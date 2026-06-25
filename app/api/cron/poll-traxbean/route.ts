@@ -16,6 +16,30 @@ export const maxDuration = 60;
 const BATTERY_LOW_PCT = 15;
 const SIGNAL_LOW = 10;
 
+function haversineM(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const R = 6371000;
+  const toRad = (d: number) => (d * Math.PI) / 180;
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(a));
+}
+
+function toMin(t: string | null): number | null {
+  if (!t) return null;
+  const [h, m] = t.split(':').map(Number);
+  return h * 60 + m;
+}
+
+// Is the beacon's alarm schedule active now? (UTC; Burkina Faso = GMT+0)
+function withinActiveWindow(start: string | null, end: string | null): boolean {
+  const s = toMin(start), e = toMin(end);
+  if (s == null || e == null) return true; // no schedule = always active
+  const now = new Date();
+  const cur = now.getUTCHours() * 60 + now.getUTCMinutes();
+  return s <= e ? cur >= s && cur < e : cur >= s || cur < e;
+}
+
 export async function GET(request: NextRequest) {
   // Auth — accept ?secret= or Authorization: Bearer <secret>
   const cronSecret = process.env.CRON_SECRET;
@@ -73,6 +97,49 @@ export async function GET(request: NextRequest) {
           .from('devices')
           .update({ battery_pct: live.battery })
           .eq('id', device.id);
+      }
+
+      // ── BLE beacon home alarm: distance + grace period enforcement ──
+      const { data: beacon } = await supabase
+        .from('beacons')
+        .select('id, alarm_enabled, max_distance_m, grace_minutes, active_start, active_end, home_lat, home_lng, out_since')
+        .eq('device_id', device.id)
+        .maybeSingle();
+
+      if (beacon && beacon.alarm_enabled && beacon.home_lat != null && beacon.home_lng != null
+          && withinActiveWindow(beacon.active_start, beacon.active_end)) {
+        const dist = haversineM(live.lat, live.lng, beacon.home_lat, beacon.home_lng);
+        if (dist > (beacon.max_distance_m ?? 50)) {
+          const now = Date.now();
+          let outSince = beacon.out_since ? new Date(beacon.out_since).getTime() : null;
+          if (!outSince) {
+            outSince = now;
+            await supabase.from('beacons').update({ out_since: new Date(now).toISOString() }).eq('id', beacon.id);
+          }
+          const elapsedMin = (now - outSince) / 60000;
+          if (elapsedMin >= (beacon.grace_minutes ?? 0)) {
+            const { count } = await supabase
+              .from('alerts')
+              .select('id', { count: 'exact', head: true })
+              .eq('case_id', device.case_id)
+              .eq('alert_type', 'GEOFENCE_EXIT')
+              .eq('is_resolved', false);
+            if (!count) {
+              await supabase.from('alerts').insert({
+                case_id: device.case_id,
+                device_id: device.id,
+                alert_type: 'GEOFENCE_EXIT',
+                severity: 4,
+                description: `Éloignement du domicile : ${Math.round(dist)} m (max ${beacon.max_distance_m} m) depuis ${beacon.grace_minutes} min.`,
+                position_lat: live.lat,
+                position_lon: live.lng,
+              });
+            }
+          }
+        } else if (beacon.out_since) {
+          // Back within range → reset the absence timer.
+          await supabase.from('beacons').update({ out_since: null }).eq('id', beacon.id);
+        }
       }
 
       // Health alerts (deduped by the alert ingest? — keep simple: emit on threshold)

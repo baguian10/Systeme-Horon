@@ -14,6 +14,7 @@ export async function POST(request: NextRequest) {
   let b: {
     beaconId?: string; alarmEnabled?: boolean; maxDistanceM?: number;
     graceMinutes?: number; notifyExit?: boolean; activeStart?: string | null; activeEnd?: string | null;
+    setHomeFromDevice?: boolean;
   };
   try { b = await request.json(); } catch { return NextResponse.json({ error: 'JSON invalide' }, { status: 400 }); }
   if (!b.beaconId) return NextResponse.json({ error: 'beaconId manquant' }, { status: 400 });
@@ -29,7 +30,21 @@ export async function POST(request: NextRequest) {
   const { createAdminClient } = await import('@/lib/supabase/admin');
   const sb = createAdminClient();
   if (!sb) return NextResponse.json({ error: 'DB indisponible' }, { status: 503 });
+
+  // Set the home reference point = the linked bracelet's current live position.
+  let homeSet = false;
+  if (b.setHomeFromDevice) {
+    const { data: bn } = await sb.from('beacons').select('device_id, device:devices(imei)').eq('id', b.beaconId).single();
+    const dev = Array.isArray(bn?.device) ? bn?.device[0] : bn?.device;
+    if (dev?.imei) {
+      const { getDeviceLocation } = await import('@/lib/traxbean/client');
+      const live = await getDeviceLocation(dev.imei);
+      if (live) { update.home_lat = live.lat; update.home_lng = live.lng; update.out_since = null; homeSet = true; }
+    }
+    if (!homeSet) return NextResponse.json({ error: 'Position du bracelet indisponible (lier un bracelet + signal)' }, { status: 400 });
+  }
+
   const { error } = await sb.from('beacons').update(update).eq('id', b.beaconId);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  return NextResponse.json({ ok: true });
+  return NextResponse.json({ ok: true, homeSet });
 }
