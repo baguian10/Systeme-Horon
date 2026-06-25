@@ -260,3 +260,13 @@ CREATE POLICY "devices_operational_assigned" ON devices FOR SELECT
   USING (
     current_user_role() = 'OPERATIONAL' AND is_assigned_to_case(case_id)
   );
+
+-- ── Added: extended geofence columns (shape/circle/type/device) ──────────
+ALTER TABLE geofences ALTER COLUMN area DROP NOT NULL;
+ALTER TABLE geofences
+  ADD COLUMN IF NOT EXISTS device_id     UUID REFERENCES devices(id),
+  ADD COLUMN IF NOT EXISTS geofence_type TEXT NOT NULL DEFAULT 'GPS_ZONE',
+  ADD COLUMN IF NOT EXISTS shape_type    TEXT NOT NULL DEFAULT 'POLYGON',
+  ADD COLUMN IF NOT EXISTS center_lat    DOUBLE PRECISION,
+  ADD COLUMN IF NOT EXISTS center_lon    DOUBLE PRECISION,
+  ADD COLUMN IF NOT EXISTS radius_m      INTEGER;

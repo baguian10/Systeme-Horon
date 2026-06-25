@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { createGeofenceAction } from '../actions';
 import type { DrawnShape } from '@/components/geofences/GeofenceDrawMap';
+import CaseSearchSelect from '@/components/geofences/CaseSearchSelect';
 
 const GeofenceDrawMap = dynamic(
   () => import('@/components/geofences/GeofenceDrawMap'),
@@ -29,6 +30,7 @@ export default function NewGeofencePage() {
   const [drawnShape, setDrawn]  = useState<DrawnShape | null>(null);
   const [devicePos, setDevicePos] = useState<[number, number] | null>(null);
   const [caseId, setCaseId] = useState('');
+  const [caseLabel, setCaseLabel] = useState('');
 
   // Load the live tracker position so the user can draw around the real location.
   useEffect(() => {
@@ -36,7 +38,7 @@ export default function NewGeofencePage() {
       .then((r) => r.json())
       .then((d) => {
         const m = d.markers?.[0];
-        if (m) { setDevicePos([m.lat, m.lng]); setCaseId(m.caseId); }
+        if (m) { setDevicePos([m.lat, m.lng]); setCaseId(m.caseId); setCaseLabel(`${m.label} — ${m.caseRef}`); }
       })
       .catch(() => {});
   }, []);
@@ -208,8 +210,13 @@ export default function NewGeofencePage() {
                 <input name="name" type="text" required placeholder="Ex : Domicile — Dapoya" className={INPUT} />
               </div>
               <div>
-                <label className="block text-xs font-medium text-slate-400 mb-1.5">Référence dossier *</label>
-                <input name="case_id" type="text" required placeholder="c-0001" className={INPUT} value={caseId} onChange={(e) => setCaseId(e.target.value)} />
+                <label className="block text-xs font-medium text-slate-400 mb-1.5">Personne / dossier *</label>
+                <CaseSearchSelect
+                  value={caseId}
+                  onChange={setCaseId}
+                  selectedLabel={caseLabel}
+                  onSelectedLabel={setCaseLabel}
+                />
               </div>
               <div>
                 <label className="block text-xs font-medium text-slate-400 mb-1.5">ID Bracelet / Balise (optionnel)</label>
