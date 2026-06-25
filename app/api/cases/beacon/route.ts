@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { getSession } from '@/lib/auth/session';
-import { canManageGeofences, canConfigureHardware } from '@/lib/auth/permissions';
+import { canConfigureHardware } from '@/lib/auth/permissions';
 
 export const dynamic = 'force-dynamic';
 
@@ -9,8 +9,8 @@ export const dynamic = 'force-dynamic';
 // JUDGE may manage beacons for their OWN cases; SUPER_ADMIN for any.
 export async function POST(request: NextRequest) {
   const session = await getSession();
-  if (!session || (!canManageGeofences(session.role) && !canConfigureHardware(session.role))) {
-    return NextResponse.json({ error: 'Accès refusé' }, { status: 403 });
+  if (!session || !canConfigureHardware(session.role)) {
+    return NextResponse.json({ error: 'Accès refusé (SUPER_ADMIN requis)' }, { status: 403 });
   }
 
   let body: { caseId?: string; beaconId?: string; action?: 'link' | 'unlink' };
@@ -21,13 +21,6 @@ export async function POST(request: NextRequest) {
   const { createAdminClient } = await import('@/lib/supabase/admin');
   const sb = createAdminClient();
   if (!sb) return NextResponse.json({ error: 'DB indisponible' }, { status: 503 });
-
-  // Ownership: a JUDGE can only touch their own case.
-  const { data: kase } = await sb.from('cases').select('id, judge_id').eq('id', caseId).single();
-  if (!kase) return NextResponse.json({ error: 'Dossier introuvable' }, { status: 404 });
-  if (session.role === 'JUDGE' && kase.judge_id !== session.id) {
-    return NextResponse.json({ error: 'Dossier non autorisé' }, { status: 403 });
-  }
 
   const { data: device } = await sb.from('devices').select('id').eq('case_id', caseId).single();
   if (!device) return NextResponse.json({ error: 'Aucun bracelet assigné à ce dossier' }, { status: 400 });

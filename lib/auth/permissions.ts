@@ -26,8 +26,9 @@ export const canViewStats         = (role: UserRole) => role === 'SUPER_ADMIN' |
 // ── Level 2 (JUDGE) — case creation & agent management ──────────────────────
 // SUPER_ADMIN + JUDGE can view users; JUDGE sees only their own agents
 export const canViewUsers         = (role: UserRole) => role === 'SUPER_ADMIN' || role === 'JUDGE';
-export const canCreateCase        = (role: UserRole) => role === 'JUDGE';
-export const canManageGeofences   = (role: UserRole) => role === 'JUDGE' || role === 'SUPER_ADMIN';
+export const canCreateCase        = (role: UserRole) => role === 'JUDGE' || role === 'SUPER_ADMIN';
+// Geofence tracing = technical task → SUPER_ADMIN only (judges aren't technical).
+export const canManageGeofences   = (role: UserRole) => role === 'SUPER_ADMIN';
 export const canManageAssignments = (role: UserRole) => role === 'JUDGE' || role === 'SUPER_ADMIN';
 export const canUpdateCaseStatus  = (role: UserRole) => role === 'JUDGE' || role === 'SUPER_ADMIN';
 
@@ -38,8 +39,8 @@ export const canViewRealtime      = (role: UserRole) => role !== 'STRATEGIC';
 export const canResolveAlert      = (role: UserRole) => role !== 'STRATEGIC';
 export const canViewPII           = (role: UserRole) => role !== 'STRATEGIC';
 
-// ── Devices: SUPER_ADMIN + JUDGE (OPERATIONAL sees tracking, not hardware) ───
-export const canViewDevices       = (role: UserRole) => role === 'SUPER_ADMIN' || role === 'JUDGE';
+// ── Devices / hardware (bracelets, BLE, SIM) = technical → SUPER_ADMIN only ──
+export const canViewDevices       = (role: UserRole) => role === 'SUPER_ADMIN';
 
 // ── Reports: SUPER_ADMIN + JUDGE ─────────────────────────────────────────────
 export const canViewReports       = (role: UserRole) => role === 'SUPER_ADMIN' || role === 'JUDGE';
