@@ -331,3 +331,11 @@ CREATE TABLE IF NOT EXISTS system_settings (
 );
 INSERT INTO system_settings (id) VALUES (1) ON CONFLICT (id) DO NOTHING;
 ALTER TABLE system_settings ENABLE ROW LEVEL SECURITY;
+
+-- ── Added: RSSI threshold, user phone, SMS gateway credentials ────────────
+ALTER TABLE beacons ADD COLUMN IF NOT EXISTS min_rssi INT NOT NULL DEFAULT -85;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS phone TEXT;
+ALTER TABLE system_settings
+  ADD COLUMN IF NOT EXISTS sms_api_key TEXT,
+  ADD COLUMN IF NOT EXISTS sms_endpoint TEXT,
+  ADD COLUMN IF NOT EXISTS sms_sender TEXT;

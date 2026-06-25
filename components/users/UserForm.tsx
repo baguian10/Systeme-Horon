@@ -275,6 +275,10 @@ export default function UserForm({ creatorRole }: Props) {
               className={INPUT}
             />
           </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1.5">Téléphone (alertes SMS)</label>
+            <input name="phone" type="tel" placeholder="+226 70 00 00 00" className={INPUT} />
+          </div>
 
           {/* ── Scope of Access — for OPERATIONAL role ──────────────── */}
           {selectedRole === 'OPERATIONAL' && (

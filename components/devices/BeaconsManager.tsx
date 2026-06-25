@@ -16,6 +16,7 @@ interface Beacon {
   active_end?: string | null;
   home_lat?: number | null;
   home_lng?: number | null;
+  min_rssi?: number;
 }
 
 const STATUS_STYLE: Record<string, string> = {
@@ -167,7 +168,7 @@ export default function BeaconsManager({ devices }: { devices: DeviceOpt[] }) {
 interface ConfigPayload {
   alarmEnabled: boolean; maxDistanceM: number; graceMinutes: number;
   notifyExit: boolean; activeStart: string | null; activeEnd: string | null;
-  setHomeFromDevice?: boolean;
+  setHomeFromDevice?: boolean; minRssi: number;
 }
 
 function BeaconConfigForm({ beacon, onSave }: { beacon: Beacon; onSave: (p: ConfigPayload) => Promise<boolean> }) {
@@ -178,13 +179,14 @@ function BeaconConfigForm({ beacon, onSave }: { beacon: Beacon; onSave: (p: Conf
   const [activeStart, setStart] = useState(beacon.active_start ?? '');
   const [activeEnd, setEnd] = useState(beacon.active_end ?? '');
   const [setHome, setSetHome] = useState(false);
+  const [minRssi, setMinRssi] = useState(beacon.min_rssi ?? -85);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const homeSet = beacon.home_lat != null && beacon.home_lng != null;
 
   async function save() {
     setSaving(true); setSaved(false);
-    const ok = await onSave({ alarmEnabled, maxDistanceM: Number(maxDistanceM), graceMinutes: Number(graceMinutes), notifyExit, activeStart: activeStart || null, activeEnd: activeEnd || null, setHomeFromDevice: setHome });
+    const ok = await onSave({ alarmEnabled, maxDistanceM: Number(maxDistanceM), graceMinutes: Number(graceMinutes), notifyExit, activeStart: activeStart || null, activeEnd: activeEnd || null, setHomeFromDevice: setHome, minRssi: Number(minRssi) });
     setSaving(false); setSaved(ok);
   }
 
@@ -201,6 +203,10 @@ function BeaconConfigForm({ beacon, onSave }: { beacon: Beacon; onSave: (p: Conf
       <div>
         <label className="block text-[11px] text-gray-500 mb-0.5">Délai de grâce (min)</label>
         <input type="number" min={0} max={120} value={graceMinutes} onChange={(e) => setGrace(Number(e.target.value))} className={FIELD + ' w-20'} />
+      </div>
+      <div>
+        <label className="block text-[11px] text-gray-500 mb-0.5" title="Signal min pour considérer 'à domicile' (ex -85). Plus proche de 0 = doit être plus près.">Seuil RSSI (dBm)</label>
+        <input type="number" min={-100} max={-30} value={minRssi} onChange={(e) => setMinRssi(Number(e.target.value))} className={FIELD + ' w-20'} />
       </div>
       <label className="flex items-center gap-1.5 text-xs text-gray-700">
         <input type="checkbox" checked={notifyExit} onChange={(e) => setNotify(e.target.checked)} /> Notifier sortie

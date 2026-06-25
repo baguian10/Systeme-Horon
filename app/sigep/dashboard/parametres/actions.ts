@@ -27,6 +27,9 @@ export async function saveSettingsAction(_: { ok?: boolean; error?: string } | n
     escalate_minutes: num(fd, 'escalate_minutes', 30, 1, 1440),
     sms_enabled: fd.get('sms_enabled') === 'on',
     sms_provider: (fd.get('sms_provider') as string)?.trim() || null,
+    sms_endpoint: (fd.get('sms_endpoint') as string)?.trim() || null,
+    sms_api_key: (fd.get('sms_api_key') as string)?.trim() || null,
+    sms_sender: (fd.get('sms_sender') as string)?.trim() || null,
     timezone: (fd.get('timezone') as string)?.trim() || 'Africa/Ouagadougou',
     updated_at: new Date().toISOString(),
   };

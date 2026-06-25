@@ -28,6 +28,7 @@ export async function createUserAction(
   const role = formData.get('role') as UserRole;
   const badge_number = (formData.get('badge_number') as string)?.trim() || null;
   const jurisdiction = (formData.get('jurisdiction') as string)?.trim() || null;
+  const phone = (formData.get('phone') as string)?.trim() || null;
   const access_scope = (formData.get('access_scope') as 'FULL' | 'RESTRICTED') || null;
   // Granular permissions for ADMIN accounts (checkboxes → repeated "permissions" fields).
   const permissions = role === 'ADMIN' ? (formData.getAll('permissions') as string[]) : [];
@@ -83,6 +84,7 @@ export async function createUserAction(
     full_name,
     badge_number: badge_number || null,
     jurisdiction: jurisdiction || null,
+    phone,
     is_active: true,
     created_by: session.id,
     access_scope: role === 'OPERATIONAL' ? (access_scope ?? 'FULL') : null,

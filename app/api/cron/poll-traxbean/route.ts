@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server';
-import { isTraxbeanConfigured, getDeviceLocation, getHomePresence } from '@/lib/traxbean/client';
+import { isTraxbeanConfigured, getDeviceLocation, getLatestBleScan } from '@/lib/traxbean/client';
 import { getSettings } from '@/lib/settings';
 
 export const dynamic = 'force-dynamic';
@@ -104,7 +104,7 @@ export async function GET(request: NextRequest) {
       // ── BLE beacon home alarm: distance + grace period enforcement ──
       const { data: beacon } = await supabase
         .from('beacons')
-        .select('id, alarm_enabled, max_distance_m, grace_minutes, active_start, active_end, home_lat, home_lng, out_since')
+        .select('id, uid, min_rssi, alarm_enabled, max_distance_m, grace_minutes, active_start, active_end, home_lat, home_lng, out_since')
         .eq('device_id', device.id)
         .maybeSingle();
 
@@ -121,9 +121,12 @@ export async function GET(request: NextRequest) {
           const elapsedMin = (now - outSince) / 60000;
           if (elapsedMin >= (beacon.grace_minutes ?? 0)) {
             // Combined logic: GPS says "far", but if the home BLE beacon is still
-            // detected, the person is actually home (indoor GPS drift) → suppress.
-            const presence = await getHomePresence(device.imei);
-            if (presence.atHome) {
+            // detected ABOVE the RSSI threshold, the person is actually home
+            // (indoor GPS drift) → suppress. A weak/absent beacon signal = away.
+            const scan = await getLatestBleScan(device.imei);
+            const hit = scan?.sightings.find((s) => s.mac === (beacon.uid ?? '').toUpperCase());
+            const atHome = !!hit && hit.rssi >= (beacon.min_rssi ?? -85);
+            if (atHome) {
               await supabase.from('beacons').update({ out_since: null }).eq('id', beacon.id);
             } else {
               const { count } = await supabase
@@ -142,6 +145,15 @@ export async function GET(request: NextRequest) {
                   position_lat: live.lat,
                   position_lon: live.lng,
                 });
+                // Notify the responsible judge by SMS (if configured + phone set).
+                const { data: kase } = await supabase.from('cases').select('judge_id').eq('id', device.case_id).single();
+                if (kase?.judge_id) {
+                  const { data: ju } = await supabase.from('users').select('phone').eq('id', kase.judge_id).single();
+                  if (ju?.phone) {
+                    const { sendSms } = await import('@/lib/sms');
+                    await sendSms(ju.phone, `SIGEP - ALERTE: eloignement du domicile detecte (${Math.round(dist)} m). Verifiez la plateforme.`);
+                  }
+                }
               }
             }
           }

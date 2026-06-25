@@ -54,6 +54,12 @@ export default function ActiveSettingsForm({ settings }: { settings: SystemSetti
             <input type="checkbox" name="sms_enabled" defaultChecked={settings.sms_enabled} /> Notifications SMS
           </label>
         </div>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-3">
+          <Field label="Endpoint SMS (URL)" name="sms_endpoint" value={settings.sms_endpoint ?? ''} type="text" />
+          <Field label="Clé API SMS" name="sms_api_key" value={settings.sms_api_key ?? ''} type="text" />
+          <Field label="Expéditeur (sender)" name="sms_sender" value={settings.sms_sender ?? ''} type="text" />
+        </div>
+        <p className="text-[11px] text-gray-400 mt-1">Passerelle HTTP générique : POST {'{ to, from, message }'} avec clé API en Bearer. Compatible agrégateurs Orange/Moov BF.</p>
       </div>
 
       {state?.error && <p className="text-xs text-red-600">{state.error}</p>}

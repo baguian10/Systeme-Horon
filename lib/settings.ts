@@ -10,6 +10,9 @@ export interface SystemSettings {
   escalate_minutes: number;
   sms_enabled: boolean;
   sms_provider: string | null;
+  sms_endpoint: string | null;
+  sms_api_key: string | null;
+  sms_sender: string | null;
   timezone: string;
 }
 
@@ -23,6 +26,9 @@ export const DEFAULT_SETTINGS: SystemSettings = {
   escalate_minutes: 30,
   sms_enabled: false,
   sms_provider: null,
+  sms_endpoint: null,
+  sms_api_key: null,
+  sms_sender: null,
   timezone: 'Africa/Ouagadougou',
 };
 

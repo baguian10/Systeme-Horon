@@ -14,7 +14,7 @@ export async function POST(request: NextRequest) {
   let b: {
     beaconId?: string; alarmEnabled?: boolean; maxDistanceM?: number;
     graceMinutes?: number; notifyExit?: boolean; activeStart?: string | null; activeEnd?: string | null;
-    setHomeFromDevice?: boolean;
+    setHomeFromDevice?: boolean; minRssi?: number;
   };
   try { b = await request.json(); } catch { return NextResponse.json({ error: 'JSON invalide' }, { status: 400 }); }
   if (!b.beaconId) return NextResponse.json({ error: 'beaconId manquant' }, { status: 400 });
@@ -23,6 +23,7 @@ export async function POST(request: NextRequest) {
   if (b.alarmEnabled !== undefined) update.alarm_enabled = Boolean(b.alarmEnabled);
   if (b.notifyExit !== undefined) update.notify_exit = Boolean(b.notifyExit);
   if (b.maxDistanceM !== undefined) update.max_distance_m = Math.max(5, Math.min(5000, Math.round(Number(b.maxDistanceM) || 50)));
+  if (b.minRssi !== undefined) update.min_rssi = Math.max(-100, Math.min(-30, Math.round(Number(b.minRssi) || -85)));
   if (b.graceMinutes !== undefined) update.grace_minutes = Math.max(0, Math.min(120, Math.round(Number(b.graceMinutes) || 0)));
   if (b.activeStart !== undefined) update.active_start = b.activeStart || null;
   if (b.activeEnd !== undefined) update.active_end = b.activeEnd || null;
