@@ -16,8 +16,16 @@ export async function GET(request: NextRequest) {
 
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL) return NextResponse.json({ cases: [] });
 
-  const { createClient } = await import('@/lib/supabase/server');
-  const supabase = await createClient();
+  // SUPER_ADMIN has no RLS read policy (relies on service role) → use admin client
+  // so global search works; other roles stay RLS-scoped to their own cases.
+  let supabase;
+  if (session.role === 'SUPER_ADMIN') {
+    const { createAdminClient } = await import('@/lib/supabase/admin');
+    supabase = createAdminClient();
+  } else {
+    const { createClient } = await import('@/lib/supabase/server');
+    supabase = await createClient();
+  }
   if (!supabase) return NextResponse.json({ cases: [] });
 
   const like = `%${q}%`;

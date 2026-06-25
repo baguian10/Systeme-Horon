@@ -8,6 +8,7 @@ import type { SyncStatus } from '@/lib/supabase/types';
 import { getSession } from '@/lib/auth/session';
 import { canViewDevices, canConfigureHardware } from '@/lib/auth/permissions';
 import { fetchAllDevices, fetchCases } from '@/lib/mock/helpers';
+import AssignDeviceControl from '@/components/devices/AssignDeviceControl';
 
 export const metadata = { title: 'Bracelets & Balises BLE — SIGEP' };
 export const revalidate = 0;
@@ -18,10 +19,22 @@ export default async function DevicesPage() {
 
   const isHardwareAdmin = canConfigureHardware(session.role);
 
-  const [devices, cases] = await Promise.all([
+  const [devices, sessionCases] = await Promise.all([
     fetchAllDevices(),
     fetchCases(session.role, session.id),
   ]);
+
+  // SUPER_ADMIN has no RLS read on cases → load them via the admin client so
+  // assigned bracelets show their real case number.
+  let cases = sessionCases;
+  if (isHardwareAdmin && cases.length === 0 && process.env.NEXT_PUBLIC_SUPABASE_URL) {
+    const { createAdminClient } = await import('@/lib/supabase/admin');
+    const sb = createAdminClient();
+    if (sb) {
+      const { data } = await sb.from('cases').select('*, individual:individuals(*)');
+      if (data) cases = data as typeof cases;
+    }
+  }
 
   const caseMap = new Map(cases.map((c) => [c.id, c]));
   const online    = devices.filter((d) => d.is_online).length;
@@ -82,6 +95,7 @@ export default async function DevicesPage() {
                   <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Firmware</th>
                   <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Dossier assigné</th>
                   <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Dernier contact</th>
+                  {isHardwareAdmin && <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Action</th>}
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
@@ -124,6 +138,15 @@ export default async function DevicesPage() {
                       <td className="px-5 py-3.5 text-xs text-gray-400">
                         {d.last_seen_at ? `${timeAgo(d.last_seen_at)} ago` : '—'}
                       </td>
+                      {isHardwareAdmin && (
+                        <td className="px-5 py-3.5">
+                          {assignedCase ? (
+                            <span className="text-xs text-gray-400">Assigné</span>
+                          ) : (
+                            <AssignDeviceControl deviceId={d.id} />
+                          )}
+                        </td>
+                      )}
                     </tr>
                   );
                 })}
