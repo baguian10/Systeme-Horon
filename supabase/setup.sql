@@ -270,3 +270,16 @@ ALTER TABLE geofences
   ADD COLUMN IF NOT EXISTS center_lat    DOUBLE PRECISION,
   ADD COLUMN IF NOT EXISTS center_lon    DOUBLE PRECISION,
   ADD COLUMN IF NOT EXISTS radius_m      INTEGER;
+
+-- ── Added: bracelet SIM number + BLE beacons inventory ───────────────────
+ALTER TABLE devices ADD COLUMN IF NOT EXISTS sim_number TEXT;
+
+CREATE TABLE IF NOT EXISTS beacons (
+  id         UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  uid        TEXT UNIQUE NOT NULL,
+  label      TEXT,
+  status     TEXT NOT NULL DEFAULT 'SPARE',   -- SPARE | ACTIVE | FAULTY
+  device_id  UUID UNIQUE REFERENCES devices(id),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+ALTER TABLE beacons ENABLE ROW LEVEL SECURITY;  -- managed via service role (SUPER_ADMIN)

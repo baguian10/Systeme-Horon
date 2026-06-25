@@ -9,6 +9,9 @@ import { getSession } from '@/lib/auth/session';
 import { canViewDevices, canConfigureHardware } from '@/lib/auth/permissions';
 import { fetchAllDevices, fetchCases } from '@/lib/mock/helpers';
 import AssignDeviceControl from '@/components/devices/AssignDeviceControl';
+import SimEditControl from '@/components/devices/SimEditControl';
+import RegisterDeviceForm from '@/components/devices/RegisterDeviceForm';
+import BeaconsManager from '@/components/devices/BeaconsManager';
 
 export const metadata = { title: 'Bracelets & Balises BLE — SIGEP' };
 export const revalidate = 0;
@@ -50,11 +53,14 @@ export default async function DevicesPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-xl font-bold text-gray-900">Inventaire des dispositifs</h2>
-        <p className="text-sm text-gray-500 mt-0.5">
-          {devices.length} bracelet{devices.length !== 1 ? 's' : ''} · {online} en ligne · {unassigned} non assigné{unassigned !== 1 ? 's' : ''}
-        </p>
+      <div className="flex items-start justify-between gap-3 flex-wrap">
+        <div>
+          <h2 className="text-xl font-bold text-gray-900">Inventaire des dispositifs</h2>
+          <p className="text-sm text-gray-500 mt-0.5">
+            {devices.length} bracelet{devices.length !== 1 ? 's' : ''} · {online} en ligne · {unassigned} non assigné{unassigned !== 1 ? 's' : ''}
+          </p>
+        </div>
+        {isHardwareAdmin && <RegisterDeviceForm />}
       </div>
 
       {/* Summary tiles */}
@@ -92,6 +98,7 @@ export default async function DevicesPage() {
                   <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Modèle</th>
                   <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Statut</th>
                   <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Batterie</th>
+                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">N° SIM</th>
                   <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Firmware</th>
                   <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Dossier assigné</th>
                   <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Dernier contact</th>
@@ -125,6 +132,11 @@ export default async function DevicesPage() {
                           </span>
                         </div>
                       </td>
+                      <td className="px-5 py-3.5">
+                        {isHardwareAdmin
+                          ? <SimEditControl deviceId={d.id} current={d.sim_number ?? null} />
+                          : <span className="text-xs text-gray-600 font-mono">{d.sim_number ?? '—'}</span>}
+                      </td>
                       <td className="px-5 py-3.5 text-xs text-gray-400 font-mono">{d.firmware_ver ?? '—'}</td>
                       <td className="px-5 py-3.5">
                         {assignedCase ? (
@@ -155,6 +167,11 @@ export default async function DevicesPage() {
           </div>
         )}
       </div>
+
+      {/* ══ BLE BEACONS ══════════════════════════════════════════════════════ */}
+      {isHardwareAdmin && (
+        <BeaconsManager devices={devices.map((d) => ({ id: d.id, imei: d.imei }))} />
+      )}
 
       {/* ══ GPS REAL-TIME SYNC STATUS ════════════════════════════════════════ */}
       <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm">

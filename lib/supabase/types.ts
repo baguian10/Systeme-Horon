@@ -49,6 +49,7 @@ export interface Device {
   report_interval_s: number | null;
   network_protocol: NetworkProtocol | null;
   sim_iccid: string | null;
+  sim_number?: string | null;
   signal_strength_dbm: number | null;
   gps_accuracy_m: number | null;
   tamper_detected: boolean;
