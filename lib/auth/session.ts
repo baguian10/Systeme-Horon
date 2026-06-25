@@ -22,7 +22,8 @@ export async function getSession(): Promise<SessionUser | null> {
   try {
     const { createClient } = await import('@/lib/supabase/server');
     const supabase = await createClient();
-    if (!supabase) return DEMO_SESSION;
+    // Supabase configured but client unavailable → deny (never elevate to demo).
+    if (!supabase) return null;
 
     const { data: { user }, error } = await supabase.auth.getUser();
     if (error || !user) return null;
@@ -38,6 +39,8 @@ export async function getSession(): Promise<SessionUser | null> {
     if ((profile as { is_active?: boolean }).is_active === false) return null;
     return profile as SessionUser;
   } catch {
-    return DEMO_SESSION;
+    // On any failure with Supabase configured, DENY — never fall back to a
+    // privileged demo session in production (prevents privilege escalation).
+    return null;
   }
 }

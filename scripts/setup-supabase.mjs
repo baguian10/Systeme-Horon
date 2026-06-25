@@ -11,8 +11,13 @@ if (!url || !key) {
   process.exit(1);
 }
 
-const LOGIN_EMAIL = 'magistrat@horon.bf';
-const LOGIN_PASSWORD = 'Horon2026!';
+// Credentials come from the environment — never hardcode in a repository.
+const LOGIN_EMAIL = process.env.SEED_JUDGE_EMAIL;
+const LOGIN_PASSWORD = process.env.SEED_JUDGE_PASSWORD;
+if (!LOGIN_EMAIL || !LOGIN_PASSWORD) {
+  console.error('Set SEED_JUDGE_EMAIL and SEED_JUDGE_PASSWORD env vars first.');
+  process.exit(1);
+}
 const IMEI = process.env.TRAXBEAN_DEMO_IMEI ?? '355932600157247';
 
 const sb = createClient(url, key, {
