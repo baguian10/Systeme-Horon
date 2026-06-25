@@ -9,7 +9,7 @@ const isDemoMode = () => !process.env.NEXT_PUBLIC_SUPABASE_URL;
 
 // Roles each creator is allowed to provision
 const ALLOWED_ROLES: Record<string, UserRole[]> = {
-  SUPER_ADMIN: ['STRATEGIC', 'JUDGE', 'OPERATIONAL'],
+  SUPER_ADMIN: ['ADMIN', 'STRATEGIC', 'JUDGE', 'OPERATIONAL'],
   JUDGE: ['OPERATIONAL'],
 };
 
@@ -29,6 +29,8 @@ export async function createUserAction(
   const badge_number = (formData.get('badge_number') as string)?.trim() || null;
   const jurisdiction = (formData.get('jurisdiction') as string)?.trim() || null;
   const access_scope = (formData.get('access_scope') as 'FULL' | 'RESTRICTED') || null;
+  // Granular permissions for ADMIN accounts (checkboxes → repeated "permissions" fields).
+  const permissions = role === 'ADMIN' ? (formData.getAll('permissions') as string[]) : [];
 
   if (!full_name || !email || !password || !role) {
     return { error: 'Veuillez remplir tous les champs obligatoires' };
@@ -84,6 +86,7 @@ export async function createUserAction(
     is_active: true,
     created_by: session.id,
     access_scope: role === 'OPERATIONAL' ? (access_scope ?? 'FULL') : null,
+    permissions,
   });
   if (userErr) {
     await supabase.auth.admin.deleteUser(authData.user.id);
@@ -164,5 +167,53 @@ export async function toggleUserActiveAction(formData: FormData): Promise<void> 
     recordId: user_id,
   });
 
+  revalidatePath('/sigep/dashboard/users');
+}
+
+// ── Update granular permissions (ADMIN accounts) ─────────────────────────────
+
+export async function updateUserPermissionsAction(formData: FormData): Promise<void> {
+  const session = await getSession();
+  if (!session || !canManageAllUsers(session.role)) return;
+  const user_id = formData.get('user_id') as string;
+  const permissions = formData.getAll('permissions') as string[];
+  if (!user_id) return;
+
+  if (isDemoMode()) { revalidatePath('/sigep/dashboard/users'); return; }
+  const { createAdminClient } = await import('@/lib/supabase/admin');
+  const supabase = createAdminClient();
+  if (!supabase) return;
+  await supabase.from('users').update({ permissions, updated_at: new Date().toISOString() }).eq('id', user_id);
+  const { writeAudit } = await import('@/lib/audit/log');
+  await writeAudit({ userId: session.id, action: 'UPDATE_PERMISSIONS', tableName: 'users', recordId: user_id, newData: { permissions } });
+  revalidatePath('/sigep/dashboard/users');
+}
+
+// ── Delete user (hard delete) ────────────────────────────────────────────────
+
+export async function deleteUserAction(formData: FormData): Promise<void> {
+  const session = await getSession();
+  if (!session || !canManageAllUsers(session.role)) return;
+  const user_id = formData.get('user_id') as string;
+  if (!user_id || user_id === session.id) return; // cannot delete self
+
+  if (isDemoMode()) {
+    const { MOCK_USERS } = await import('@/lib/mock/data');
+    const i = MOCK_USERS.findIndex((u) => u.id === user_id);
+    if (i !== -1) MOCK_USERS.splice(i, 1);
+    revalidatePath('/sigep/dashboard/users');
+    return;
+  }
+
+  const { createAdminClient } = await import('@/lib/supabase/admin');
+  const supabase = createAdminClient();
+  if (!supabase) return;
+
+  const { data: u } = await supabase.from('users').select('auth_id').eq('id', user_id).single();
+  await supabase.from('users').delete().eq('id', user_id);
+  if (u?.auth_id) { try { await supabase.auth.admin.deleteUser(u.auth_id); } catch {} }
+
+  const { writeAudit } = await import('@/lib/audit/log');
+  await writeAudit({ userId: session.id, action: 'DELETE_USER', tableName: 'users', recordId: user_id });
   revalidatePath('/sigep/dashboard/users');
 }

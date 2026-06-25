@@ -108,6 +108,7 @@ export default function Sidebar({ role }: { role: UserRole }) {
 
   const roleLabels: Record<UserRole, string> = {
     SUPER_ADMIN: 'Niveau 0 — Admin',
+    ADMIN:       'Administrateur délégué',
     STRATEGIC:   'Niveau 1 — Stratégique',
     JUDGE:       'Niveau 2 — Juge',
     OPERATIONAL: 'Niveau 3 — Opérationnel',
@@ -115,6 +116,7 @@ export default function Sidebar({ role }: { role: UserRole }) {
 
   const roleDotColors: Record<UserRole, string> = {
     SUPER_ADMIN: 'bg-red-500',
+    ADMIN:       'bg-fuchsia-500',
     STRATEGIC:   'bg-purple-500',
     JUDGE:       'bg-blue-500',
     OPERATIONAL: 'bg-emerald-500',

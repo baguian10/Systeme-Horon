@@ -7,6 +7,7 @@ import RoleBadge from '@/components/ui/RoleBadge';
 import { CheckCircle, XCircle, UserPlus, ShieldAlert, Users, ShieldCheck } from 'lucide-react';
 import ToggleUserButton from '@/components/users/ToggleUserButton';
 import ForceResetButton from '@/components/users/ForceResetButton';
+import DeleteUserButton from '@/components/users/DeleteUserButton';
 
 export const metadata = { title: 'Gestion des utilisateurs — SIGEP' };
 
@@ -207,6 +208,7 @@ export default async function UsersPage() {
                         <div className="flex items-center justify-end gap-2 flex-wrap">
                           <ToggleUserButton userId={user.id} isActive={user.is_active} />
                           <ForceResetButton userId={user.id} />
+                          <DeleteUserButton userId={user.id} name={user.full_name} />
                         </div>
                       )}
                     </td>

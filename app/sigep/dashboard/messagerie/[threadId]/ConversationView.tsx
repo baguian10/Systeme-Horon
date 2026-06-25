@@ -7,6 +7,7 @@ import type { Message, UserRole } from '@/lib/supabase/types';
 
 const ROLE_BADGE: Record<UserRole, { label: string; color: string }> = {
   SUPER_ADMIN: { label: 'Admin',         color: 'bg-red-100 text-red-700' },
+  ADMIN:       { label: 'Administrateur', color: 'bg-fuchsia-100 text-fuchsia-700' },
   JUDGE:       { label: 'Juge',          color: 'bg-blue-100 text-blue-700' },
   OPERATIONAL: { label: 'Agent terrain', color: 'bg-emerald-100 text-emerald-700' },
   STRATEGIC:   { label: 'Stratégique',   color: 'bg-purple-100 text-purple-700' },

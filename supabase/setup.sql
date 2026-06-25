@@ -296,3 +296,7 @@ ALTER TABLE beacons
   ADD COLUMN IF NOT EXISTS home_lat  DOUBLE PRECISION,
   ADD COLUMN IF NOT EXISTS home_lng  DOUBLE PRECISION,
   ADD COLUMN IF NOT EXISTS out_since TIMESTAMPTZ;
+
+-- ── Added: ADMIN role + granular permissions ────────────────────────────
+ALTER TYPE user_role ADD VALUE IF NOT EXISTS 'ADMIN';
+ALTER TABLE users ADD COLUMN IF NOT EXISTS permissions TEXT[] NOT NULL DEFAULT '{}';

@@ -4,12 +4,27 @@ import { useActionState, useState } from 'react';
 import Link from 'next/link';
 import { ShieldCheck, Users, CheckCircle } from 'lucide-react';
 import { createUserAction } from '@/app/sigep/dashboard/users/actions';
+import { PERMISSIONS } from '@/lib/auth/permissions';
 import type { UserRole } from '@/lib/supabase/types';
 
 const INPUT = 'w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent';
 
 /* ── Role definitions with level, description, and example profiles ── */
 const ROLE_CARDS_SUPER_ADMIN = [
+  {
+    value: 'ADMIN',
+    level: 'A',
+    color: 'fuchsia',
+    title: 'Administrateur délégué',
+    subtitle: 'Bras droit du Super Admin',
+    desc: "Accès configurable à la carte (cases à cocher ci-dessous). Le Super Admin choisit précisément ce qu'il peut faire, et peut le restreindre, suspendre ou supprimer à tout moment.",
+    profiles: [
+      'Assistant technique',
+      'Employé du Super Admin',
+      'Gestionnaire hardware / BLE',
+      'Support plateforme',
+    ],
+  },
   {
     value: 'STRATEGIC',
     level: 'N1',
@@ -72,6 +87,14 @@ const ROLE_CARDS_JUDGE = [
 ];
 
 const COLOR_MAP: Record<string, { ring: string; bg: string; badge: string; dot: string; text: string; check: string }> = {
+  fuchsia: {
+    ring:  'border-fuchsia-400 bg-fuchsia-50',
+    bg:    'border-fuchsia-100',
+    badge: 'bg-fuchsia-100 text-fuchsia-700',
+    dot:   'bg-fuchsia-400',
+    text:  'text-fuchsia-700',
+    check: 'text-fuchsia-500',
+  },
   purple: {
     ring:  'border-purple-400 bg-purple-50',
     bg:    'border-purple-100',
@@ -204,6 +227,22 @@ export default function UserForm({ creatorRole }: Props) {
           <p className="text-xs text-red-500">Veuillez sélectionner un niveau d&apos;accès.</p>
         )}
       </div>
+
+      {/* ── Permissions granulaires (ADMIN) ──────────────────────────── */}
+      {selectedRole === 'ADMIN' && (
+        <div className="bg-white rounded-2xl border border-fuchsia-100 p-5 space-y-3">
+          <h3 className="text-xs font-semibold text-fuchsia-600 uppercase tracking-wider">Accès autorisés (cochez)</h3>
+          <p className="text-xs text-gray-400">Modifiable, suspendable ou supprimable à tout moment après création.</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            {Object.entries(PERMISSIONS).map(([key, label]) => (
+              <label key={key} className="flex items-center gap-2 text-sm text-gray-700 bg-gray-50 border border-gray-100 rounded-lg px-3 py-2 cursor-pointer hover:bg-fuchsia-50">
+                <input type="checkbox" name="permissions" value={key} />
+                <span>{label}</span>
+              </label>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* ── Affectation ──────────────────────────────────────────────── */}
       <div className="bg-white rounded-2xl border border-gray-100 p-5 space-y-4">

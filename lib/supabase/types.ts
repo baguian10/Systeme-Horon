@@ -1,4 +1,4 @@
-export type UserRole = 'SUPER_ADMIN' | 'STRATEGIC' | 'JUDGE' | 'OPERATIONAL';
+export type UserRole = 'SUPER_ADMIN' | 'ADMIN' | 'STRATEGIC' | 'JUDGE' | 'OPERATIONAL';
 export type CaseStatus = 'PENDING' | 'ACTIVE' | 'SUSPENDED' | 'TERMINATED' | 'VIOLATION';
 export type AlertType =
   | 'GEOFENCE_EXIT'
@@ -146,6 +146,7 @@ export interface SessionUser {
   full_name: string;
   badge_number: string | null;
   jurisdiction: string | null;
+  permissions?: string[];
 }
 
 export interface OverviewStats {

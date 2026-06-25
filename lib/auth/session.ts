@@ -29,11 +29,13 @@ export async function getSession(): Promise<SessionUser | null> {
 
     const { data: profile } = await supabase
       .from('users')
-      .select('id, auth_id, role, full_name, badge_number, jurisdiction')
+      .select('id, auth_id, role, full_name, badge_number, jurisdiction, permissions, is_active')
       .eq('auth_id', user.id)
       .single();
 
     if (!profile) return null;
+    // Suspended account → no session (blocked everywhere).
+    if ((profile as { is_active?: boolean }).is_active === false) return null;
     return profile as SessionUser;
   } catch {
     return DEMO_SESSION;

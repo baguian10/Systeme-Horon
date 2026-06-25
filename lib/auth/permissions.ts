@@ -2,6 +2,7 @@ import type { UserRole } from '@/lib/supabase/types';
 
 export const ROLE_LEVEL: Record<UserRole, number> = {
   SUPER_ADMIN: 0,
+  ADMIN:       1,
   STRATEGIC:   1,
   JUDGE:       2,
   OPERATIONAL: 3,
@@ -9,10 +10,66 @@ export const ROLE_LEVEL: Record<UserRole, number> = {
 
 export const ROLE_LABELS: Record<UserRole, string> = {
   SUPER_ADMIN: 'Super Administrateur',
+  ADMIN:       'Administrateur',
   STRATEGIC:   'Stratégique',
   JUDGE:       'Juge',
   OPERATIONAL: 'Opérationnel',
 };
+
+// ── Granular permission catalog (for ADMIN accounts) ─────────────────────────
+export const PERMISSIONS = {
+  'cases.viewAll':   'Voir tous les dossiers',
+  'cases.create':    'Créer des dossiers',
+  'penalties':       'Définir les peines',
+  'geofences':       'Géofences (tracé)',
+  'hardware':        'Bracelets / hardware / SIM',
+  'beacons':         'Balises BLE',
+  'commands':        'Commandes tracker',
+  'commands.shutdown': 'Éteindre un bracelet',
+  'alerts':          'Alertes',
+  'reports':         'Rapports',
+  'stats':           'Statistiques',
+  'users.manage':    'Gérer les utilisateurs',
+  'audit':           'Journal d’audit',
+  'tig':             'Sites TIG',
+  'revocations':     'Révocations',
+  'maintenance':     'Maintenance',
+} as const;
+
+export type Permission = keyof typeof PERMISSIONS;
+
+interface PermSession { role: UserRole; permissions?: string[] }
+
+// Unified permission check. SUPER_ADMIN = all; ADMIN = only checked permissions;
+// other roles keep their fixed role defaults.
+export function can(session: PermSession | null | undefined, key: Permission): boolean {
+  if (!session) return false;
+  if (session.role === 'SUPER_ADMIN') return true;
+  if (session.role === 'ADMIN') return (session.permissions ?? []).includes(key);
+  return roleDefault(session.role, key);
+}
+
+function roleDefault(role: UserRole, key: Permission): boolean {
+  switch (key) {
+    case 'cases.viewAll':   return false;
+    case 'cases.create':    return role === 'JUDGE';
+    case 'penalties':       return role === 'JUDGE';
+    case 'geofences':       return false;            // technical → admin only
+    case 'hardware':        return false;
+    case 'beacons':         return false;
+    case 'commands':        return false;
+    case 'commands.shutdown': return false;
+    case 'alerts':          return role !== 'STRATEGIC';
+    case 'reports':         return role === 'JUDGE';
+    case 'stats':           return role === 'STRATEGIC';
+    case 'users.manage':    return false;
+    case 'audit':           return false;
+    case 'tig':             return role !== 'STRATEGIC';
+    case 'revocations':     return role !== 'STRATEGIC';
+    case 'maintenance':     return role === 'JUDGE';
+    default:                return false;
+  }
+}
 
 // ── Level 0 (SUPER_ADMIN) ────────────────────────────────────────────────────
 export const canConfigureHardware = (role: UserRole) => role === 'SUPER_ADMIN';
