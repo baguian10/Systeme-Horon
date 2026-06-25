@@ -16,6 +16,19 @@ export async function GET() {
   const session = await getSession();
   if (!session) return NextResponse.json({ markers: [], geofences: [] }, { status: 401 });
 
+  // Viewer-driven refresh: on Vercel Hobby per-minute cron is not allowed, so
+  // pull a fresh Traxbean fix (and run the geofence/alert pipeline) on each map
+  // poll. Keeps the map live while open without an external scheduler.
+  const base = process.env.NEXT_PUBLIC_SITE_URL;
+  const secret = process.env.CRON_SECRET;
+  if (base && process.env.NEXT_PUBLIC_SUPABASE_URL) {
+    try {
+      await fetch(`${base}/api/cron/poll-traxbean?secret=${secret ?? ''}`, { cache: 'no-store' });
+    } catch {
+      // best-effort — fall through to reading whatever is in the DB
+    }
+  }
+
   const [cases, positions, geofencesRaw] = await Promise.all([
     fetchCases(session.role, session.id),
     fetchLatestPositions(),
