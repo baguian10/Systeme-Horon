@@ -1,15 +1,17 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
-import { Home, MapPin, Loader2, RefreshCw } from 'lucide-react';
+import { Home, MapPin, Loader2, RefreshCw, RotateCw, Bluetooth, Zap, Power, Timer } from 'lucide-react';
 
 interface Presence { configured: boolean; atHome: boolean; rssi: number | null; lastIndoorAt: string | null }
+type Action = 'locate' | 'enableBle' | 'restart' | 'realtime' | 'setInterval' | 'shutdown';
 
-// Shows BLE home-beacon presence (À domicile / Absent) + a "Localiser" command.
-export default function CasePresencePanel({ imei, canCommand }: { imei: string; canCommand: boolean }) {
+// Shows BLE home-beacon presence (À domicile / Absent) + remote commands.
+export default function CasePresencePanel({ imei, canCommand, canShutdown }: { imei: string; canCommand: boolean; canShutdown: boolean }) {
   const [presence, setPresence] = useState<Presence | null>(null);
   const [loading, setLoading] = useState(true);
   const [locating, setLocating] = useState(false);
+  const [intervalSec, setIntervalSec] = useState(30);
   const [msg, setMsg] = useState<string | null>(null);
 
   const load = useCallback(async () => {
@@ -26,13 +28,13 @@ export default function CasePresencePanel({ imei, canCommand }: { imei: string; 
     return () => clearInterval(id);
   }, [load]);
 
-  async function sendCmd(action: 'locate' | 'enableBle', okMsg: string) {
+  async function sendCmd(action: Action, okMsg: string, value?: number) {
     setLocating(true); setMsg(null);
     try {
       const r = await fetch('/api/track/command', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ imei, action }),
+        body: JSON.stringify({ imei, action, value }),
       });
       const d = await r.json();
       setMsg(r.ok ? okMsg : (d.error ?? 'Erreur'));
@@ -75,11 +77,28 @@ export default function CasePresencePanel({ imei, canCommand }: { imei: string; 
           <div className="flex items-center gap-2 flex-wrap">
             <button onClick={() => sendCmd('locate', 'Localisation demandée ✓')} disabled={locating} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold disabled:opacity-40">
               {locating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <MapPin className="w-3.5 h-3.5" />}
-              Localiser maintenant
+              Localiser
             </button>
             <button onClick={() => sendCmd('enableBle', 'Activation Bluetooth envoyée ✓ (scan 120s)')} disabled={locating} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold disabled:opacity-40">
-              <Home className="w-3.5 h-3.5" /> Activer Bluetooth
+              <Bluetooth className="w-3.5 h-3.5" /> Activer Bluetooth
             </button>
+            <button onClick={() => sendCmd('realtime', 'Mode temps réel intensif envoyé ✓ (position 10s)')} disabled={locating} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-500 text-white text-xs font-semibold disabled:opacity-40">
+              <Zap className="w-3.5 h-3.5" /> Temps réel intensif
+            </button>
+            <button onClick={() => { if (confirm('Redémarrer le bracelet ? Le suivi reprend après le reboot.')) sendCmd('restart', 'Redémarrage envoyé ✓'); }} disabled={locating} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-600 hover:bg-slate-500 text-white text-xs font-semibold disabled:opacity-40">
+              <RotateCw className="w-3.5 h-3.5" /> Redémarrer
+            </button>
+            <div className="inline-flex items-center gap-1 bg-gray-50 border border-gray-200 rounded-lg px-2 py-1">
+              <Timer className="w-3.5 h-3.5 text-gray-500" />
+              <input type="number" min={10} max={86400} value={intervalSec} onChange={(e) => setIntervalSec(Number(e.target.value))} className="w-16 text-xs px-1 py-0.5 border border-gray-300 rounded" />
+              <span className="text-[11px] text-gray-500">s</span>
+              <button onClick={() => sendCmd('setInterval', `Intervalle position réglé à ${intervalSec}s ✓`, intervalSec)} disabled={locating} className="text-xs font-semibold text-blue-600 hover:text-blue-700 ml-1">Régler</button>
+            </div>
+            {canShutdown && (
+              <button onClick={() => { if (confirm('⚠️ ÉTEINDRE le bracelet ? Cela COUPE le suivi GPS jusqu’au rallumage manuel.')) sendCmd('shutdown', 'Extinction envoyée ✓'); }} disabled={locating} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-600 hover:bg-red-500 text-white text-xs font-semibold disabled:opacity-40">
+                <Power className="w-3.5 h-3.5" /> Éteindre
+              </button>
+            )}
             {msg && <p className="text-xs text-gray-500 w-full">{msg}</p>}
           </div>
         )}

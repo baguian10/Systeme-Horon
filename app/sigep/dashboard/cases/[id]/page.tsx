@@ -263,7 +263,7 @@ export default async function CaseDetailPage({ params }: { params: Promise<{ id:
 
           {/* Home presence + remote commands */}
           {device && (
-            <CasePresencePanel imei={device.imei} canCommand={canGeo || canHardware} />
+            <CasePresencePanel imei={device.imei} canCommand={canGeo || canHardware} canShutdown={canHardware} />
           )}
 
           {/* Assignments */}

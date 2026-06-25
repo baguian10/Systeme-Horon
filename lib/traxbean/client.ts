@@ -126,23 +126,33 @@ export async function getTargetIdByImei(imei: string): Promise<number | null> {
   return list.find((x) => x.imei === imei)?.id ?? null;
 }
 
-export type TraxbeanCommand = 'locate' | 'enableBle';
+export type TraxbeanCommand =
+  | 'locate'      // force an immediate position fix
+  | 'enableBle'   // continuous BLE beacon scan (every 120s)
+  | 'restart'     // reboot the bracelet
+  | 'shutdown'    // power off (SUPER_ADMIN — cuts tracking)
+  | 'setInterval' // GPS report interval (value = seconds)
+  | 'realtime';   // intensive real-time tracking (10s interval)
 
-// Send a remote command to the bracelet.
-//  - 'locate'    → force an immediate position fix.
-//  - 'enableBle' → turn on continuous BLE beacon scanning (every 120s).
-export async function sendDeviceCommand(imei: string, command: TraxbeanCommand): Promise<boolean> {
-  if (command === 'locate') {
-    const r = await traxbeanPost<number>('business/target/doPosition', { imei, param: '' });
-    return r !== null;
-  }
-  if (command === 'enableBle') {
-    const targetId = await getTargetIdByImei(imei);
-    if (!targetId) return false;
-    // Per ThinkRace IW protocol: >*ble@<interval-seconds>*< opens the BLE module
-    // and uploads an APBL scan packet every <interval> seconds (here 120s).
-    const r = await traxbeanPost<number>('business/target/sendCommand', { targetId, imei, command: '>*ble@120*<' });
-    return r !== null;
+const post = async (path: string, body: unknown) => (await traxbeanPost<number>(path, body)) !== null;
+
+// Send a remote command to the bracelet. `value` is used by setInterval (seconds).
+export async function sendDeviceCommand(imei: string, command: TraxbeanCommand, value?: number): Promise<boolean> {
+  switch (command) {
+    case 'locate':   return post('business/target/doPosition', { imei, param: '' });
+    case 'restart':  return post('business/target/doRestart', { imei, param: '' });
+    case 'shutdown': return post('business/target/doShutdown', { imei, param: '' });
+    case 'realtime': return post('business/target/setPositionInterval', { imei, param: '10' });
+    case 'setInterval': {
+      const sec = Math.max(10, Math.min(86400, Math.round(Number(value) || 300)));
+      return post('business/target/setPositionInterval', { imei, param: String(sec) });
+    }
+    case 'enableBle': {
+      const targetId = await getTargetIdByImei(imei);
+      if (!targetId) return false;
+      // ThinkRace IW: >*ble@<sec>*< opens BLE + uploads an APBL scan every <sec>s.
+      return post('business/target/sendCommand', { targetId, imei, command: '>*ble@120*<' });
+    }
   }
   return false;
 }
