@@ -24,6 +24,7 @@ export default function HistoryTimeline({ min, max, value, playing, speed, event
     <div className="bg-white border-t border-gray-200 px-4 py-3 flex items-center gap-3">
       <button
         onClick={onTogglePlay}
+        data-tip={playing ? 'Mettre en pause le rejeu du trajet' : 'Lancer le rejeu animé du trajet de la journée'}
         className="shrink-0 w-10 h-10 rounded-full bg-violet-600 text-white flex items-center justify-center hover:bg-violet-700 transition"
         aria-label={playing ? 'Pause' : 'Lecture'}
       >
@@ -61,6 +62,7 @@ export default function HistoryTimeline({ min, max, value, playing, speed, event
       <select
         value={speed}
         onChange={(e) => onSpeed(Number(e.target.value))}
+        data-tip="Vitesse de lecture du rejeu (×1 à ×16)"
         className="shrink-0 border border-gray-300 rounded-lg text-sm px-2 py-1.5"
         aria-label="Vitesse de lecture"
       >

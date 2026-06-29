@@ -31,7 +31,7 @@ export default function AlertActions({
       {status === 'NEW' && (
         <form action={acknowledgeAlertAction}>
           <input type="hidden" name="alertId" value={alertId} />
-          <button type="submit" className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700 font-medium" title="Accuser réception">
+          <button type="submit" data-tip="Accuser réception : marque l'alerte comme vue (statut → Vue)" className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700 font-medium">
             <Eye className="w-3.5 h-3.5" /> Vu
           </button>
         </form>
@@ -45,7 +45,7 @@ export default function AlertActions({
           defaultValue={assignedTo ?? ''}
           onChange={(e) => e.currentTarget.form?.requestSubmit()}
           className="text-xs border border-gray-200 rounded-md px-1.5 py-1 max-w-[130px]"
-          title="Assigner"
+          data-tip="Assigner l'alerte à un agent (statut → En cours)"
         >
           <option value="">Non assignée</option>
           {users.map((u) => <option key={u.id} value={u.id}>{u.full_name}</option>)}
@@ -54,6 +54,7 @@ export default function AlertActions({
 
       <button
         onClick={() => setShowResolve(true)}
+        data-tip="Clôturer l'alerte avec un motif et un compte rendu obligatoires (traçabilité)"
         className="inline-flex items-center gap-1 text-xs text-emerald-600 hover:text-emerald-700 font-medium"
       >
         <CheckCircle className="w-3.5 h-3.5" /> Clôturer

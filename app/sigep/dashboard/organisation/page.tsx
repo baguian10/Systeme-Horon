@@ -46,7 +46,7 @@ export default async function OrganisationPage() {
               <span className="text-[11px] text-gray-400">· {membersOf(d.id).length} agent(s)</span>
               <form action={deleteDepartmentAction} className="ml-auto">
                 <input type="hidden" name="id" value={d.id} />
-                <button type="submit" className="text-gray-300 hover:text-red-500" title="Supprimer"><Trash2 className="w-3.5 h-3.5" /></button>
+                <button type="submit" data-tip="Supprimer cette entité. Les sous-entités et agents rattachés sont détachés (non supprimés)." className="text-gray-300 hover:text-red-500"><Trash2 className="w-3.5 h-3.5" /></button>
               </form>
             </div>
             {renderTree(d.id, depth + 1)}
@@ -95,7 +95,7 @@ export default async function OrganisationPage() {
                 {depts.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
               </select>
             </div>
-            <button type="submit" className="w-full bg-blue-600 text-white rounded-lg py-2 text-sm font-semibold hover:bg-blue-700">Créer</button>
+            <button type="submit" data-tip="Créer une cour, juridiction ou unité. Rattachez-la à une entité parente pour bâtir la hiérarchie." className="w-full bg-blue-600 text-white rounded-lg py-2 text-sm font-semibold hover:bg-blue-700">Créer</button>
           </form>
         </div>
       </div>

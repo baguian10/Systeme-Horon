@@ -12,6 +12,7 @@ export default function DeptAssignSelect({ userId, value, depts }: { userId: str
         name="department_id"
         defaultValue={value ?? ''}
         onChange={(e) => e.currentTarget.form?.requestSubmit()}
+        data-tip="Affecter l'agent à une entité. Un juge voit alors les dossiers de sa juridiction (partage du docket)."
         className="text-xs border border-gray-200 rounded-md px-2 py-1 max-w-[180px]"
       >
         <option value="">— Aucun —</option>

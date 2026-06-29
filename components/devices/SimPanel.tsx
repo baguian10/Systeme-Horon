@@ -50,7 +50,7 @@ export default function SimPanel({ deviceId, sim, canEdit }: { deviceId: string;
       <div className="flex items-center gap-1.5 mt-0.5">
         {sim.sim_carrier && <span className="text-gray-400">{sim.sim_carrier}</span>}
         {sim.sim_number && <span className={`inline-block px-1.5 rounded-full text-[10px] font-medium ${meta.cls}`}>{meta.label}</span>}
-        {canEdit && <button onClick={() => setOpen(true)} className="text-blue-600 hover:underline ml-1">modifier</button>}
+        {canEdit && <button onClick={() => setOpen(true)} data-tip="Modifier la carte SIM : numéro, opérateur, date de mise en service, statut" className="text-blue-600 hover:underline ml-1">modifier</button>}
       </div>
 
       {open && (

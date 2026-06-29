@@ -50,7 +50,7 @@ export default async function AlertsPage() {
           </p>
         </div>
         {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- file download from an API route */}
-        <a href="/api/export/alerts" className="inline-flex items-center gap-1.5 text-sm border border-gray-200 rounded-lg px-3 py-1.5 hover:bg-gray-50 text-gray-700">
+        <a href="/api/export/alerts" data-tip="Exporter l'historique des alertes (type, gravité, statut, motif de clôture) en CSV" className="inline-flex items-center gap-1.5 text-sm border border-gray-200 rounded-lg px-3 py-1.5 hover:bg-gray-50 text-gray-700">
           ⬇️ Exporter CSV
         </a>
       </div>

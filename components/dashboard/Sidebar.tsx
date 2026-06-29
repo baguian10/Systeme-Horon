@@ -96,6 +96,30 @@ function buildNav(session: Sess): NavItem[] {
   return items;
 }
 
+const NAV_TIPS: Record<string, string> = {
+  '/sigep/dashboard': "Vue d'ensemble : indicateurs clés et activité récente",
+  '/sigep/dashboard/cases': 'Dossiers de mesures sous surveillance électronique',
+  '/sigep/dashboard/alerts': 'Alertes en temps réel : traiter, assigner, clôturer',
+  '/sigep/dashboard/map': 'Carte de surveillance temps réel de tous les bracelets',
+  '/sigep/dashboard/monitoring': 'Grille temps réel multi-bracelets',
+  '/sigep/dashboard/geofences': 'Zones autorisées/interdites et couvre-feu',
+  '/sigep/dashboard/stats': 'Statistiques et tableaux de bord agrégés',
+  '/sigep/dashboard/devices': 'Parc de bracelets : SIM, étiquettes, journal, assignation',
+  '/sigep/dashboard/users': 'Comptes utilisateurs et permissions',
+  '/sigep/dashboard/organisation': 'Hiérarchie des juridictions et affectation des agents',
+  '/sigep/dashboard/rapports': 'Rapports institutionnels',
+  '/sigep/dashboard/infractions': 'Historique des infractions/violations',
+  '/sigep/dashboard/tig-sites': "Catalogue des sites de travail d'intérêt général",
+  '/sigep/dashboard/agenda': 'Agenda des échéances et rendez-vous',
+  '/sigep/dashboard/revocations': 'Procédures de révocation de mesure',
+  '/sigep/dashboard/messagerie': 'Messagerie interne entre agents',
+  '/sigep/dashboard/notifications': 'Préférences de notification (push/SMS/email)',
+  '/sigep/dashboard/terrain': 'Mode terrain pour agents en déplacement',
+  '/sigep/dashboard/maintenance': 'Supervision technique de la plateforme',
+  '/sigep/dashboard/audit': "Journal d'audit : qui a fait quoi",
+  '/sigep/dashboard/parametres': 'Paramètres institutionnels et rétention',
+};
+
 const navContainer = {
   hidden: {},
   visible: { transition: { staggerChildren: 0.04, delayChildren: 0.1 } },
@@ -172,6 +196,7 @@ export default function Sidebar({ role, permissions }: { role: UserRole; permiss
             >
               <Link
                 href={item.href}
+                data-tip={NAV_TIPS[item.href]}
                 className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors group ${
                   active
                     ? 'bg-emerald-600/20 text-emerald-400 shadow-sm shadow-emerald-900/20'

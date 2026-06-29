@@ -226,6 +226,7 @@ export default async function CaseDetailPage({ params }: { params: Promise<{ id:
             )}
             <Link
               href={`/sigep/dashboard/cases/${id}/history`}
+              data-tip="Voir l'itinéraire d'un jour donné : rejeu animé, arrêts, événements, conformité couvre-feu, rapport PDF"
               className="mt-4 flex items-center justify-center gap-2 w-full bg-violet-600 hover:bg-violet-700 text-white rounded-xl py-2.5 text-sm font-semibold transition"
             >
               🛣️ Itinéraire & historique journalier

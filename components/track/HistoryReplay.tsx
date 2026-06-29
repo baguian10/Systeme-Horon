@@ -177,12 +177,14 @@ export default function HistoryReplay({ caseId, initialDate }: { caseId: string;
                 href={`/api/track/history/report?caseId=${encodeURIComponent(caseId)}&date=${date}`}
                 target="_blank"
                 rel="noopener noreferrer"
+                data-tip="Générer le rapport PDF judiciaire du jour (carte, arrêts, événements, couvre-feu)"
                 className="block text-center bg-gray-900 text-white rounded-lg py-2.5 text-sm font-semibold hover:bg-gray-800"
               >
                 🖨️ Rapport PDF du jour
               </a>
               <a
                 href={`/api/export/positions?caseId=${encodeURIComponent(caseId)}&from=${date}T00:00:00Z&to=${date}T23:59:59Z`}
+                data-tip="Télécharger toutes les positions GPS du jour au format CSV (Excel)"
                 className="block text-center border border-gray-200 rounded-lg py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
               >
                 ⬇️ Positions CSV du jour

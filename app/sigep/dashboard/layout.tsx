@@ -4,6 +4,7 @@ import { SessionProvider } from './context';
 import Sidebar from '@/components/dashboard/Sidebar';
 import Topbar from '@/components/dashboard/Topbar';
 import AlertToastProvider from '@/components/realtime/AlertToastProvider';
+import TooltipLayer from '@/components/ui/TooltipLayer';
 
 export const metadata = { title: 'SIGEP — Tableau de bord', robots: 'noindex, nofollow' };
 
@@ -24,6 +25,7 @@ export default async function DashboardLayout({
             <Topbar title="SIGEP" />
             <main className="flex-1 p-6 overflow-auto">{children}</main>
           </div>
+          <TooltipLayer />
         </div>
       </AlertToastProvider>
     </SessionProvider>

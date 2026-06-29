@@ -66,7 +66,7 @@ export default async function DevicesPage() {
         </div>
         <div className="flex items-center gap-2">
           {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- file download from an API route */}
-          <a href="/api/export/devices" className="inline-flex items-center gap-1.5 text-sm border border-gray-200 rounded-lg px-3 py-1.5 hover:bg-gray-50 text-gray-700">
+          <a href="/api/export/devices" data-tip="Exporter tout le parc de bracelets (IMEI, état, batterie, SIM, dossier) en CSV" className="inline-flex items-center gap-1.5 text-sm border border-gray-200 rounded-lg px-3 py-1.5 hover:bg-gray-50 text-gray-700">
             ⬇️ Exporter CSV
           </a>
           {isHardwareAdmin && <RegisterDeviceForm />}
@@ -181,15 +181,15 @@ export default async function DevicesPage() {
                             <Link
                               href={`/sigep/dashboard/devices/${d.id}/label`}
                               target="_blank"
+                              data-tip="Ouvrir l'étiquette imprimable du bracelet (QR de l'IMEI, format 70×40 mm)"
                               className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700"
-                              title="Imprimer l'étiquette"
                             >
                               <Tag className="w-3.5 h-3.5" /> Étiquette
                             </Link>
                             <Link
                               href={`/sigep/dashboard/devices/${d.id}/events`}
+                              data-tip="Journal d'événements du bracelet : connexions, commandes, redémarrages, SIM…"
                               className="inline-flex items-center gap-1 text-xs text-gray-500 hover:text-gray-700"
-                              title="Journal d'événements"
                             >
                               <ClipboardList className="w-3.5 h-3.5" /> Journal
                             </Link>

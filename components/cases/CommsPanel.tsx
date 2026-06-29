@@ -47,7 +47,7 @@ export default function CommsPanel({
 
       {/* Click-to-call the bracelet (two-way voice) */}
       {simNumber ? (
-        <a href={`tel:${simNumber}`} className="flex items-center justify-center gap-2 w-full bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl py-2.5 text-sm font-semibold">
+        <a href={`tel:${simNumber}`} data-tip="Appel vocal bidirectionnel : compose le numéro SIM du bracelet depuis votre téléphone" className="flex items-center justify-center gap-2 w-full bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl py-2.5 text-sm font-semibold">
           <Phone className="w-4 h-4" /> Appeler le bracelet ({simNumber})
         </a>
       ) : (
@@ -80,11 +80,11 @@ export default function CommsPanel({
                     placeholder="Nom" className="w-1/3 border border-gray-300 rounded-lg px-2 py-1.5 text-sm" />
                   <input value={c.phone} onChange={(e) => setWl(wl.map((v, j) => j === i ? { ...v, phone: e.target.value } : v))}
                     placeholder="Téléphone" className="flex-1 border border-gray-300 rounded-lg px-2 py-1.5 text-sm font-mono" />
-                  <button onClick={() => setWl(wl.filter((_, j) => j !== i))} className="px-2 text-gray-400 hover:text-red-500"><X className="w-4 h-4" /></button>
+                  <button onClick={() => setWl(wl.filter((_, j) => j !== i))} data-tip="Retirer ce contact de la liste blanche" className="px-2 text-gray-400 hover:text-red-500"><X className="w-4 h-4" /></button>
                 </div>
               ))}
               {wl.length < 5 && (
-                <button onClick={() => setWl([...wl, { name: '', phone: '' }])} className="inline-flex items-center gap-1 text-xs text-blue-600"><Plus className="w-3.5 h-3.5" /> Ajouter</button>
+                <button onClick={() => setWl([...wl, { name: '', phone: '' }])} data-tip="Ajouter un contact autorisé à appeler le bracelet" className="inline-flex items-center gap-1 text-xs text-blue-600"><Plus className="w-3.5 h-3.5" /> Ajouter</button>
               )}
             </div>
           </div>
@@ -95,7 +95,7 @@ export default function CommsPanel({
           </label>
 
           {msg && <p className="text-xs text-gray-600">{msg}</p>}
-          <button onClick={save} disabled={busy} className="w-full bg-gray-900 text-white rounded-lg py-2 text-sm font-semibold disabled:opacity-50">
+          <button onClick={save} disabled={busy} data-tip="Pousse les numéros SOS, la liste blanche et l'état des appels vers le bracelet (commandes IW BP12/BP14/BPPH)" className="w-full bg-gray-900 text-white rounded-lg py-2 text-sm font-semibold disabled:opacity-50">
             {busy ? 'Envoi…' : 'Enregistrer & envoyer au bracelet'}
           </button>
         </>

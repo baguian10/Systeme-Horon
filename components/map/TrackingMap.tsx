@@ -320,24 +320,28 @@ export default function TrackingMap({ markers, geofences = [], center = [12.3647
       <div style={{ position: 'absolute', bottom: 16, right: 12, zIndex: 1000, display: 'flex', flexDirection: 'column', gap: 8 }}>
         <button
           onClick={centerOnDevice}
+          data-tip="Recentrer la carte sur la position actuelle du bracelet"
           style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 10, padding: '8px 12px', fontSize: 12, fontWeight: 600, color: '#0f172a', boxShadow: '0 2px 8px rgba(0,0,0,.12)', cursor: 'pointer' }}
         >
           📍 Centrer
         </button>
         <button
           onClick={() => setFollow((f) => !f)}
+          data-tip="Suivi automatique : la carte recentre en continu sur le bracelet à chaque déplacement"
           style={{ background: follow ? '#059669' : '#fff', border: '1px solid ' + (follow ? '#059669' : '#e2e8f0'), borderRadius: 10, padding: '8px 12px', fontSize: 12, fontWeight: 600, color: follow ? '#fff' : '#0f172a', boxShadow: '0 2px 8px rgba(0,0,0,.12)', cursor: 'pointer' }}
         >
           {follow ? '🎯 Suivi ON' : '🎯 Suivre'}
         </button>
         <button
           onClick={() => setShowTrail((t) => !t)}
+          data-tip="Afficher / masquer le tracé du parcours récent sur la carte"
           style={{ background: showTrail ? '#7c3aed' : '#fff', border: '1px solid ' + (showTrail ? '#7c3aed' : '#e2e8f0'), borderRadius: 10, padding: '8px 12px', fontSize: 12, fontWeight: 600, color: showTrail ? '#fff' : '#0f172a', boxShadow: '0 2px 8px rgba(0,0,0,.12)', cursor: 'pointer' }}
         >
           {showTrail ? '🛣️ Trajet ON' : '🛣️ Trajet'}
         </button>
         <button
           onClick={() => { setDrawing((d) => !d); setDrawnShape(null); setSaveErr(null); }}
+          data-tip="Tracer une zone (géofence) directement sur la carte : cercle ou polygone, autorisée ou interdite"
           style={{ background: drawing ? '#2563eb' : '#fff', border: '1px solid ' + (drawing ? '#2563eb' : '#e2e8f0'), borderRadius: 10, padding: '8px 12px', fontSize: 12, fontWeight: 600, color: drawing ? '#fff' : '#0f172a', boxShadow: '0 2px 8px rgba(0,0,0,.12)', cursor: 'pointer' }}
         >
           {drawing ? '✏️ Dessin ON' : '✏️ Tracer zone'}

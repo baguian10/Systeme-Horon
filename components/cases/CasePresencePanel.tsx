@@ -49,7 +49,7 @@ export default function CasePresencePanel({ imei, canCommand, canShutdown }: { i
           <Home className="w-4 h-4 text-emerald-500" />
           <h3 className="font-semibold text-gray-900">Présence & commandes</h3>
         </div>
-        <button onClick={load} title="Rafraîchir" className="text-gray-400 hover:text-gray-700"><RefreshCw className="w-3.5 h-3.5" /></button>
+        <button onClick={load} data-tip="Rafraîchir l'état de présence (à domicile / absent)" className="text-gray-400 hover:text-gray-700"><RefreshCw className="w-3.5 h-3.5" /></button>
       </div>
       <div className="px-5 py-4 space-y-3">
         {loading ? (
@@ -75,27 +75,27 @@ export default function CasePresencePanel({ imei, canCommand, canShutdown }: { i
 
         {canCommand && (
           <div className="flex items-center gap-2 flex-wrap">
-            <button onClick={() => sendCmd('locate', 'Localisation demandée ✓')} disabled={locating} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold disabled:opacity-40">
+            <button onClick={() => sendCmd('locate', 'Localisation demandée ✓')} disabled={locating} data-tip="Demander une localisation GPS immédiate du bracelet" className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold disabled:opacity-40">
               {locating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <MapPin className="w-3.5 h-3.5" />}
               Localiser
             </button>
-            <button onClick={() => sendCmd('enableBle', 'Activation Bluetooth envoyée ✓ (scan 120s)')} disabled={locating} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold disabled:opacity-40">
+            <button onClick={() => sendCmd('enableBle', 'Activation Bluetooth envoyée ✓ (scan 120s)')} disabled={locating} data-tip="Lancer un scan Bluetooth (120s) pour détecter la balise domicile et confirmer la présence" className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold disabled:opacity-40">
               <Bluetooth className="w-3.5 h-3.5" /> Activer Bluetooth
             </button>
-            <button onClick={() => sendCmd('realtime', 'Mode temps réel intensif envoyé ✓ (position 10s)')} disabled={locating} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-500 text-white text-xs font-semibold disabled:opacity-40">
+            <button onClick={() => sendCmd('realtime', 'Mode temps réel intensif envoyé ✓ (position 10s)')} disabled={locating} data-tip="Position toutes les 10s (consomme plus de batterie) — pour une surveillance rapprochée" className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-500 text-white text-xs font-semibold disabled:opacity-40">
               <Zap className="w-3.5 h-3.5" /> Temps réel intensif
             </button>
-            <button onClick={() => { if (confirm('Redémarrer le bracelet ? Le suivi reprend après le reboot.')) sendCmd('restart', 'Redémarrage envoyé ✓'); }} disabled={locating} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-600 hover:bg-slate-500 text-white text-xs font-semibold disabled:opacity-40">
+            <button onClick={() => { if (confirm('Redémarrer le bracelet ? Le suivi reprend après le reboot.')) sendCmd('restart', 'Redémarrage envoyé ✓'); }} disabled={locating} data-tip="Redémarrer le bracelet à distance (le suivi reprend après le reboot)" className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-600 hover:bg-slate-500 text-white text-xs font-semibold disabled:opacity-40">
               <RotateCw className="w-3.5 h-3.5" /> Redémarrer
             </button>
             <div className="inline-flex items-center gap-1 bg-gray-50 border border-gray-200 rounded-lg px-2 py-1">
               <Timer className="w-3.5 h-3.5 text-gray-500" />
               <input type="number" min={10} max={86400} value={intervalSec} onChange={(e) => setIntervalSec(Number(e.target.value))} className="w-16 text-xs px-1 py-0.5 border border-gray-300 rounded" />
               <span className="text-[11px] text-gray-500">s</span>
-              <button onClick={() => sendCmd('setInterval', `Intervalle position réglé à ${intervalSec}s ✓`, intervalSec)} disabled={locating} className="text-xs font-semibold text-blue-600 hover:text-blue-700 ml-1">Régler</button>
+              <button onClick={() => sendCmd('setInterval', `Intervalle position réglé à ${intervalSec}s ✓`, intervalSec)} disabled={locating} data-tip="Régler la fréquence d'envoi des positions (en secondes)" className="text-xs font-semibold text-blue-600 hover:text-blue-700 ml-1">Régler</button>
             </div>
             {canShutdown && (
-              <button onClick={() => { if (confirm('⚠️ ÉTEINDRE le bracelet ? Cela COUPE le suivi GPS jusqu’au rallumage manuel.')) sendCmd('shutdown', 'Extinction envoyée ✓'); }} disabled={locating} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-600 hover:bg-red-500 text-white text-xs font-semibold disabled:opacity-40">
+              <button onClick={() => { if (confirm('⚠️ ÉTEINDRE le bracelet ? Cela COUPE le suivi GPS jusqu’au rallumage manuel.')) sendCmd('shutdown', 'Extinction envoyée ✓'); }} disabled={locating} data-tip="⚠️ Éteindre le bracelet — coupe le suivi GPS jusqu'au rallumage manuel (SUPER_ADMIN)" className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-600 hover:bg-red-500 text-white text-xs font-semibold disabled:opacity-40">
                 <Power className="w-3.5 h-3.5" /> Éteindre
               </button>
             )}
