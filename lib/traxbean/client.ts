@@ -203,6 +203,37 @@ export async function configureDevice(imei: string, kind: DeviceConfigKind, valu
   return false;
 }
 
+// ── Voice communication (ThinkRace IW protocol, raw downlink commands) ──
+// Sent via Traxbean's generic sendCommand relay (same path as the BLE command).
+const cmdSerial = () => String(Date.now()).slice(-6);
+
+async function sendIW(imei: string, command: string): Promise<boolean> {
+  const targetId = await getTargetIdByImei(imei);
+  if (!targetId) return false;
+  return post('business/target/sendCommand', { targetId, imei, command });
+}
+
+// BP12 — up to 3 SOS numbers the bracelet dials when the SOS button is pressed.
+export async function setSosNumbers(imei: string, numbers: string[]): Promise<boolean> {
+  const n = numbers.map((x) => x.trim()).filter(Boolean).slice(0, 3);
+  while (n.length < 3) n.push('');
+  return sendIW(imei, `IWBP12,${imei},${cmdSerial()},${n.join(',')}#`);
+}
+
+// BP14 — white list of authorised contacts (Name|Phone) allowed to call/command.
+export async function setWhitelist(imei: string, contacts: { name: string; phone: string }[]): Promise<boolean> {
+  const pairs = contacts
+    .filter((c) => c.phone?.trim())
+    .slice(0, 5)
+    .map((c) => `${(c.name || '').trim()}|${c.phone.trim()}`);
+  return sendIW(imei, `IWBP14,${imei},${cmdSerial()},${pairs.join(',')}#`);
+}
+
+// BPPH — enable/disable inbound/outbound phone calls on the bracelet.
+export async function setPhoneCallSwitch(imei: string, on: boolean): Promise<boolean> {
+  return sendIW(imei, `IWBPPH,${imei},${cmdSerial()},${on ? 1 : 0}#`);
+}
+
 export type HomePresence = {
   configured: boolean;
   atHome: boolean;

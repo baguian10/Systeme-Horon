@@ -16,6 +16,7 @@ import CaseBeaconManager from '@/components/cases/CaseBeaconManager';
 import CaseDeviceManager from '@/components/cases/CaseDeviceManager';
 import CasePresencePanel from '@/components/cases/CasePresencePanel';
 import DeviceConfigPanel from '@/components/cases/DeviceConfigPanel';
+import CommsPanel from '@/components/cases/CommsPanel';
 import AssignmentManager from '@/components/cases/AssignmentManager';
 import JournalPanel from '@/components/cases/JournalPanel';
 
@@ -297,6 +298,19 @@ export default async function CaseDetailPage({ params }: { params: Promise<{ id:
           {/* Home presence + remote commands */}
           {device && (
             <CasePresencePanel imei={device.imei} canCommand={canCommand} canShutdown={canShutdownCmd} />
+          )}
+
+          {/* Voice communication (SOS numbers, white list, call) */}
+          {device && (
+            <CommsPanel
+              deviceId={device.id}
+              imei={device.imei}
+              simNumber={device.sim_number ?? null}
+              sosNumbers={device.sos_numbers ?? []}
+              whitelist={device.call_whitelist ?? []}
+              callEnabled={device.call_enabled ?? true}
+              canEdit={canCommand}
+            />
           )}
 
           {/* Device protocol config (SUPER_ADMIN / hardware) */}
