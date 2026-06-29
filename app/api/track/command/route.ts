@@ -35,5 +35,21 @@ export async function POST(request: NextRequest) {
   const ok = await sendDeviceCommand(imei, action, value);
   if (!ok) return NextResponse.json({ error: 'Commande refusée par la plateforme' }, { status: 502 });
   { const { writeAudit } = await import('@/lib/audit/log'); await writeAudit({ userId: session.id, action: 'SEND_COMMAND', recordId: imei, newData: { action } }); }
+  // Device event log (#2): record the command against the bracelet.
+  try {
+    const { createAdminClient } = await import('@/lib/supabase/admin');
+    const sb = createAdminClient();
+    if (sb) {
+      const { data: dev } = await sb.from('devices').select('id, case_id').eq('imei', imei).single();
+      if (dev?.id) {
+        const { logDeviceEvent } = await import('@/lib/devices/events');
+        await logDeviceEvent(sb, {
+          deviceId: dev.id, caseId: dev.case_id, actorId: session.id,
+          type: action === 'restart' ? 'RESTART' : 'COMMAND',
+          detail: `${action}${value != null ? ` (${value})` : ''}`,
+        });
+      }
+    }
+  } catch { /* best effort */ }
   return NextResponse.json({ ok: true });
 }

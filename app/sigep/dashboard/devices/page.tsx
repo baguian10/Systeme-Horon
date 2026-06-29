@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation';
 import {
   Wifi, WifiOff, Battery, Package, Bluetooth, Radio, Signal,
   Cpu, Timer, Zap, Globe, HardDrive, BatteryWarning, Thermometer, Activity,
-  CheckCircle2, AlertTriangle, XCircle, MapPin, RefreshCw, Fingerprint, Tag,
+  CheckCircle2, AlertTriangle, XCircle, MapPin, RefreshCw, Fingerprint, Tag, ClipboardList,
 } from 'lucide-react';
 import Link from 'next/link';
 import type { SyncStatus } from '@/lib/supabase/types';
@@ -64,7 +64,13 @@ export default async function DevicesPage() {
             {devices.length} bracelet{devices.length !== 1 ? 's' : ''} · {online} en ligne · {unassigned} non assigné{unassigned !== 1 ? 's' : ''}
           </p>
         </div>
-        {isHardwareAdmin && <RegisterDeviceForm />}
+        <div className="flex items-center gap-2">
+          {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- file download from an API route */}
+          <a href="/api/export/devices" className="inline-flex items-center gap-1.5 text-sm border border-gray-200 rounded-lg px-3 py-1.5 hover:bg-gray-50 text-gray-700">
+            ⬇️ Exporter CSV
+          </a>
+          {isHardwareAdmin && <RegisterDeviceForm />}
+        </div>
       </div>
 
       {/* Summary tiles */}
@@ -179,6 +185,13 @@ export default async function DevicesPage() {
                               title="Imprimer l'étiquette"
                             >
                               <Tag className="w-3.5 h-3.5" /> Étiquette
+                            </Link>
+                            <Link
+                              href={`/sigep/dashboard/devices/${d.id}/events`}
+                              className="inline-flex items-center gap-1 text-xs text-gray-500 hover:text-gray-700"
+                              title="Journal d'événements"
+                            >
+                              <ClipboardList className="w-3.5 h-3.5" /> Journal
                             </Link>
                           </div>
                         </td>

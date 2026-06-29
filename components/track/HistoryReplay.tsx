@@ -181,6 +181,12 @@ export default function HistoryReplay({ caseId, initialDate }: { caseId: string;
               >
                 🖨️ Rapport PDF du jour
               </a>
+              <a
+                href={`/api/export/positions?caseId=${encodeURIComponent(caseId)}&from=${date}T00:00:00Z&to=${date}T23:59:59Z`}
+                className="block text-center border border-gray-200 rounded-lg py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+              >
+                ⬇️ Positions CSV du jour
+              </a>
             </>
           )}
         </div>

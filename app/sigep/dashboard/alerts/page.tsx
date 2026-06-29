@@ -42,11 +42,17 @@ export default async function AlertsPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-xl font-bold text-gray-900">Centre d&apos;alertes</h2>
-        <p className="text-sm text-gray-500 mt-0.5">
-          {open.length} alerte{open.length !== 1 ? 's' : ''} active{open.length !== 1 ? 's' : ''}
-        </p>
+      <div className="flex items-start justify-between gap-3 flex-wrap">
+        <div>
+          <h2 className="text-xl font-bold text-gray-900">Centre d&apos;alertes</h2>
+          <p className="text-sm text-gray-500 mt-0.5">
+            {open.length} alerte{open.length !== 1 ? 's' : ''} active{open.length !== 1 ? 's' : ''}
+          </p>
+        </div>
+        {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- file download from an API route */}
+        <a href="/api/export/alerts" className="inline-flex items-center gap-1.5 text-sm border border-gray-200 rounded-lg px-3 py-1.5 hover:bg-gray-50 text-gray-700">
+          ⬇️ Exporter CSV
+        </a>
       </div>
 
       <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">

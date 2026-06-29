@@ -43,12 +43,18 @@ export async function POST(request: NextRequest) {
   // Look up device → case
   const { data: device } = await supabase
     .from('devices')
-    .select('id, case_id')
+    .select('id, case_id, is_online')
     .eq('imei', imei)
     .single();
 
   if (!device?.case_id) {
     return NextResponse.json({ error: 'Device not assigned to a case' }, { status: 404 });
+  }
+
+  // Log the offline→online transition (device event log #2).
+  if (device.is_online === false) {
+    const { logDeviceEvent } = await import('@/lib/devices/events');
+    await logDeviceEvent(supabase, { deviceId: device.id, caseId: device.case_id, type: 'ONLINE', detail: 'Reprise de contact' });
   }
 
   // Insert position

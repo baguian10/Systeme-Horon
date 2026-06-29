@@ -30,5 +30,6 @@ export async function POST(request: NextRequest) {
   }).eq('id', deviceId);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   { const { writeAudit } = await import('@/lib/audit/log'); await writeAudit({ userId: session.id, action: 'UPDATE_SIM', tableName: 'devices', recordId: deviceId }); }
+  { const { logDeviceEvent } = await import('@/lib/devices/events'); await logDeviceEvent(sb, { deviceId, type: 'SIM_CHANGE', detail: `SIM ${body.simNumber ?? '—'} (${body.carrier ?? '—'}, ${body.status ?? 'ACTIVE'})`, actorId: session.id }); }
   return NextResponse.json({ ok: true });
 }
