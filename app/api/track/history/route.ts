@@ -57,6 +57,27 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ days: [...set].sort() });
   }
 
+  // ---- window of enriched points (incident replay): ?from=&to= ISO ----
+  const fromParam = sp.get('from');
+  const toParam = sp.get('to');
+  if (!date && fromParam && toParam) {
+    const { data } = await supabase
+      .from('positions')
+      .select('latitude, longitude, speed_kmh, recorded_at')
+      .eq('case_id', caseId)
+      .gte('recorded_at', fromParam)
+      .lte('recorded_at', toParam)
+      .order('recorded_at', { ascending: true })
+      .limit(5000);
+    const points = (data ?? []).map((p) => ({
+      lat: p.latitude as number,
+      lng: p.longitude as number,
+      t: Date.parse(p.recorded_at as string),
+      speed: (p.speed_kmh as number | null) ?? null,
+    }));
+    return NextResponse.json({ points });
+  }
+
   // ---- legacy trail (no date) — keep TrackingMap working ----
   if (!date) {
     const limit = Math.min(Number(sp.get('limit') ?? 300), 1000);

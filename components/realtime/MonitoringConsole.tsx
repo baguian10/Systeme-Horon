@@ -13,6 +13,7 @@ import type { RiskLevel } from '@/lib/supabase/types';
 
 const LiveMapGrid = dynamic(() => import('@/components/realtime/LiveMapGrid'), { ssr: false });
 const TrackingMap = dynamic(() => import('@/components/map/TrackingMap'), { ssr: false });
+const IncidentReplay = dynamic(() => import('@/components/realtime/IncidentReplay'), { ssr: false });
 
 interface CaseCtx { label: string; imei: string | null; sim: string | null; risk: string | null; lat: number | null; lng: number | null; online: boolean }
 
@@ -83,7 +84,9 @@ export default function MonitoringConsole({
   const [flash, setFlash] = useState(false);
   const [muted, setMuted] = useState(false);
   const [incident, setIncident] = useState<string | null>(null); // case_id
+  const [incidentTrigger, setIncidentTrigger] = useState<string | null>(null); // alert triggered_at (replay window)
   const [incidentTrail, setIncidentTrail] = useState<[number, number][] | null>(null);
+  const [replayMode, setReplayMode] = useState(false);
   const [locateMsg, setLocateMsg] = useState<string | null>(null);
   const rootRef = useRef<HTMLDivElement>(null);
   const mutedRef = useRef(false);
@@ -137,8 +140,9 @@ export default function MonitoringConsole({
   }, [caseRefByCase]));
 
   // M — open the incident panel for a case (fetch its recent mini-trail).
-  const openIncident = useCallback((caseId: string) => {
+  const openIncident = useCallback((caseId: string, triggeredAt?: string) => {
     setIncident(caseId); setIncidentTrail(null); setLocateMsg(null);
+    setIncidentTrigger(triggeredAt ?? null); setReplayMode(false);
     fetch(`/api/track/history?caseId=${encodeURIComponent(caseId)}&limit=40`, { cache: 'no-store' })
       .then((r) => r.json()).then((d) => { if (Array.isArray(d.trail)) setIncidentTrail(d.trail); }).catch(() => {});
   }, []);
@@ -242,7 +246,7 @@ export default function MonitoringConsole({
                     {a.description && <p className="text-xs text-gray-500 mt-1 line-clamp-2">{a.description}</p>}
                     <div className="flex items-center justify-between gap-2 mt-1.5">
                       <div className="flex items-center gap-2">
-                        <button onClick={() => openIncident(a.case_id)} data-tip="Ouvrir la fiche incident (carte + trajet + commandes)" className="inline-flex items-center gap-1 text-[11px] text-gray-600 hover:text-gray-900"><Crosshair className="w-3.5 h-3.5" /> Incident</button>
+                        <button onClick={() => openIncident(a.case_id, a.triggered_at)} data-tip="Ouvrir la fiche incident (carte + rejeu + commandes)" className="inline-flex items-center gap-1 text-[11px] text-gray-600 hover:text-gray-900"><Crosshair className="w-3.5 h-3.5" /> Incident</button>
                         <Link href={`/sigep/dashboard/cases/${a.case_id}`} className="text-[11px] text-blue-600 hover:underline font-mono">{a.case_number}</Link>
                       </div>
                       {canResolve && <AlertActions alertId={a.id} status={a.status} assignedTo={a.assigned_to} users={operationals} />}
@@ -288,10 +292,19 @@ export default function MonitoringConsole({
                 <h3 className="font-semibold text-gray-900">{incidentCtx.label}</h3>
                 {incidentCtx.risk && <RiskBadge level={incidentCtx.risk as RiskLevel} />}
               </div>
-              <button onClick={() => setIncident(null)} className="text-gray-400 hover:text-gray-700"><X className="w-5 h-5" /></button>
+              <div className="flex items-center gap-2">
+                {incidentTrigger && (
+                  <button onClick={() => setReplayMode((v) => !v)} data-tip="Rejouer la séquence (±30 min autour du déclenchement)" className={`text-xs px-2 py-1 rounded-lg font-medium ${replayMode ? 'bg-violet-600 text-white' : 'bg-gray-100 text-gray-700'}`}>
+                    {replayMode ? '🗺️ Carte live' : '⏵ Rejeu incident'}
+                  </button>
+                )}
+                <button onClick={() => setIncident(null)} className="text-gray-400 hover:text-gray-700"><X className="w-5 h-5" /></button>
+              </div>
             </div>
-            <div className="h-[300px]">
-              {incidentCtx.lat != null && incidentCtx.lng != null ? (
+            <div className="h-[320px]">
+              {replayMode && incidentTrigger ? (
+                <IncidentReplay caseId={incident} triggeredAt={incidentTrigger} />
+              ) : incidentCtx.lat != null && incidentCtx.lng != null ? (
                 <TrackingMap
                   markers={[{ id: incident, caseId: incident, caseRef: '', label: incidentCtx.label, lat: incidentCtx.lat, lng: incidentCtx.lng, status: 'alert', lastUpdate: '' } as TrackerMarker]}
                   focus={[incidentCtx.lat, incidentCtx.lng]}
