@@ -80,12 +80,17 @@ export async function createCaseAction(
   const { count } = await supabase.from('cases').select('id', { count: 'exact', head: true });
   const caseNumber = `OUAG-${year}-${String((count ?? 0) + 1).padStart(4, '0')}`;
 
+  // Tag the case with the creating judge's department (#5) so it inherits the org scope.
+  const { data: judgeRow } = await supabase.from('users').select('department_id').eq('id', session.id).single();
+  const department_id = (judgeRow as { department_id?: string | null } | null)?.department_id ?? null;
+
   const { data: newCase, error: caseErr } = await supabase
     .from('cases')
     .insert({
       individual_id: ind.id, judge_id: session.id, case_number: caseNumber,
       status: 'ACTIVE', court_order_date, start_date: new Date().toISOString(), notes,
       measure_type, legal_basis, ordonnance_ref, ordonnance_url, obligations,
+      department_id,
     })
     .select('id').single();
   if (caseErr || !newCase) return { error: 'Erreur lors de la création du dossier' };
@@ -304,6 +309,42 @@ export async function amendMeasureAction(formData: FormData): Promise<void> {
     const note = (formData.get('note') as string)?.trim() || null;
     await supabase.from('cases').update({ status: 'TERMINATED', end_date: new Date().toISOString(), updated_at: new Date().toISOString() }).eq('id', case_id);
     await writeAudit({ userId: session.id, action: 'LIFT_MEASURE', tableName: 'cases', recordId: case_id, newData: { note } });
+  }
+  revalidatePath(`/sigep/dashboard/cases/${case_id}`);
+}
+
+// ── #12 Risk level: drives monitoring intensity ───────────────────────────────
+export async function setRiskLevelAction(formData: FormData): Promise<void> {
+  const session = await getSession();
+  if (!session || !canUpdateCaseStatus(session.role)) return;
+  const case_id = formData.get('case_id') as string;
+  const risk_level = (formData.get('risk_level') as string)?.toUpperCase();
+  if (!case_id || !['LOW', 'MEDIUM', 'HIGH'].includes(risk_level)) return;
+
+  if (isDemoMode()) {
+    const { MOCK_CASES } = await import('@/lib/mock/data');
+    const c = MOCK_CASES.find((x) => x.id === case_id);
+    if (c) (c as { risk_level?: string }).risk_level = risk_level;
+    revalidatePath(`/sigep/dashboard/cases/${case_id}`);
+    return;
+  }
+
+  const { createAdminClient } = await import('@/lib/supabase/admin');
+  const supabase = createAdminClient();
+  if (!supabase) return;
+  await supabase.from('cases').update({ risk_level, updated_at: new Date().toISOString() }).eq('id', case_id);
+  await writeAudit({ userId: session.id, action: 'SET_RISK', tableName: 'cases', recordId: case_id, newData: { risk_level } });
+
+  // HIGH risk → switch the bracelet to intensive real-time tracking (best effort).
+  if (risk_level === 'HIGH') {
+    const { data: c } = await supabase.from('cases').select('device:devices(imei)').eq('id', case_id).single();
+    const imei = (c as { device?: { imei?: string } } | null)?.device?.imei;
+    if (imei) {
+      try {
+        const { sendDeviceCommand } = await import('@/lib/traxbean/client');
+        await sendDeviceCommand(imei, 'realtime');
+      } catch { /* device offline / command failed — risk level still saved */ }
+    }
   }
   revalidatePath(`/sigep/dashboard/cases/${case_id}`);
 }

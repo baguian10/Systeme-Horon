@@ -1,4 +1,15 @@
-import type { CaseStatus, AlertType } from '@/lib/supabase/types';
+import type { CaseStatus, AlertType, RiskLevel } from '@/lib/supabase/types';
+
+const RISK_CONFIG: Record<RiskLevel, { label: string; className: string }> = {
+  LOW:    { label: 'Risque faible',  className: 'bg-emerald-100 text-emerald-700' },
+  MEDIUM: { label: 'Risque moyen',   className: 'bg-amber-100 text-amber-700' },
+  HIGH:   { label: 'Risque élevé',   className: 'bg-red-100 text-red-700' },
+};
+
+export function RiskBadge({ level }: { level?: RiskLevel | null }) {
+  const cfg = RISK_CONFIG[(level ?? 'MEDIUM') as RiskLevel] ?? RISK_CONFIG.MEDIUM;
+  return <span className={`inline-block px-2 py-0.5 rounded-full text-[11px] font-medium ${cfg.className}`}>{cfg.label}</span>;
+}
 
 const CASE_CONFIG: Record<CaseStatus, { label: string; className: string }> = {
   PENDING:    { label: 'En attente',  className: 'bg-yellow-100 text-yellow-700' },

@@ -22,6 +22,7 @@ export interface User {
   created_by?: string | null;
   access_scope?: 'FULL' | 'RESTRICTED' | null;
   permissions?: string[];
+  department_id?: string | null;
 }
 
 export interface Individual {
@@ -98,6 +99,20 @@ export interface Position {
   recorded_at: string;
 }
 
+export type RiskLevel = 'LOW' | 'MEDIUM' | 'HIGH';
+
+export type DepartmentType = 'COURT' | 'JURISDICTION' | 'UNIT';
+export interface Department {
+  id: string;
+  name: string;
+  type: DepartmentType;
+  parent_id: string | null;
+  created_at: string;
+}
+
+export type AlertStatus = 'NEW' | 'ACKNOWLEDGED' | 'IN_PROGRESS' | 'RESOLVED' | 'FALSE_ALARM';
+export type ResolutionCategory = 'JUSTIFIED' | 'FALSE_ALARM' | 'TECHNICAL' | 'INTERVENTION';
+
 export interface Alert {
   id: string;
   case_id: string;
@@ -111,9 +126,17 @@ export interface Alert {
   resolved_by: string | null;
   resolved_at: string | null;
   triggered_at: string;
+  // Workflow (#3)
+  status?: AlertStatus;
+  assigned_to?: string | null;
+  acknowledged_by?: string | null;
+  acknowledged_at?: string | null;
+  resolution_category?: ResolutionCategory | null;
+  resolution_reason?: string | null;
   case?: Case;
   device?: Device;
   resolver?: User;
+  assignee?: User;
 }
 
 export interface Case {
@@ -127,6 +150,8 @@ export interface Case {
   end_date: string | null;
   notes: string | null;
   measure_type?: string | null;
+  risk_level?: RiskLevel;
+  department_id?: string | null;
   legal_basis?: string | null;
   ordonnance_ref?: string | null;
   ordonnance_url?: string | null;

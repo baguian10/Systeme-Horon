@@ -9,7 +9,7 @@ import {
   Activity, ClipboardList, Watch, Hexagon,
   FileText, AlertTriangle, Shovel, Calendar,
   XOctagon, Wrench, BellRing, Settings,
-  MessageSquare, Smartphone,
+  MessageSquare, Smartphone, Building2,
 } from 'lucide-react';
 import type { UserRole } from '@/lib/supabase/types';
 import {
@@ -57,6 +57,9 @@ function buildNav(session: Sess): NavItem[] {
   }
   if (allow(session, canViewUsers(role), 'users.manage')) {
     items.push({ href: '/sigep/dashboard/users', label: 'Utilisateurs', icon: <Users className="w-4 h-4" /> });
+  }
+  if (allow(session, role === 'SUPER_ADMIN', 'users.manage')) {
+    items.push({ href: '/sigep/dashboard/organisation', label: 'Organisation', icon: <Building2 className="w-4 h-4" /> });
   }
   if (allow(session, canViewReports(role), 'reports')) {
     items.push({ href: '/sigep/dashboard/rapports', label: 'Rapports', icon: <FileText className="w-4 h-4" /> });

@@ -6,7 +6,8 @@ import {
 } from 'lucide-react';
 import { fetchCaseById, fetchCaseAssignments, fetchOperationalUsers, fetchJournalEntries } from '@/lib/mock/helpers';
 import { getSession } from '@/lib/auth/session';
-import { CaseStatusBadge, AlertTypeBadge, SeverityDot } from '@/components/ui/StatusBadge';
+import { CaseStatusBadge, AlertTypeBadge, SeverityDot, RiskBadge } from '@/components/ui/StatusBadge';
+import RiskControl from '@/components/cases/RiskControl';
 import { canViewPII, canManageGeofences, canUpdateCaseStatus, canManageAssignments, canWriteJournal, canConfigureHardware, allow } from '@/lib/auth/permissions';
 import StatusControls from '@/components/cases/StatusControls';
 import GeofenceManager from '@/components/cases/GeofenceManager';
@@ -105,6 +106,11 @@ export default async function CaseDetailPage({ params }: { params: Promise<{ id:
           {canStatus && caseData.status !== 'TERMINATED' && (
             <StatusControls caseId={caseData.id} currentStatus={caseData.status} />
           )}
+          <div className="mt-3">
+            {canStatus
+              ? <RiskControl caseId={caseData.id} value={caseData.risk_level} />
+              : <RiskBadge level={caseData.risk_level} />}
+          </div>
         </div>
       </div>
 

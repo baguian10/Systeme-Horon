@@ -4,7 +4,7 @@ import { redirect } from 'next/navigation';
 import { FolderOpen, Plus, Battery, Wifi, WifiOff } from 'lucide-react';
 import { getSession } from '@/lib/auth/session';
 import { fetchCases } from '@/lib/mock/helpers';
-import { CaseStatusBadge } from '@/components/ui/StatusBadge';
+import { CaseStatusBadge, RiskBadge } from '@/components/ui/StatusBadge';
 import { canCreateCase, canViewPII, canViewCases , allow } from '@/lib/auth/permissions';
 import EmptyState from '@/components/ui/EmptyState';
 import CaseSearch from '@/components/cases/CaseSearch';
@@ -96,7 +96,10 @@ export default async function CasesPage({
                       )}
                     </td>
                     <td className="px-5 py-3.5">
-                      <CaseStatusBadge status={c.status} />
+                      <div className="flex flex-col gap-1 items-start">
+                        <CaseStatusBadge status={c.status} />
+                        <RiskBadge level={c.risk_level} />
+                      </div>
                     </td>
                     <td className="px-5 py-3.5 text-gray-600 text-xs">{c.judge?.full_name ?? '—'}</td>
                     <td className="px-5 py-3.5">
