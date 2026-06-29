@@ -1,7 +1,8 @@
 import { Wifi, AlertTriangle, Flame } from 'lucide-react';
-import { fetchCases, fetchLatestPositions, fetchViolationHeatPoints, fetchGeofences } from '@/lib/mock/helpers';
+import { fetchCases, fetchLatestPositions, fetchViolationHeatPoints, fetchGeofences, fetchAlerts, fetchOperationalUsers } from '@/lib/mock/helpers';
 import { redirect } from 'next/navigation';
 import { getSession } from '@/lib/auth/session';
+import { insideGeofence, withinWindow, type EnforceGeofence } from '@/lib/geofence/enforce';
 import HeatmapWrapper from '@/components/map/HeatmapWrapper';
 import MapViewToggle from '@/components/map/MapViewToggle';
 import SurveillanceView from '@/components/surveillance/SurveillanceView';
@@ -31,12 +32,39 @@ export default async function MapPage({
   const { view } = await searchParams;
   const showHeatmap = view === 'heatmap';
 
-  const [cases, positions, heatPoints, geofences] = await Promise.all([
+  const [cases, positions, heatPoints, geofences, alerts, operationals] = await Promise.all([
     fetchCases(session.role, session.id),
     fetchLatestPositions(),
     fetchViolationHeatPoints(),
     fetchGeofences(),
+    fetchAlerts(session.role).catch(() => []),
+    fetchOperationalUsers().catch(() => []),
   ]);
+
+  // Open alerts indexed by case (for the in-panel acknowledge/resolve).
+  const openAlertByCase = new Map<string, { id: string; alert_type: string; status: string; assigned_to: string | null; severity: number; description: string | null }>();
+  for (const a of alerts) {
+    if (a.is_resolved) continue;
+    if (!openAlertByCase.has(a.case_id)) {
+      openAlertByCase.set(a.case_id, { id: a.id, alert_type: a.alert_type, status: a.status ?? 'NEW', assigned_to: a.assigned_to ?? null, severity: a.severity, description: a.description });
+    }
+  }
+
+  // Geofences grouped by case (for live curfew status).
+  const geoByCase = new Map<string, EnforceGeofence[]>();
+  for (const g of geofences) {
+    if (g.status === 'REQUESTED') continue;
+    const arr = geoByCase.get(g.case_id) ?? [];
+    arr.push(g as unknown as EnforceGeofence);
+    geoByCase.set(g.case_id, arr);
+  }
+  const nowMs = Date.now();
+  function curfewStatus(caseId: string, lat: number, lng: number): 'in' | 'out' | null {
+    const zones = (geoByCase.get(caseId) ?? []).filter((g) => !g.is_exclusion && g.active_start && g.active_end);
+    const active = zones.filter((g) => withinWindow(g.active_start!, g.active_end!, nowMs));
+    if (active.length === 0) return null;
+    return active.some((g) => insideGeofence(lat, lng, g)) ? 'in' : 'out';
+  }
 
   // Real geofences for the surveillance map (blue = inclusion, red = exclusion).
   const mapGeofences: MapGeofence[] = geofences
@@ -73,6 +101,9 @@ export default async function MapPage({
       battery:        relatedCase?.device?.battery_pct ?? null,
       speedKmh:       pos.speed_kmh ?? null,
       online:         relatedCase?.device?.is_online ?? false,
+      imei:           relatedCase?.device?.imei ?? null,
+      riskLevel:      relatedCase?.risk_level ?? null,
+      curfew:         curfewStatus(pos.case_id, pos.latitude, pos.longitude),
     };
   });
 
@@ -144,7 +175,13 @@ export default async function MapPage({
           <HeatmapWrapper points={heatPoints} />
         </div>
       ) : (
-        <SurveillanceView initialMarkers={markers} geofences={mapGeofences} />
+        <SurveillanceView
+          initialMarkers={markers}
+          geofences={mapGeofences}
+          openAlerts={Object.fromEntries(openAlertByCase)}
+          operationals={operationals.map((u) => ({ id: u.id, full_name: u.full_name }))}
+          canResolve={true}
+        />
       )}
 
       {/* Heatmap legend + stats when in heatmap mode */}

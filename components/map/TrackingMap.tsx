@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, Circle, Polygon, Polyline, LayersControl, ZoomControl, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, Tooltip, Circle, Polygon, Polyline, LayersControl, ZoomControl, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import type { DrawnShape } from '@/components/geofences/GeofenceDrawMap';
 // leaflet/dist/leaflet.css is imported globally in app/layout.tsx
@@ -52,6 +52,9 @@ export interface TrackerMarker {
   speedKmh?: number | null;
   online?: boolean;
   lastSeenMs?: number | null;
+  imei?: string | null;
+  riskLevel?: 'LOW' | 'MEDIUM' | 'HIGH' | null;
+  curfew?: 'in' | 'out' | null;
 }
 
 export interface MapGeofence {
@@ -73,6 +76,7 @@ interface TrackingMapProps {
   selectedId?: string | null;
   onMarkerClick?: (caseId: string) => void;
   extraTrail?: [number, number][] | null;
+  showLabels?: boolean;
 }
 
 // Flies to `focus` whenever it changes (list → map selection sync).
@@ -180,7 +184,7 @@ function FollowController({ target, follow }: { target: [number, number] | null;
   return null;
 }
 
-export default function TrackingMap({ markers, geofences = [], center = [12.3647, -1.5332], zoom = 13, focus, selectedId, onMarkerClick, extraTrail }: TrackingMapProps) {
+export default function TrackingMap({ markers, geofences = [], center = [12.3647, -1.5332], zoom = 13, focus, selectedId, onMarkerClick, extraTrail, showLabels }: TrackingMapProps) {
   const [follow, setFollow] = useState(false);
   const [showTrail, setShowTrail] = useState(false);
   const [trail, setTrail] = useState<[number, number][]>([]);
@@ -305,6 +309,7 @@ export default function TrackingMap({ markers, geofences = [], center = [12.3647
             <Circle center={[m.lat, m.lng]} radius={60} pathOptions={{ color: '#2563eb', weight: 2, fillColor: '#2563eb', fillOpacity: 0.12 }} />
           )}
           <Marker position={[m.lat, m.lng]} icon={getIcon(m.status)} eventHandlers={onMarkerClick ? { click: () => onMarkerClick(m.caseId) } : undefined}>
+            {showLabels && <Tooltip permanent direction="top" offset={[0, -8]} className="horon-marker-label">{m.label}</Tooltip>}
             <Popup>
               <div style={{ minWidth: 160, fontSize: 12 }}>
                 <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 4 }}>{m.caseRef}</div>
