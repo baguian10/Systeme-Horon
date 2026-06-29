@@ -112,6 +112,9 @@ export default async function CaseDetailPage({ params }: { params: Promise<{ id:
               ? <RiskControl caseId={caseData.id} value={caseData.risk_level} />
               : <RiskBadge level={caseData.risk_level} />}
           </div>
+          {caseData.department?.name && (
+            <p className="mt-2 text-xs text-gray-500">Juridiction : <span className="font-medium text-gray-700">{caseData.department.name}</span></p>
+          )}
         </div>
       </div>
 

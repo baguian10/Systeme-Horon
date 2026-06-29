@@ -55,7 +55,7 @@ export async function fetchCaseById(id: string): Promise<Case | null> {
   if (!supabase) return null;
   const { data } = await supabase
     .from('cases')
-    .select('*, individual:individuals(*), judge:users!judge_id(*), device:devices(*), geofences(*), alerts(*)')
+    .select('*, individual:individuals(*), judge:users!judge_id(*), device:devices(*), geofences(*), alerts(*), department:departments(name)')
     .eq('id', id)
     .single();
   return (data as Case) ?? null;

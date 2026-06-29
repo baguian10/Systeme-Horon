@@ -159,6 +159,7 @@ export interface Case {
   measure_type?: string | null;
   risk_level?: RiskLevel;
   department_id?: string | null;
+  department?: { name: string } | null;
   legal_basis?: string | null;
   ordonnance_ref?: string | null;
   ordonnance_url?: string | null;
