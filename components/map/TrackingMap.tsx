@@ -51,6 +51,7 @@ export interface TrackerMarker {
   battery?: number | null;
   speedKmh?: number | null;
   online?: boolean;
+  lastSeenMs?: number | null;
 }
 
 export interface MapGeofence {
@@ -71,6 +72,7 @@ interface TrackingMapProps {
   focus?: [number, number] | null;
   selectedId?: string | null;
   onMarkerClick?: (caseId: string) => void;
+  extraTrail?: [number, number][] | null;
 }
 
 // Flies to `focus` whenever it changes (list → map selection sync).
@@ -178,7 +180,7 @@ function FollowController({ target, follow }: { target: [number, number] | null;
   return null;
 }
 
-export default function TrackingMap({ markers, geofences = [], center = [12.3647, -1.5332], zoom = 13, focus, selectedId, onMarkerClick }: TrackingMapProps) {
+export default function TrackingMap({ markers, geofences = [], center = [12.3647, -1.5332], zoom = 13, focus, selectedId, onMarkerClick, extraTrail }: TrackingMapProps) {
   const [follow, setFollow] = useState(false);
   const [showTrail, setShowTrail] = useState(false);
   const [trail, setTrail] = useState<[number, number][]>([]);
@@ -277,6 +279,11 @@ export default function TrackingMap({ markers, geofences = [], center = [12.3647
       {/* GPS trail (history) */}
       {showTrail && trail.length > 1 && (
         <Polyline positions={trail} pathOptions={{ color: '#7c3aed', weight: 3, opacity: 0.8 }} />
+      )}
+
+      {/* Externally-driven mini trail (e.g. selected device in surveillance) */}
+      {extraTrail && extraTrail.length > 1 && (
+        <Polyline positions={extraTrail} pathOptions={{ color: '#2563eb', weight: 3, opacity: 0.7, dashArray: '4 4' }} />
       )}
 
       {markers.map((m) => (

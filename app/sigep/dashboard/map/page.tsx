@@ -1,10 +1,10 @@
 import { Wifi, AlertTriangle, Flame } from 'lucide-react';
-import { fetchCases, fetchLatestPositions, fetchViolationHeatPoints } from '@/lib/mock/helpers';
+import { fetchCases, fetchLatestPositions, fetchViolationHeatPoints, fetchGeofences } from '@/lib/mock/helpers';
 import { getSession } from '@/lib/auth/session';
 import HeatmapWrapper from '@/components/map/HeatmapWrapper';
 import MapViewToggle from '@/components/map/MapViewToggle';
 import SurveillanceView from '@/components/surveillance/SurveillanceView';
-import type { TrackerMarker } from '@/components/map/TrackingMap';
+import type { TrackerMarker, MapGeofence } from '@/components/map/TrackingMap';
 
 export const metadata = { title: 'Carte de surveillance — SIGEP' };
 export const dynamic = 'force-dynamic';
@@ -28,11 +28,28 @@ export default async function MapPage({
   const { view } = await searchParams;
   const showHeatmap = view === 'heatmap';
 
-  const [cases, positions, heatPoints] = await Promise.all([
+  const [cases, positions, heatPoints, geofences] = await Promise.all([
     fetchCases(session.role, session.id),
     fetchLatestPositions(),
     fetchViolationHeatPoints(),
+    fetchGeofences(),
   ]);
+
+  // Real geofences for the surveillance map (blue = inclusion, red = exclusion).
+  const mapGeofences: MapGeofence[] = geofences
+    .filter((g) => g.status !== 'REQUESTED')
+    .map((g) => ({
+      id: g.id,
+      name: g.name,
+      isExclusion: g.is_exclusion,
+      polygon: g.shape_type === 'POLYGON' && g.area?.coordinates?.[0]
+        ? g.area.coordinates[0].map((c) => [c[1], c[0]] as [number, number])
+        : null,
+      center: g.shape_type === 'CIRCLE' && g.center_lat != null && g.center_lon != null
+        ? [g.center_lat, g.center_lon] as [number, number]
+        : null,
+      radiusM: g.radius_m ?? null,
+    }));
 
   const activeCases  = cases.filter((c) => c.status === 'ACTIVE' || c.status === 'VIOLATION');
   const onlineCount  = activeCases.filter((c) => c.device?.is_online).length;
@@ -49,7 +66,7 @@ export default async function MapPage({
       lng:            pos.longitude,
       status:         STATUS_TO_TRACKER[relatedCase?.status ?? 'PENDING'] ?? 'offline',
       lastUpdate:     new Date(pos.recorded_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
-      geofenceRadius: relatedCase?.geofences?.[0] ? 500 : undefined,
+      lastSeenMs:     Date.parse(pos.recorded_at),
       battery:        relatedCase?.device?.battery_pct ?? null,
       speedKmh:       pos.speed_kmh ?? null,
       online:         relatedCase?.device?.is_online ?? false,
@@ -124,7 +141,7 @@ export default async function MapPage({
           <HeatmapWrapper points={heatPoints} />
         </div>
       ) : (
-        <SurveillanceView initialMarkers={markers} />
+        <SurveillanceView initialMarkers={markers} geofences={mapGeofences} />
       )}
 
       {/* Heatmap legend + stats when in heatmap mode */}
