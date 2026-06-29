@@ -11,7 +11,10 @@ export async function POST(request: NextRequest) {
   if (!session || !allow(session, canConfigureHardware(session.role), 'hardware')) {
     return NextResponse.json({ error: 'Accès refusé (SUPER_ADMIN requis)' }, { status: 403 });
   }
-  let body: { deviceId?: string; simNumber?: string };
+  let body: {
+    deviceId?: string; simNumber?: string; carrier?: string;
+    activatedAt?: string; status?: string;
+  };
   try { body = await request.json(); } catch { return NextResponse.json({ error: 'JSON invalide' }, { status: 400 }); }
   const { deviceId } = body;
   if (!deviceId) return NextResponse.json({ error: 'deviceId manquant' }, { status: 400 });
@@ -19,7 +22,12 @@ export async function POST(request: NextRequest) {
   const { createAdminClient } = await import('@/lib/supabase/admin');
   const sb = createAdminClient();
   if (!sb) return NextResponse.json({ error: 'DB indisponible' }, { status: 503 });
-  const { error } = await sb.from('devices').update({ sim_number: body.simNumber?.trim() || null }).eq('id', deviceId);
+  const { error } = await sb.from('devices').update({
+    sim_number: body.simNumber?.trim() || null,
+    sim_carrier: body.carrier?.trim() || null,
+    sim_activated_at: body.activatedAt || null,
+    sim_status: body.status || 'ACTIVE',
+  }).eq('id', deviceId);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   { const { writeAudit } = await import('@/lib/audit/log'); await writeAudit({ userId: session.id, action: 'UPDATE_SIM', tableName: 'devices', recordId: deviceId }); }
   return NextResponse.json({ ok: true });

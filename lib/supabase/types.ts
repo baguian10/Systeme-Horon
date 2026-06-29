@@ -53,6 +53,9 @@ export interface Device {
   network_protocol: NetworkProtocol | null;
   sim_iccid: string | null;
   sim_number?: string | null;
+  sim_carrier?: string | null;       // ORANGE | MOOV | TELECEL | OTHER
+  sim_activated_at?: string | null;  // date mise en service
+  sim_status?: string | null;        // ACTIVE | SUSPENDED
   signal_strength_dbm: number | null;
   gps_accuracy_m: number | null;
   tamper_detected: boolean;

@@ -2,14 +2,15 @@ import { redirect } from 'next/navigation';
 import {
   Wifi, WifiOff, Battery, Package, Bluetooth, Radio, Signal,
   Cpu, Timer, Zap, Globe, HardDrive, BatteryWarning, Thermometer, Activity,
-  CheckCircle2, AlertTriangle, XCircle, MapPin, RefreshCw, Fingerprint,
+  CheckCircle2, AlertTriangle, XCircle, MapPin, RefreshCw, Fingerprint, Tag,
 } from 'lucide-react';
+import Link from 'next/link';
 import type { SyncStatus } from '@/lib/supabase/types';
 import { getSession } from '@/lib/auth/session';
 import { canViewDevices, canConfigureHardware , allow } from '@/lib/auth/permissions';
 import { fetchAllDevices, fetchCases } from '@/lib/mock/helpers';
 import AssignDeviceControl from '@/components/devices/AssignDeviceControl';
-import SimEditControl from '@/components/devices/SimEditControl';
+import SimPanel from '@/components/devices/SimPanel';
 import RegisterDeviceForm from '@/components/devices/RegisterDeviceForm';
 import BeaconsManager from '@/components/devices/BeaconsManager';
 
@@ -44,6 +45,7 @@ export default async function DevicesPage() {
   const unassigned = devices.filter((d) => !d.case_id).length;
   const lowBattery = devices.filter((d) => (d.battery_pct ?? 100) < 20).length;
   const staleContact = devices.filter((d) => d.last_seen_at && (Date.now() - new Date(d.last_seen_at).getTime()) > 86400000).length;
+  const simSuspended = devices.filter((d) => d.sim_status === 'SUSPENDED').length;
 
   function timeAgo(iso: string) {
     const d = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
@@ -74,6 +76,7 @@ export default async function DevicesPage() {
           { label: 'Batterie faible', value: lowBattery,             color: 'text-red-700',    bg: 'bg-red-50 border-red-100' },
           { label: 'Sans contact >24h', value: staleContact,         color: 'text-orange-700', bg: 'bg-orange-50 border-orange-100' },
           { label: 'Non assignés',  value: unassigned,               color: 'text-amber-700',  bg: 'bg-amber-50 border-amber-100' },
+          { label: 'SIM suspendues', value: simSuspended,            color: 'text-red-700',    bg: 'bg-red-50 border-red-100' },
         ].map((t) => (
           <div key={t.label} className={`${t.bg} border rounded-2xl p-4 text-center`}>
             <p className={`text-2xl font-bold ${t.color}`}>{t.value}</p>
@@ -137,9 +140,16 @@ export default async function DevicesPage() {
                         </div>
                       </td>
                       <td className="px-5 py-3.5">
-                        {isHardwareAdmin
-                          ? <SimEditControl deviceId={d.id} current={d.sim_number ?? null} />
-                          : <span className="text-xs text-gray-600 font-mono">{d.sim_number ?? '—'}</span>}
+                        <SimPanel
+                          deviceId={d.id}
+                          canEdit={isHardwareAdmin}
+                          sim={{
+                            sim_number: d.sim_number ?? null,
+                            sim_carrier: d.sim_carrier ?? null,
+                            sim_activated_at: d.sim_activated_at ?? null,
+                            sim_status: d.sim_status ?? null,
+                          }}
+                        />
                       </td>
                       <td className="px-5 py-3.5 text-xs text-gray-400 font-mono">{d.firmware_ver ?? '—'}</td>
                       <td className="px-5 py-3.5">
@@ -156,11 +166,21 @@ export default async function DevicesPage() {
                       </td>
                       {isHardwareAdmin && (
                         <td className="px-5 py-3.5">
-                          {assignedCase ? (
-                            <span className="text-xs text-gray-400">Assigné</span>
-                          ) : (
-                            <AssignDeviceControl deviceId={d.id} />
-                          )}
+                          <div className="flex items-center gap-3">
+                            {assignedCase ? (
+                              <span className="text-xs text-gray-400">Assigné</span>
+                            ) : (
+                              <AssignDeviceControl deviceId={d.id} />
+                            )}
+                            <Link
+                              href={`/sigep/dashboard/devices/${d.id}/label`}
+                              target="_blank"
+                              className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700"
+                              title="Imprimer l'étiquette"
+                            >
+                              <Tag className="w-3.5 h-3.5" /> Étiquette
+                            </Link>
+                          </div>
                         </td>
                       )}
                     </tr>
