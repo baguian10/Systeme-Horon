@@ -272,6 +272,35 @@ export async function fetchJournalEntries(caseId: string): Promise<JournalEntry[
   return [];
 }
 
+export interface RecentDeviceEvent {
+  id: string;
+  event_type: string;
+  detail: string | null;
+  created_at: string;
+  case_id: string | null;
+  case_number?: string | null;
+}
+
+export async function fetchRecentDeviceEvents(limit = 60): Promise<RecentDeviceEvent[]> {
+  if (IS_DEMO_MODE) return [];
+  const { createClient } = await import('@/lib/supabase/server');
+  const supabase = await createClient();
+  if (!supabase) return [];
+  const { data } = await supabase
+    .from('device_events')
+    .select('id, event_type, detail, created_at, case_id, case:cases(case_number)')
+    .order('created_at', { ascending: false })
+    .limit(limit);
+  return (data ?? []).map((e) => ({
+    id: e.id as string,
+    event_type: e.event_type as string,
+    detail: (e.detail as string | null) ?? null,
+    created_at: e.created_at as string,
+    case_id: (e.case_id as string | null) ?? null,
+    case_number: (e as { case?: { case_number?: string } | null }).case?.case_number ?? null,
+  }));
+}
+
 export async function fetchMaintenanceTickets(): Promise<MaintenanceTick[]> {
   if (IS_DEMO_MODE) {
     return MOCK_MAINTENANCE_TICKETS.sort((a, b) => b.priority - a.priority);
