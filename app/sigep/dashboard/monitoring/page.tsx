@@ -56,6 +56,20 @@ export default async function MonitoringPage() {
 
   const metrics = { online, offline: activeCases.length - online, violations, battery, stale, avgAckMin: avg(ackDeltas), avgResolveMin: avg(resDeltas) };
 
+  // Per-case context for the incident panel (M) + quick commands.
+  const caseInfo: Record<string, { label: string; imei: string | null; sim: string | null; risk: string | null; lat: number | null; lng: number | null; online: boolean }> = {};
+  for (const c of activeCases) {
+    caseInfo[c.id] = {
+      label: c.individual?.full_name ?? c.case_number,
+      imei: c.device?.imei ?? null,
+      sim: c.device?.sim_number ?? null,
+      risk: c.risk_level ?? null,
+      lat: c.last_position?.latitude ?? null,
+      lng: c.last_position?.longitude ?? null,
+      online: c.device?.is_online ?? false,
+    };
+  }
+
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between flex-wrap gap-2">
@@ -73,6 +87,7 @@ export default async function MonitoringPage() {
         metrics={metrics}
         ingestionLastMs={ingestionLastMs}
         canResolve={true}
+        caseInfo={caseInfo}
       />
     </div>
   );
