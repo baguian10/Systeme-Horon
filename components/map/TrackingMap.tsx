@@ -68,6 +68,18 @@ interface TrackingMapProps {
   geofences?: MapGeofence[];
   center?: [number, number];
   zoom?: number;
+  focus?: [number, number] | null;
+  selectedId?: string | null;
+  onMarkerClick?: (caseId: string) => void;
+}
+
+// Flies to `focus` whenever it changes (list → map selection sync).
+function FocusController({ focus }: { focus: [number, number] | null | undefined }) {
+  const map = useMap();
+  useEffect(() => {
+    if (focus) map.flyTo(focus, Math.max(map.getZoom(), 16), { duration: 0.6 });
+  }, [focus, map]);
+  return null;
 }
 
 // Center on the first marker ONCE on mount, then never auto-recenter again —
@@ -166,7 +178,7 @@ function FollowController({ target, follow }: { target: [number, number] | null;
   return null;
 }
 
-export default function TrackingMap({ markers, geofences = [], center = [12.3647, -1.5332], zoom = 13 }: TrackingMapProps) {
+export default function TrackingMap({ markers, geofences = [], center = [12.3647, -1.5332], zoom = 13, focus, selectedId, onMarkerClick }: TrackingMapProps) {
   const [follow, setFollow] = useState(false);
   const [showTrail, setShowTrail] = useState(false);
   const [trail, setTrail] = useState<[number, number][]>([]);
@@ -224,6 +236,7 @@ export default function TrackingMap({ markers, geofences = [], center = [12.3647
       <ZoomControl position="bottomleft" />
       <InitialView markers={markers} />
       <FollowController target={target} follow={follow} />
+      <FocusController focus={focus} />
       {drawing && <DrawControl onShapeDrawn={setDrawnShape} />}
       <LayersControl position="topright">
         <LayersControl.BaseLayer checked name="Plan (rues)">
@@ -281,7 +294,10 @@ export default function TrackingMap({ markers, geofences = [], center = [12.3647
               }}
             />
           )}
-          <Marker position={[m.lat, m.lng]} icon={getIcon(m.status)}>
+          {selectedId === m.caseId && (
+            <Circle center={[m.lat, m.lng]} radius={60} pathOptions={{ color: '#2563eb', weight: 2, fillColor: '#2563eb', fillOpacity: 0.12 }} />
+          )}
+          <Marker position={[m.lat, m.lng]} icon={getIcon(m.status)} eventHandlers={onMarkerClick ? { click: () => onMarkerClick(m.caseId) } : undefined}>
             <Popup>
               <div style={{ minWidth: 160, fontSize: 12 }}>
                 <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 4 }}>{m.caseRef}</div>

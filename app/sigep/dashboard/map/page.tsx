@@ -1,9 +1,9 @@
-import { Wifi, WifiOff, AlertTriangle, MapPin, Flame } from 'lucide-react';
+import { Wifi, AlertTriangle, Flame } from 'lucide-react';
 import { fetchCases, fetchLatestPositions, fetchViolationHeatPoints } from '@/lib/mock/helpers';
 import { getSession } from '@/lib/auth/session';
-import LeafletMapWrapper from '@/components/map/LeafletMapWrapper';
 import HeatmapWrapper from '@/components/map/HeatmapWrapper';
 import MapViewToggle from '@/components/map/MapViewToggle';
+import SurveillanceView from '@/components/surveillance/SurveillanceView';
 import type { TrackerMarker } from '@/components/map/TrackingMap';
 
 export const metadata = { title: 'Carte de surveillance — SIGEP' };
@@ -50,12 +50,39 @@ export default async function MapPage({
       status:         STATUS_TO_TRACKER[relatedCase?.status ?? 'PENDING'] ?? 'offline',
       lastUpdate:     new Date(pos.recorded_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
       geofenceRadius: relatedCase?.geofences?.[0] ? 500 : undefined,
+      battery:        relatedCase?.device?.battery_pct ?? null,
+      speedKmh:       pos.speed_kmh ?? null,
+      online:         relatedCase?.device?.is_online ?? false,
     };
   });
 
   // Heatmap stats
   const hotZones = heatPoints.filter((p) => p.intensity >= 4).length;
-  const totalViolations = heatPoints.reduce((acc, p) => acc + p.intensity, 0);
+
+  // Real hot-zone aggregation (only when viewing the heatmap): bucket points to
+  // ~1.1 km cells, sum intensity, reverse-geocode the top centroids for a label.
+  let zones: { name: string; count: number; intensity: number }[] = [];
+  let maxZoneIntensity = 1;
+  if (showHeatmap && heatPoints.length > 0) {
+    const buckets = new Map<string, { lat: number; lng: number; n: number; intensity: number }>();
+    for (const p of heatPoints) {
+      const key = `${p.lat.toFixed(2)},${p.lng.toFixed(2)}`;
+      const b = buckets.get(key) ?? { lat: 0, lng: 0, n: 0, intensity: 0 };
+      b.lat += p.lat; b.lng += p.lng; b.n += 1; b.intensity += p.intensity;
+      buckets.set(key, b);
+    }
+    const top = [...buckets.values()]
+      .map((b) => ({ lat: b.lat / b.n, lng: b.lng / b.n, count: b.n, intensity: b.intensity }))
+      .sort((a, b) => b.intensity - a.intensity)
+      .slice(0, 5);
+    const { reverseGeocode } = await import('@/lib/geo/reverse');
+    zones = await Promise.all(top.map(async (z, i) => ({
+      name: (i < 3 ? await reverseGeocode(z.lat, z.lng) : null) ?? `${z.lat.toFixed(3)}, ${z.lng.toFixed(3)}`,
+      count: z.count,
+      intensity: z.intensity,
+    })));
+    maxZoneIntensity = Math.max(1, ...zones.map((z) => z.intensity));
+  }
 
   return (
     <div className="space-y-5">
@@ -92,13 +119,13 @@ export default async function MapPage({
       </div>
 
       {/* Map */}
-      <div className="h-[580px] w-full rounded-2xl overflow-hidden border border-gray-100 shadow-sm">
-        {showHeatmap ? (
+      {showHeatmap ? (
+        <div className="h-[580px] w-full rounded-2xl overflow-hidden border border-gray-100 shadow-sm">
           <HeatmapWrapper points={heatPoints} />
-        ) : (
-          <LeafletMapWrapper markers={markers} />
-        )}
-      </div>
+        </div>
+      ) : (
+        <SurveillanceView initialMarkers={markers} />
+      )}
 
       {/* Heatmap legend + stats when in heatmap mode */}
       {showHeatmap && (
@@ -125,87 +152,30 @@ export default async function MapPage({
             </div>
           </div>
 
-          {/* Zone stats */}
+          {/* Zone stats — aggregated from real violation points */}
           <div className="bg-white rounded-2xl border border-gray-100 p-5">
-            <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Analyse par zone</h3>
-            <div className="space-y-3">
-              {[
-                { zone: 'Axe Route de Bobo',   count: 14, tip: 'Déplacements nocturnes non autorisés' },
-                { zone: 'Centre / Baskuy',      count: 14, tip: 'Marché central — forte densité' },
-                { zone: 'Bogodogo / Sect. 22',  count: 18, tip: 'Zone domiciliaire à risque élevé' },
-                { zone: 'Sig-Nonghin / Pissy',  count: 9,  tip: 'Périphérie ouest' },
-                { zone: 'Nongremassom',         count: 6,  tip: 'Secteur nord' },
-              ].sort((a, b) => b.count - a.count).map((z) => (
-                <div key={z.zone}>
-                  <div className="flex items-center justify-between mb-0.5">
-                    <p className="text-xs font-medium text-gray-700">{z.zone}</p>
-                    <span className="text-xs font-bold text-gray-900">{z.count} pts</span>
+            <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Zones les plus chaudes</h3>
+            {zones.length === 0 ? (
+              <p className="text-sm text-gray-400">Aucune violation enregistrée — rien à agréger.</p>
+            ) : (
+              <div className="space-y-3">
+                {zones.map((z) => (
+                  <div key={z.name}>
+                    <div className="flex items-center justify-between mb-0.5">
+                      <p className="text-xs font-medium text-gray-700 truncate pr-2">{z.name}</p>
+                      <span className="text-xs font-bold text-gray-900 whitespace-nowrap">{z.count} pt{z.count > 1 ? 's' : ''}</span>
+                    </div>
+                    <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                      <div className="h-full bg-orange-400 rounded-full" style={{ width: `${(z.intensity / maxZoneIntensity) * 100}%` }} />
+                    </div>
                   </div>
-                  <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden mb-0.5">
-                    <div
-                      className="h-full bg-orange-400 rounded-full"
-                      style={{ width: `${(z.count / 18) * 100}%` }}
-                    />
-                  </div>
-                  <p className="text-[10px] text-gray-400">{z.tip}</p>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       )}
 
-      {/* Device cards — tracking mode only */}
-      {!showHeatmap && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {activeCases.map((c) => {
-            const pos = positions.find((p) => p.case_id === c.id);
-            const trackerStatus = STATUS_TO_TRACKER[c.status] ?? 'offline';
-            const statusColor = trackerStatus === 'alert'  ? 'text-red-600 bg-red-50 border-red-100'
-                              : trackerStatus === 'active' ? 'text-green-700 bg-green-50 border-green-100'
-                              : 'text-gray-500 bg-gray-50 border-gray-100';
-            return (
-              <div key={c.id} className="bg-white rounded-2xl border border-gray-100 p-4 hover:shadow-sm transition-shadow">
-                <div className="flex items-start justify-between gap-2 mb-3">
-                  <div className="min-w-0">
-                    <p className="font-mono text-xs font-bold text-gray-800 truncate">{c.case_number}</p>
-                    <p className="text-xs text-gray-400 mt-0.5 truncate">{c.individual?.full_name ?? '—'}</p>
-                  </div>
-                  {c.device?.is_online
-                    ? <Wifi className="w-4 h-4 text-green-500 flex-shrink-0" />
-                    : <WifiOff className="w-4 h-4 text-gray-300 flex-shrink-0" />}
-                </div>
-                <div className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-semibold border ${statusColor} mb-3`}>
-                  <span className="w-1.5 h-1.5 rounded-full bg-current" />
-                  {trackerStatus === 'alert' ? 'Violation de périmètre' : trackerStatus === 'active' ? 'Surveillance active' : 'Hors ligne'}
-                </div>
-                {c.device && (
-                  <div className="flex items-center gap-2">
-                    <div className="flex-1 h-1.5 rounded-full bg-gray-100">
-                      <div
-                        className={`h-full rounded-full ${(c.device.battery_pct ?? 0) < 20 ? 'bg-red-400' : 'bg-green-400'}`}
-                        style={{ width: `${c.device.battery_pct ?? 0}%` }}
-                      />
-                    </div>
-                    <span className="text-xs text-gray-500 w-8 text-right">{c.device.battery_pct}%</span>
-                  </div>
-                )}
-                {pos && (
-                  <div className="mt-2 flex items-center gap-1 text-[10px] text-gray-400 font-mono">
-                    <MapPin className="w-3 h-3" />
-                    {pos.latitude.toFixed(4)}, {pos.longitude.toFixed(4)}
-                  </div>
-                )}
-              </div>
-            );
-          })}
-          {activeCases.length === 0 && (
-            <div className="col-span-3 text-center py-10 text-gray-400 text-sm">
-              Aucun dossier actif en surveillance.
-            </div>
-          )}
-        </div>
-      )}
     </div>
   );
 }
