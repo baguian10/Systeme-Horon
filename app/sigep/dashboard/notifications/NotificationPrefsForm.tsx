@@ -5,6 +5,7 @@ import { Bell, Smartphone, Mail, CheckCircle2 } from 'lucide-react';
 
 const ALERT_TYPES = [
   { key: 'GEOFENCE_EXIT',   label: 'Sortie de zone',   severity: 'critical' },
+  { key: 'CURFEW_VIOLATION',label: 'Couvre-feu',       severity: 'critical' },
   { key: 'TAMPER_DETECTED', label: 'Anti-sabotage',     severity: 'critical' },
   { key: 'HEALTH_CRITICAL', label: 'Santé critique',    severity: 'critical' },
   { key: 'PANIC_BUTTON',    label: 'Bouton panique',    severity: 'critical' },
@@ -22,6 +23,7 @@ type Prefs = Record<string, Record<string, boolean>>;
 
 const DEFAULT_PREFS: Prefs = {
   GEOFENCE_EXIT:   { push: true,  sms: true,  email: false },
+  CURFEW_VIOLATION:{ push: true,  sms: true,  email: false },
   TAMPER_DETECTED: { push: true,  sms: true,  email: true  },
   HEALTH_CRITICAL: { push: true,  sms: false, email: false },
   PANIC_BUTTON:    { push: true,  sms: true,  email: true  },

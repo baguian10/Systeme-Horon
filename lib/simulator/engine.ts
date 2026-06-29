@@ -125,11 +125,12 @@ export class SimulatorEngine {
 
     const SEVERITY_MAP: Record<AlertType, number> = {
       TAMPER_DETECTED: 5, PANIC_BUTTON: 5,
-      GEOFENCE_EXIT: 4, HEALTH_CRITICAL: 3,
+      GEOFENCE_EXIT: 4, CURFEW_VIOLATION: 4, HEALTH_CRITICAL: 3,
       SIGNAL_LOST: 3, BATTERY_LOW: 2,
     };
     const DESCRIPTION_MAP: Record<AlertType, string> = {
       GEOFENCE_EXIT: `Sortie de zone autorisée détectée à ${new Date().toLocaleTimeString('fr-FR')}.`,
+      CURFEW_VIOLATION: `Couvre-feu non respecté détecté à ${new Date().toLocaleTimeString('fr-FR')}.`,
       TAMPER_DETECTED: 'Tentative de retrait du bracelet. Intervention requise.',
       HEALTH_CRITICAL: 'Rythme cardiaque anormal détecté. Vérification médicale recommandée.',
       BATTERY_LOW: 'Batterie critique — rechargement requis sous 4 heures.',

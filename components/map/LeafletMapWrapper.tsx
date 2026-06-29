@@ -16,12 +16,13 @@ const TrackingMap = dynamic(() => import('./TrackingMap'), {
   ),
 });
 
-// Polls live markers and updates them in place — the map keeps the user's
-// current zoom/pan (no server re-render, no remount).
+// Updates markers in place — keeps the user's zoom/pan (no remount).
+// Primary feed = Supabase Realtime (instant push on new positions); a slow poll
+// stays as a fallback and to pick up newly-added cases / geofence changes.
 export default function LeafletMapWrapper({
   markers: initialMarkers,
   geofences: initialGeofences = [],
-  pollMs = 15000,
+  pollMs = 30000,
 }: {
   markers: TrackerMarker[];
   geofences?: MapGeofence[];
@@ -29,6 +30,33 @@ export default function LeafletMapWrapper({
 }) {
   const [markers, setMarkers] = useState<TrackerMarker[]>(initialMarkers);
   const [geofences, setGeofences] = useState<MapGeofence[]>(initialGeofences);
+
+  // ── Realtime: patch a marker's position the instant a new row is inserted ──
+  useEffect(() => {
+    let cleanup: (() => void) | undefined;
+    import('@/lib/supabase/client').then(({ createClient, IS_DEMO_MODE }) => {
+      if (IS_DEMO_MODE) return;
+      const supabase = createClient();
+      if (!supabase) return;
+      const stale = supabase.getChannels().find((c) => c.topic === 'realtime:map-positions-live');
+      if (stale) supabase.removeChannel(stale);
+      const channel = supabase
+        .channel('map-positions-live')
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'positions' }, (payload) => {
+          const row = payload.new as { case_id: string; latitude: number; longitude: number; speed_kmh: number | null; recorded_at: string };
+          setMarkers((prev) =>
+            prev.map((m) =>
+              m.caseId === row.case_id
+                ? { ...m, lat: row.latitude, lng: row.longitude, speedKmh: row.speed_kmh ?? m.speedKmh, online: true, lastUpdate: new Date(row.recorded_at).toLocaleTimeString('fr-FR') }
+                : m,
+            ),
+          );
+        })
+        .subscribe();
+      cleanup = () => { supabase.removeChannel(channel); };
+    });
+    return () => { cleanup?.(); };
+  }, []);
 
   useEffect(() => {
     let active = true;

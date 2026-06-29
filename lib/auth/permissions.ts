@@ -133,7 +133,7 @@ export const canWriteJournal      = (role: UserRole) => role !== 'STRATEGIC';
 export const canViewMaintenance   = (role: UserRole) => role === 'SUPER_ADMIN';
 
 // ── Alert resolution split: violations are judicial, technical alerts are not ─
-const VIOLATION_ALERTS = new Set(['GEOFENCE_EXIT', 'TAMPER_DETECTED', 'PANIC_BUTTON']);
+const VIOLATION_ALERTS = new Set(['GEOFENCE_EXIT', 'CURFEW_VIOLATION', 'TAMPER_DETECTED', 'PANIC_BUTTON']);
 export const canResolveAlertType = (role: UserRole, alertType: string): boolean => {
   if (role === 'STRATEGIC') return false;
   if (role === 'JUDGE') return VIOLATION_ALERTS.has(alertType); // judge handles judicial violations only

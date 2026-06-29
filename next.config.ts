@@ -19,6 +19,8 @@ const ContentSecurityPolicy = [
 const nextConfig: NextConfig = {
   poweredByHeader: false,
   compress: true,
+  // Headless-Chromium PDF deps must stay external (not bundled by Next/Turbopack).
+  serverExternalPackages: ['puppeteer-core', '@sparticuz/chromium'],
   images: {
     remotePatterns: [],
   },

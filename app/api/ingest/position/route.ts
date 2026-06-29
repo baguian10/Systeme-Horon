@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server';
-import { checkGeofences } from '@/lib/geofence/pointInPolygon';
+import { enforceGeofences } from '@/lib/geofence/enforce';
 
 // POST /api/ingest/position
 // Called by the certified secure device (or the demo simulator)
@@ -68,36 +68,13 @@ export async function POST(request: NextRequest) {
     .update({ is_online: true, last_seen_at: new Date().toISOString() })
     .eq('id', device.id);
 
-  // Geofence check
-  const { data: geofences } = await supabase
-    .from('geofences')
-    .select('id, name, is_exclusion, area')
-    .eq('case_id', device.case_id);
+  // Geofence + curfew enforcement (shape-aware, time-windowed, graced, deduped).
+  const raised = await enforceGeofences(supabase, {
+    caseId: device.case_id,
+    deviceId: device.id,
+    lat,
+    lon,
+  });
 
-  if (geofences && geofences.length > 0) {
-    const violation = checkGeofences(lat, lon, geofences);
-    if (violation) {
-      // Check: was there already an unresolved GEOFENCE_EXIT alert?
-      const { count } = await supabase
-        .from('alerts')
-        .select('id', { count: 'exact', head: true })
-        .eq('case_id', device.case_id)
-        .eq('alert_type', 'GEOFENCE_EXIT')
-        .eq('is_resolved', false);
-
-      if (!count || count === 0) {
-        await supabase.from('alerts').insert({
-          case_id: device.case_id,
-          device_id: device.id,
-          alert_type: 'GEOFENCE_EXIT',
-          severity: 4,
-          description: `Sortie de la zone "${violation.geofenceName}" détectée à ${new Date().toLocaleTimeString('fr-FR')}.`,
-          position_lat: lat,
-          position_lon: lon,
-        });
-      }
-    }
-  }
-
-  return NextResponse.json({ ok: true, case_id: device.case_id });
+  return NextResponse.json({ ok: true, case_id: device.case_id, alerts: raised.map((r) => r.alert_type) });
 }

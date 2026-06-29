@@ -14,6 +14,7 @@ export const revalidate = 0;
 
 const TYPE_META: Record<AlertType, { label: string; icon: typeof AlertTriangle; color: string; bg: string; border: string }> = {
   GEOFENCE_EXIT:   { label: 'Sortie de périmètre',   icon: MapPin,       color: 'text-red-600',    bg: 'bg-red-50',    border: 'border-red-100' },
+  CURFEW_VIOLATION:{ label: 'Couvre-feu',            icon: MapPin,       color: 'text-violet-600', bg: 'bg-violet-50', border: 'border-violet-100' },
   TAMPER_DETECTED: { label: 'Tentative de sabotage',  icon: Zap,          color: 'text-orange-600', bg: 'bg-orange-50', border: 'border-orange-100' },
   BATTERY_LOW:     { label: 'Batterie critique',      icon: Battery,      color: 'text-amber-600',  bg: 'bg-amber-50',  border: 'border-amber-100' },
   SIGNAL_LOST:     { label: 'Perte de signal',        icon: WifiOff,      color: 'text-slate-600',  bg: 'bg-slate-50',  border: 'border-slate-100' },

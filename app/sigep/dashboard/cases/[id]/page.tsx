@@ -214,6 +214,12 @@ export default async function CaseDetailPage({ params }: { params: Promise<{ id:
             ) : (
               <p className="text-sm text-slate-500">Aucune position disponible</p>
             )}
+            <Link
+              href={`/sigep/dashboard/cases/${id}/history`}
+              className="mt-4 flex items-center justify-center gap-2 w-full bg-violet-600 hover:bg-violet-700 text-white rounded-xl py-2.5 text-sm font-semibold transition"
+            >
+              🛣️ Itinéraire & historique journalier
+            </Link>
           </div>
 
           {/* Active Alerts */}

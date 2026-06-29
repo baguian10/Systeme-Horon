@@ -10,6 +10,7 @@ export const revalidate = 0;
 
 const ALERT_META: Record<AlertType, { label: string; icon: typeof Bell; color: string; desc: string }> = {
   GEOFENCE_EXIT:    { label: 'Sortie de zone',      icon: Shield,        color: 'text-red-600',    desc: 'Violation de périmètre GPS ou BLE' },
+  CURFEW_VIOLATION: { label: 'Couvre-feu',          icon: Shield,        color: 'text-violet-600', desc: 'Hors de la zone de résidence pendant les heures imposées' },
   TAMPER_DETECTED:  { label: 'Anti-sabotage',        icon: AlertTriangle, color: 'text-orange-600', desc: 'Tentative de retrait ou d\'altération du bracelet' },
   HEALTH_CRITICAL:  { label: 'Santé critique',       icon: Zap,           color: 'text-red-700',    desc: 'Anomalie critique détectée sur le dispositif' },
   BATTERY_LOW:      { label: 'Batterie faible',      icon: Battery,       color: 'text-amber-600',  desc: 'Batterie < 20% — risque de déconnexion' },
