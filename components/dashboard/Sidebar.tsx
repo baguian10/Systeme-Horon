@@ -41,7 +41,9 @@ function buildNav(session: Sess): NavItem[] {
     items.push({ href: '/sigep/dashboard/alerts', label: 'Alertes',  icon: <Bell className="w-4 h-4" /> });
   }
 
-  items.push({ href: '/sigep/dashboard/map', label: 'Surveillance', icon: <Map className="w-4 h-4" /> });
+  if (allow(session, canViewRealtime(role), 'alerts')) {
+    items.push({ href: '/sigep/dashboard/map', label: 'Surveillance', icon: <Map className="w-4 h-4" /> });
+  }
 
   if (allow(session, canViewRealtime(role), 'alerts')) {
     items.push({ href: '/sigep/dashboard/monitoring', label: 'Temps réel', icon: <Activity className="w-4 h-4" /> });

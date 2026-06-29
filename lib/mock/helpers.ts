@@ -21,10 +21,10 @@ export async function fetchCases(role: UserRole, userId: string): Promise<Case[]
     if (role === 'JUDGE') return MOCK_CASES.filter((c) => c.judge_id === userId);
     return MOCK_CASES; // SUPER_ADMIN / STRATEGIC see all (STRATEGIC blocked at page level)
   }
-  // SUPER_ADMIN has no RLS read policy → use the admin client to see every case.
-  // Other roles stay RLS-scoped (createClient).
+  // Admin-level roles (SUPER_ADMIN, delegated ADMIN) have no RLS read policy →
+  // use the admin client to see every case. Other roles stay RLS-scoped.
   let supabase;
-  if (role === 'SUPER_ADMIN') {
+  if (role === 'SUPER_ADMIN' || role === 'ADMIN') {
     const { createAdminClient } = await import('@/lib/supabase/admin');
     supabase = createAdminClient();
   } else {
@@ -41,11 +41,11 @@ export async function fetchCases(role: UserRole, userId: string): Promise<Case[]
 
 export async function fetchCaseById(id: string): Promise<Case | null> {
   if (IS_DEMO_MODE) return MOCK_CASES.find((c) => c.id === id) ?? null;
-  // SUPER_ADMIN bypasses RLS via the admin client so it can open any dossier.
+  // Admin-level roles bypass RLS via the admin client so they can open any dossier.
   const { getSession } = await import('@/lib/auth/session');
   const session = await getSession();
   let supabase;
-  if (session?.role === 'SUPER_ADMIN') {
+  if (session?.role === 'SUPER_ADMIN' || session?.role === 'ADMIN') {
     const { createAdminClient } = await import('@/lib/supabase/admin');
     supabase = createAdminClient();
   } else {
@@ -194,7 +194,7 @@ export async function fetchLatestPositions(): Promise<(Position & { case_number:
   const { getSession } = await import('@/lib/auth/session');
   const session = await getSession();
   let supabase;
-  if (session?.role === 'SUPER_ADMIN') {
+  if (session?.role === 'SUPER_ADMIN' || session?.role === 'ADMIN') {
     const { createAdminClient } = await import('@/lib/supabase/admin');
     supabase = createAdminClient();
   } else {

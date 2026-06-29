@@ -1,5 +1,6 @@
 import { Wifi, AlertTriangle, Flame } from 'lucide-react';
 import { fetchCases, fetchLatestPositions, fetchViolationHeatPoints, fetchGeofences } from '@/lib/mock/helpers';
+import { redirect } from 'next/navigation';
 import { getSession } from '@/lib/auth/session';
 import HeatmapWrapper from '@/components/map/HeatmapWrapper';
 import MapViewToggle from '@/components/map/MapViewToggle';
@@ -24,6 +25,8 @@ export default async function MapPage({
 }) {
   const session = await getSession();
   if (!session) return null;
+  // STRATEGIC = aggregate only, no individual surveillance.
+  if (session.role === 'STRATEGIC') redirect('/sigep/dashboard');
 
   const { view } = await searchParams;
   const showHeatmap = view === 'heatmap';
