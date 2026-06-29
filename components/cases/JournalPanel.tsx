@@ -75,6 +75,7 @@ export default function JournalPanel({ caseId, entries, canWrite }: Props) {
             <button
               type="submit"
               disabled={isPending}
+              data-tip="Ajouter une entrée horodatée au journal du dossier (traçabilité)"
               className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-600 text-white text-xs font-semibold hover:bg-emerald-500 disabled:opacity-50 transition-colors"
             >
               <Plus className="w-3.5 h-3.5" />

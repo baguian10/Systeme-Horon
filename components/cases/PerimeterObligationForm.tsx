@@ -13,7 +13,7 @@ export default function PerimeterObligationForm({ caseId }: { caseId: string }) 
 
   if (!open) {
     return (
-      <button onClick={() => setOpen(true)} className="inline-flex items-center gap-1.5 text-xs text-blue-600 hover:text-blue-700 font-medium">
+      <button onClick={() => setOpen(true)} data-tip="Le juge définit une obligation de périmètre (couvre-feu/assignation). L'admin la valide et trace ensuite." className="inline-flex items-center gap-1.5 text-xs text-blue-600 hover:text-blue-700 font-medium">
         <Plus className="w-3.5 h-3.5" /> Définir un périmètre (obligation)
       </button>
     );
@@ -31,10 +31,10 @@ export default function PerimeterObligationForm({ caseId }: { caseId: string }) 
       </div>
 
       <div className="grid grid-cols-2 gap-2">
-        <button type="button" onClick={() => setExcl(false)} className={`flex items-center gap-1.5 p-2 rounded-lg border text-xs font-semibold ${!isExclusion ? 'border-emerald-500 bg-emerald-50 text-emerald-700' : 'border-gray-200 text-gray-500'}`}>
+        <button type="button" onClick={() => setExcl(false)} data-tip="Zone autorisée : la personne doit RESTER à l'intérieur (assignation/couvre-feu)" className={`flex items-center gap-1.5 p-2 rounded-lg border text-xs font-semibold ${!isExclusion ? 'border-emerald-500 bg-emerald-50 text-emerald-700' : 'border-gray-200 text-gray-500'}`}>
           <ShieldCheck className="w-4 h-4" /> Zone autorisée
         </button>
-        <button type="button" onClick={() => setExcl(true)} className={`flex items-center gap-1.5 p-2 rounded-lg border text-xs font-semibold ${isExclusion ? 'border-red-500 bg-red-50 text-red-700' : 'border-gray-200 text-gray-500'}`}>
+        <button type="button" onClick={() => setExcl(true)} data-tip="Zone interdite : la personne ne doit PAS y entrer (victime, lieu prohibé)" className={`flex items-center gap-1.5 p-2 rounded-lg border text-xs font-semibold ${isExclusion ? 'border-red-500 bg-red-50 text-red-700' : 'border-gray-200 text-gray-500'}`}>
           <ShieldAlert className="w-4 h-4" /> Zone interdite
         </button>
       </div>
@@ -61,7 +61,7 @@ export default function PerimeterObligationForm({ caseId }: { caseId: string }) 
 
       {state?.error && <p className="text-xs text-red-600">{state.error}</p>}
       <div className="flex gap-2">
-        <button type="submit" disabled={isPending} className="px-3 py-1.5 rounded-lg bg-blue-600 text-white text-xs font-semibold disabled:opacity-40">
+        <button type="submit" disabled={isPending} data-tip="Soumettre l'obligation à l'administrateur pour validation et tracé précis" className="px-3 py-1.5 rounded-lg bg-blue-600 text-white text-xs font-semibold disabled:opacity-40">
           {isPending ? '…' : 'Envoyer l’obligation'}
         </button>
         <button type="button" onClick={() => setOpen(false)} className="px-3 py-1.5 rounded-lg bg-gray-100 text-xs">Annuler</button>

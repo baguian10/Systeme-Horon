@@ -50,6 +50,7 @@ export default function GeofenceManager({ caseId, geofences, canManage, canDefin
         {canManage && (
           <Link
             href={`/sigep/dashboard/geofences/new?case_id=${caseId}`}
+            data-tip="Tracé technique précis d'une zone sur la carte (admin)"
             className="flex items-center gap-1.5 text-xs text-blue-600 hover:text-blue-700 font-medium"
           >
             <Plus className="w-3.5 h-3.5" /> Tracer une zone (technique)
@@ -75,6 +76,7 @@ export default function GeofenceManager({ caseId, geofences, canManage, canDefin
           />
           <Link
             href="/sigep/dashboard/geofences"
+            data-tip="Ouvrir l'éditeur complet des géofences"
             className="absolute bottom-2 right-2 z-[1000] flex items-center gap-1 bg-white/90 backdrop-blur border border-gray-200 rounded-lg px-2 py-1 text-[10px] font-medium text-gray-600 hover:text-gray-900 transition-colors shadow-sm"
           >
             <ExternalLink className="w-3 h-3" /> Ouvrir l&apos;éditeur
@@ -89,6 +91,7 @@ export default function GeofenceManager({ caseId, geofences, canManage, canDefin
           {canManage && (
             <Link
               href={`/sigep/dashboard/geofences/new?case_id=${caseId}`}
+              data-tip="Tracer la première zone de surveillance sur la carte"
               className="inline-flex items-center gap-1.5 text-xs text-blue-600 hover:text-blue-700 font-medium"
             >
               <Plus className="w-3.5 h-3.5" /> Tracer une première zone sur la carte
@@ -134,7 +137,7 @@ export default function GeofenceManager({ caseId, geofences, canManage, canDefin
                 <form action={validateGeofenceAction} className="mr-1">
                   <input type="hidden" name="geofence_id" value={g.id} />
                   <input type="hidden" name="case_id" value={caseId} />
-                  <button type="submit" className="text-[11px] font-semibold px-2 py-1 rounded-lg bg-emerald-600 text-white hover:bg-emerald-500">Valider</button>
+                  <button type="submit" data-tip="Valider l'obligation du juge → géofence active et surveillée" className="text-[11px] font-semibold px-2 py-1 rounded-lg bg-emerald-600 text-white hover:bg-emerald-500">Valider</button>
                 </form>
               )}
 
@@ -142,7 +145,7 @@ export default function GeofenceManager({ caseId, geofences, canManage, canDefin
                 <div className="flex items-center gap-1">
                   <Link
                     href={`/sigep/dashboard/geofences/${g.id}/edit`}
-                    title="Ajuster le périmètre"
+                    data-tip="Ajuster le périmètre de cette zone (re-tracer, horaires, nom)"
                     className="p-1 rounded text-gray-300 hover:text-blue-500 hover:bg-blue-50 transition-colors"
                   >
                     <Pencil className="w-3.5 h-3.5" />
@@ -153,7 +156,7 @@ export default function GeofenceManager({ caseId, geofences, canManage, canDefin
                     <button
                       type="submit"
                       disabled={isPending}
-                      title="Supprimer cette zone"
+                      data-tip="Supprimer cette zone"
                       className="p-1 rounded text-gray-300 hover:text-red-500 hover:bg-red-50 transition-colors disabled:opacity-40"
                     >
                       <Trash2 className="w-3.5 h-3.5" />

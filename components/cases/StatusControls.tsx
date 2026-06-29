@@ -51,6 +51,7 @@ export default function StatusControls({ caseId, currentStatus }: Props) {
           <input type="hidden" name="status" value={status} />
           <button
             type="submit"
+            data-tip={`Faire passer le dossier au statut « ${label} »`}
             className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${className}`}
           >
             {label}

@@ -54,7 +54,7 @@ export default function CaseBeaconManager({
               <p className="text-xs text-gray-500">{current.label ?? 'Balise associée'} · {current.status}</p>
             </div>
             {canManage && (
-              <button onClick={() => act('unlink', current.id)} disabled={busy} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-50 text-red-600 text-xs font-semibold hover:bg-red-100 disabled:opacity-40">
+              <button onClick={() => act('unlink', current.id)} disabled={busy} data-tip="Dissocier la balise BLE de ce bracelet (repasse en stock)" className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-50 text-red-600 text-xs font-semibold hover:bg-red-100 disabled:opacity-40">
                 <Unlink className="w-3.5 h-3.5" /> Retirer
               </button>
             )}
@@ -68,7 +68,7 @@ export default function CaseBeaconManager({
                   <option value="">— Choisir une balise disponible —</option>
                   {spares.map((b) => <option key={b.id} value={b.id}>{b.uid}{b.label ? ` (${b.label})` : ''}</option>)}
                 </select>
-                <button onClick={() => pick && act('link', pick)} disabled={busy || !pick} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600 text-white text-xs font-semibold disabled:opacity-40">
+                <button onClick={() => pick && act('link', pick)} disabled={busy || !pick} data-tip="Associer la balise BLE domicile au bracelet (présence à domicile)" className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600 text-white text-xs font-semibold disabled:opacity-40">
                   <Link2 className="w-3.5 h-3.5" /> Associer
                 </button>
               </div>

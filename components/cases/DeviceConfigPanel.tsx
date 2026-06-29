@@ -23,7 +23,7 @@ export default function DeviceConfigPanel({ imei }: { imei: string }) {
   }
 
   const Btn = ({ k, val, label, icon }: { k: string; val?: string; label: string; icon: React.ReactNode }) => (
-    <button onClick={() => send(k, val, label)} disabled={!!busy}
+    <button onClick={() => send(k, val, label)} disabled={!!busy} data-tip={`Envoyer la configuration « ${label} » au bracelet`}
       className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-white text-xs font-semibold disabled:opacity-40">
       {busy === k ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : icon}{label}
     </button>

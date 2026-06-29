@@ -48,7 +48,7 @@ export default function CaseDeviceManager({
         {current ? (
           <div className="flex items-center justify-between gap-3">
             <p className="text-sm font-mono text-gray-800">{current.imei}</p>
-            <button onClick={() => assign(current.id, false)} disabled={busy} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-50 text-red-600 text-xs font-semibold hover:bg-red-100 disabled:opacity-40">
+            <button onClick={() => assign(current.id, false)} disabled={busy} data-tip="Retirer le bracelet de ce dossier (repasse en stock)" className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-50 text-red-600 text-xs font-semibold hover:bg-red-100 disabled:opacity-40">
               <Unlink className="w-3.5 h-3.5" /> Retirer
             </button>
           </div>
@@ -60,7 +60,7 @@ export default function CaseDeviceManager({
                 <option value="">— Choisir un bracelet disponible —</option>
                 {spares.map((d) => <option key={d.id} value={d.id}>{d.imei}</option>)}
               </select>
-              <button onClick={() => pick && assign(pick, true)} disabled={busy || !pick} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 text-white text-xs font-semibold disabled:opacity-40">
+              <button onClick={() => pick && assign(pick, true)} disabled={busy || !pick} data-tip="Assigner le bracelet sélectionné à ce dossier" className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 text-white text-xs font-semibold disabled:opacity-40">
                 <Link2 className="w-3.5 h-3.5" /> Assigner
               </button>
             </div>

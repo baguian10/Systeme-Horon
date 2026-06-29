@@ -55,6 +55,7 @@ export default function AssignmentManager({ caseId, assigned, available, canMana
         {canManage && available.length > 0 && (
           <button
             onClick={() => setShowAdd((v) => !v)}
+            data-tip="Assigner un agent opérationnel au suivi de ce dossier"
             className="flex items-center gap-1.5 text-xs text-blue-600 hover:text-blue-700 font-medium"
           >
             <UserPlus className="w-3.5 h-3.5" />
@@ -80,6 +81,7 @@ export default function AssignmentManager({ caseId, assigned, available, canMana
           <button
             onClick={handleAssign}
             disabled={!selectedId || isPending}
+            data-tip="Confirmer l'assignation de l'agent sélectionné"
             className="px-3 py-1.5 rounded-lg bg-blue-600 text-white text-xs font-medium hover:bg-blue-500 disabled:opacity-50 transition-colors"
           >
             {isPending ? '...' : 'Confirmer'}
@@ -108,6 +110,7 @@ export default function AssignmentManager({ caseId, assigned, available, canMana
                 <button
                   onClick={() => handleRemove(u.id)}
                   disabled={isPending}
+                  data-tip="Retirer cet agent du suivi du dossier"
                   className="flex items-center gap-1 text-xs text-red-500 hover:text-red-700 disabled:opacity-50"
                 >
                   <UserMinus className="w-3.5 h-3.5" />

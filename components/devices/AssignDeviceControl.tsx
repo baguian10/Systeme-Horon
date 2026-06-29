@@ -36,6 +36,7 @@ export default function AssignDeviceControl({ deviceId }: { deviceId: string }) 
         type="button"
         onClick={assign}
         disabled={busy || !caseId}
+        data-tip="Assigner ce bracelet au dossier sélectionné"
         className="px-3 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-white text-xs font-semibold whitespace-nowrap"
       >
         {busy ? '…' : 'Assigner'}

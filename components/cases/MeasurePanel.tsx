@@ -39,7 +39,7 @@ export default function MeasurePanel(p: Props) {
         <Row label="Base légale" value={p.legalBasis ?? '—'} />
         <Row label="Ordonnance" value={p.ordonnanceRef ?? '—'} />
         {p.ordonnanceUrl && (
-          <a href={p.ordonnanceUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-xs text-blue-600 hover:underline">
+          <a href={p.ordonnanceUrl} target="_blank" rel="noreferrer" data-tip="Ouvrir l'ordonnance / pièce judiciaire jointe" className="inline-flex items-center gap-1.5 text-xs text-blue-600 hover:underline">
             <FileText className="w-3.5 h-3.5" /> Voir la pièce
           </a>
         )}
@@ -54,7 +54,7 @@ export default function MeasurePanel(p: Props) {
         {p.canAmend && !p.terminated && (
           <div className="pt-3 border-t border-gray-50 flex flex-wrap gap-2">
             {!showExtend ? (
-              <button onClick={() => setShowExtend(true)} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-50 text-blue-700 text-xs font-semibold hover:bg-blue-100">
+              <button onClick={() => setShowExtend(true)} data-tip="Prolonger la mesure : repousser la date de fin" className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-50 text-blue-700 text-xs font-semibold hover:bg-blue-100">
                 <CalendarPlus className="w-3.5 h-3.5" /> Prolonger
               </button>
             ) : (
@@ -62,14 +62,14 @@ export default function MeasurePanel(p: Props) {
                 <input type="hidden" name="case_id" value={p.caseId} />
                 <input type="hidden" name="kind" value="EXTEND" />
                 <input type="date" name="end_date" required className="border border-gray-300 rounded-lg px-2 py-1 text-xs" />
-                <button type="submit" className="px-2.5 py-1.5 rounded-lg bg-blue-600 text-white text-xs font-semibold">OK</button>
+                <button type="submit" data-tip="Valider la nouvelle date de fin de mesure" className="px-2.5 py-1.5 rounded-lg bg-blue-600 text-white text-xs font-semibold">OK</button>
                 <button type="button" onClick={() => setShowExtend(false)} className="text-xs text-gray-400">Annuler</button>
               </form>
             )}
             <form action={amendMeasureAction} onSubmit={(e) => { if (!confirm('Prononcer la mainlevée (fin de la mesure) ?')) e.preventDefault(); }}>
               <input type="hidden" name="case_id" value={p.caseId} />
               <input type="hidden" name="kind" value="LIFT" />
-              <button type="submit" className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-50 text-amber-700 text-xs font-semibold hover:bg-amber-100">
+              <button type="submit" data-tip="Mainlevée : mettre fin à la mesure de façon anticipée (≠ révocation/sanction)" className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-50 text-amber-700 text-xs font-semibold hover:bg-amber-100">
                 <FlagOff className="w-3.5 h-3.5" /> Mainlevée
               </button>
             </form>

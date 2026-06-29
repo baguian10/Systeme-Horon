@@ -84,7 +84,7 @@ export default function BeaconsManager({ devices }: { devices: DeviceOpt[] }) {
           <label className="block text-[11px] text-gray-500 mb-1">Libellé</label>
           <input value={label} onChange={(e) => setLabel(e.target.value)} placeholder="Beacon domicile #1" className="border border-gray-300 rounded px-2 py-1.5 text-xs w-44" />
         </div>
-        <button onClick={register} disabled={busy} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold disabled:opacity-40">
+        <button onClick={register} disabled={busy} data-tip="Enregistrer une nouvelle balise BLE domicile (UID + libellé)" className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold disabled:opacity-40">
           <Plus className="w-4 h-4" /> Enregistrer beacon
         </button>
         {err && <span className="text-xs text-red-600 w-full">{err}</span>}
@@ -126,20 +126,20 @@ export default function BeaconsManager({ devices }: { devices: DeviceOpt[] }) {
                         {devices.map((d) => <option key={d.id} value={d.id}>{d.imei}</option>)}
                       </select>
                       {b.device_id && (
-                        <button onClick={() => post('/api/beacons/link', { beaconId: b.id, deviceId: null })} title="Délier" className="p-1 text-gray-500 hover:text-red-600">
+                        <button onClick={() => post('/api/beacons/link', { beaconId: b.id, deviceId: null })} data-tip="Délier cette balise du bracelet" className="p-1 text-gray-500 hover:text-red-600">
                           <Unlink className="w-3.5 h-3.5" />
                         </button>
                       )}
                       {b.status !== 'FAULTY' ? (
-                        <button onClick={() => post('/api/beacons/status', { beaconId: b.id, status: 'FAULTY' })} title="Marquer défaillant" className="p-1 text-gray-500 hover:text-red-600">
+                        <button onClick={() => post('/api/beacons/status', { beaconId: b.id, status: 'FAULTY' })} data-tip="Marquer la balise comme défaillante (retirée du service)" className="p-1 text-gray-500 hover:text-red-600">
                           <AlertTriangle className="w-3.5 h-3.5" />
                         </button>
                       ) : (
-                        <button onClick={() => post('/api/beacons/status', { beaconId: b.id, status: 'SPARE' })} title="Remettre en service" className="p-1 text-gray-500 hover:text-green-600">
+                        <button onClick={() => post('/api/beacons/status', { beaconId: b.id, status: 'SPARE' })} data-tip="Remettre la balise en service (disponible)" className="p-1 text-gray-500 hover:text-green-600">
                           <CheckCircle2 className="w-3.5 h-3.5" />
                         </button>
                       )}
-                      <button onClick={() => setCfgOpen(cfgOpen === b.id ? null : b.id)} title="Options / alarme" className={`p-1 ${cfgOpen === b.id ? 'text-blue-600' : 'text-gray-500 hover:text-blue-600'}`}>
+                      <button onClick={() => setCfgOpen(cfgOpen === b.id ? null : b.id)} data-tip="Options d'alarme domicile : distance max, délai de grâce, horaires, notifications" className={`p-1 ${cfgOpen === b.id ? 'text-blue-600' : 'text-gray-500 hover:text-blue-600'}`}>
                         <Settings className="w-3.5 h-3.5" />
                       </button>
                     </div>
@@ -222,7 +222,7 @@ function BeaconConfigForm({ beacon, onSave }: { beacon: Beacon; onSave: (p: Conf
       <label className="flex items-center gap-1.5 text-xs text-gray-700" title="Capture la position actuelle du bracelet comme domicile de référence">
         <input type="checkbox" checked={setHome} onChange={(e) => setSetHome(e.target.checked)} /> Domicile = position actuelle
       </label>
-      <button onClick={save} disabled={saving} className="px-3 py-1.5 rounded-lg bg-blue-600 text-white text-xs font-semibold disabled:opacity-40">
+      <button onClick={save} disabled={saving} data-tip="Enregistrer les options d'alarme domicile de cette balise" className="px-3 py-1.5 rounded-lg bg-blue-600 text-white text-xs font-semibold disabled:opacity-40">
         {saving ? '…' : 'Enregistrer options'}
       </button>
       <span className={`text-xs ${homeSet ? 'text-emerald-600' : 'text-amber-600'}`}>
