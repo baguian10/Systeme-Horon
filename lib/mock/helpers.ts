@@ -188,9 +188,19 @@ export async function fetchLatestPositions(): Promise<(Position & { case_number:
     return positions;
   }
 
-  // Real mode — latest position per case from Supabase (RLS-scoped to the user).
-  const { createClient } = await import('@/lib/supabase/server');
-  const supabase = await createClient();
+  // Real mode — latest position per case from Supabase.
+  // SUPER_ADMIN has no RLS read policy on positions → use the admin client so
+  // the surveillance map is populated for them too (other roles stay RLS-scoped).
+  const { getSession } = await import('@/lib/auth/session');
+  const session = await getSession();
+  let supabase;
+  if (session?.role === 'SUPER_ADMIN') {
+    const { createAdminClient } = await import('@/lib/supabase/admin');
+    supabase = createAdminClient();
+  } else {
+    const { createClient } = await import('@/lib/supabase/server');
+    supabase = await createClient();
+  }
   if (!supabase) return [];
   const { data } = await supabase
     .from('positions')
