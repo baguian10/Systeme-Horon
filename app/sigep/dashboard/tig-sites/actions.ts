@@ -5,7 +5,8 @@ import { getSession } from '@/lib/auth/session';
 import { canManageTigSites } from '@/lib/auth/permissions';
 import { writeAudit } from '@/lib/audit/log';
 
-const isDemoMode = () => !process.env.NEXT_PUBLIC_SUPABASE_URL;
+const isDemoMode = () =>
+  !process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
 export async function createTigSiteAction(
   _: { error: string } | null,

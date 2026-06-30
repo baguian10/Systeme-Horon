@@ -5,7 +5,8 @@ import { getSession } from '@/lib/auth/session';
 import { canWriteJournal } from '@/lib/auth/permissions';
 import type { JournalEntryType } from '@/lib/supabase/types';
 
-const isDemoMode = () => !process.env.NEXT_PUBLIC_SUPABASE_URL;
+const isDemoMode = () =>
+  !process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
 export async function addJournalEntryAction(
   _: { error: string } | null,

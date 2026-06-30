@@ -4,7 +4,8 @@ import { revalidatePath } from 'next/cache';
 import { getSession } from '@/lib/auth/session';
 import { writeAudit } from '@/lib/audit/log';
 
-const isDemoMode = () => !process.env.NEXT_PUBLIC_SUPABASE_URL;
+const isDemoMode = () =>
+  !process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
 export async function createThreadAction(
   _: { error?: string; success?: boolean } | null,

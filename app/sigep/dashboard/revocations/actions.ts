@@ -6,7 +6,8 @@ import { canManageRevocations } from '@/lib/auth/permissions';
 import { writeAudit } from '@/lib/audit/log';
 import type { RevocationStatus } from '@/lib/supabase/types';
 
-const isDemoMode = () => !process.env.NEXT_PUBLIC_SUPABASE_URL;
+const isDemoMode = () =>
+  !process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
 export async function decideRevocationAction(formData: FormData): Promise<void> {
   const session = await getSession();

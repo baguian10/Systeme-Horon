@@ -5,7 +5,8 @@ import { getSession } from '@/lib/auth/session';
 import { allow } from '@/lib/auth/permissions';
 import { writeAudit } from '@/lib/audit/log';
 
-const isDemoMode = () => !process.env.NEXT_PUBLIC_SUPABASE_URL;
+const isDemoMode = () =>
+  !process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 const guard = (s: Awaited<ReturnType<typeof getSession>>) =>
   !!s && allow(s, s.role === 'SUPER_ADMIN', 'users.manage');
 
