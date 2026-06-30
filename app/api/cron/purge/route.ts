@@ -10,7 +10,7 @@ export async function GET(request: NextRequest) {
   const secret = process.env.CRON_SECRET;
   const provided = request.nextUrl.searchParams.get('secret') ?? request.headers.get('authorization')?.replace(/^Bearer\s+/i, '');
   if (secret && provided !== secret) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  if (!process.env.NEXT_PUBLIC_SUPABASE_URL) return NextResponse.json({ ok: true, demo: true });
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) return NextResponse.json({ ok: true, demo: true });
 
   const settings = await getSettings();
   const { createAdminClient } = await import('@/lib/supabase/admin');

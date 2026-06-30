@@ -15,7 +15,7 @@ export async function saveSettingsAction(_: { ok?: boolean; error?: string } | n
   if (!session || (session.role !== 'SUPER_ADMIN' && !allow(session, false, 'audit'))) {
     return { error: 'Accès refusé' };
   }
-  if (!process.env.NEXT_PUBLIC_SUPABASE_URL) return { ok: true };
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) return { ok: true };
 
   const update = {
     battery_alert_pct: num(fd, 'battery_alert_pct', 20, 1, 100),

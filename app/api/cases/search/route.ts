@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
   const q = request.nextUrl.searchParams.get('q')?.trim();
   if (!q) return NextResponse.json({ cases: [] });
 
-  if (!process.env.NEXT_PUBLIC_SUPABASE_URL) return NextResponse.json({ cases: [] });
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) return NextResponse.json({ cases: [] });
 
   // SUPER_ADMIN has no RLS read policy (relies on service role) → use admin client
   // so global search works; other roles stay RLS-scoped to their own cases.

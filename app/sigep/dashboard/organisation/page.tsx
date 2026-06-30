@@ -12,7 +12,7 @@ export const metadata = { title: 'Organisation — SIGEP' };
 const TYPE_LABEL: Record<string, string> = { COURT: 'Cour / Tribunal', JURISDICTION: 'Juridiction', UNIT: 'Unité / Service' };
 
 async function loadData(): Promise<{ depts: Department[]; users: User[] }> {
-  if (!process.env.NEXT_PUBLIC_SUPABASE_URL) return { depts: [], users: [] };
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) return { depts: [], users: [] };
   const { createAdminClient } = await import('@/lib/supabase/admin');
   const supabase = createAdminClient();
   if (!supabase) return { depts: [], users: [] };

@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
   const date = sp.get('date');
   const mode = sp.get('mode');
 
-  if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
     if (mode === 'days') return NextResponse.json({ days: [] });
     if (date) return NextResponse.json({ ...emptyDay(date), trail: [] });
     return NextResponse.json({ trail: [] });

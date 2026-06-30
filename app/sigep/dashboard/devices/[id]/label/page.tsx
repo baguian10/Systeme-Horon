@@ -15,7 +15,7 @@ interface DeviceLabel {
 }
 
 async function loadDevice(id: string): Promise<DeviceLabel | null> {
-  if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
     return { imei: '860000000000001', model: 'Bracelet TR40', sim_number: '70000000', sim_carrier: 'ORANGE', case_number: 'OUAG-2024-0041' };
   }
   const { createAdminClient } = await import('@/lib/supabase/admin');
