@@ -172,7 +172,7 @@ export default async function DevicesPage() {
                         )}
                       </td>
                       <td className="px-5 py-3.5 text-xs text-gray-400">
-                        {d.last_seen_at ? `${timeAgo(d.last_seen_at)} ago` : '—'}
+                        {d.last_seen_at ? `il y a ${timeAgo(d.last_seen_at)}` : '—'}
                       </td>
                       {isHardwareAdmin && (
                         <td className="px-5 py-3.5">
