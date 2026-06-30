@@ -304,8 +304,11 @@ export async function fetchTigSites(): Promise<TigSite[]> {
 
 export async function fetchViolations(role: UserRole): Promise<Alert[]> {
   const alerts = await fetchAlerts(role);
+  // Behavioural infractions: perimeter exit, curfew breach, tampering. Curfew
+  // was previously excluded, so couvre-feu violations never reached this view.
+  const INFRACTION_TYPES = ['GEOFENCE_EXIT', 'CURFEW_VIOLATION', 'TAMPER_DETECTED'];
   return alerts
-    .filter((a) => ['GEOFENCE_EXIT', 'TAMPER_DETECTED'].includes(a.alert_type))
+    .filter((a) => INFRACTION_TYPES.includes(a.alert_type))
     .sort((a, b) => new Date(b.triggered_at).getTime() - new Date(a.triggered_at).getTime());
 }
 

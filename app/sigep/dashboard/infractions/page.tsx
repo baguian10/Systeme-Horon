@@ -67,7 +67,7 @@ export default async function InfractionsPage() {
         <div>
           <h2 className="text-xl font-bold text-gray-900">Historique des infractions</h2>
           <p className="text-sm text-gray-500 mt-0.5">
-            Toutes les violations enregistrées — sorties de périmètre et tentatives de sabotage
+            Toutes les violations enregistrées — sorties de périmètre, couvre-feu et tentatives de sabotage
           </p>
         </div>
         <div className="flex items-center gap-2 text-xs text-gray-400 bg-white border border-gray-100 rounded-lg px-3 py-2">
