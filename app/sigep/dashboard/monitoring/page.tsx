@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation';
-import { fetchCases, fetchAlerts, fetchOperationalUsers, fetchRecentDeviceEvents } from '@/lib/mock/helpers';
+import { fetchCases, fetchAlerts, fetchOperationalUsers, fetchRecentDeviceEvents, fetchLatestPositions } from '@/lib/mock/helpers';
 import { getSession } from '@/lib/auth/session';
 import type { LivePosition } from '@/hooks/usePositionFeed';
 import type { CaseStatus } from '@/lib/supabase/types';
@@ -14,22 +14,29 @@ export default async function MonitoringPage() {
   if (!session) return null;
   if (session.role === 'STRATEGIC') redirect('/sigep/dashboard'); // aggregate only
 
-  const [cases, alerts, operationals, events] = await Promise.all([
+  const [cases, alerts, operationals, events, latestPositions] = await Promise.all([
     fetchCases(session.role, session.id),
     fetchAlerts(session.role),
     fetchOperationalUsers().catch(() => []),
     fetchRecentDeviceEvents(60).catch(() => []),
+    fetchLatestPositions().catch(() => []),
   ]);
 
   const activeCases = cases.filter((c) => c.status === 'ACTIVE' || c.status === 'VIOLATION');
 
+  // Latest fix per case. The cases query carries no position, so relying on
+  // c.last_position left the console empty in real mode — join the positions
+  // helper (also drives the live Traxbean overlay in demo) instead.
+  const posByCase = new Map(latestPositions.map((p) => [p.case_id, p]));
+
   const initialPositions: LivePosition[] = activeCases
-    .filter((c) => c.last_position && c.device)
-    .map((c) => ({
+    .map((c) => ({ c, pos: posByCase.get(c.id) }))
+    .filter(({ c, pos }) => pos != null && c.device != null)
+    .map(({ c, pos }) => ({
       case_id: c.id, device_id: c.device!.id, case_number: c.case_number,
       status: c.status as CaseStatus, alert_count: c.alert_count ?? 0,
-      latitude: c.last_position!.latitude, longitude: c.last_position!.longitude,
-      speed_kmh: c.last_position!.speed_kmh, recorded_at: c.last_position!.recorded_at,
+      latitude: pos!.latitude, longitude: pos!.longitude,
+      speed_kmh: pos!.speed_kmh, recorded_at: pos!.recorded_at,
     }));
 
   const caseNum = new Map(cases.map((c) => [c.id, c.case_number]));
@@ -61,13 +68,14 @@ export default async function MonitoringPage() {
   // Per-case context for the incident panel (M) + quick commands.
   const caseInfo: Record<string, { label: string; imei: string | null; sim: string | null; risk: string | null; lat: number | null; lng: number | null; online: boolean }> = {};
   for (const c of activeCases) {
+    const pos = posByCase.get(c.id);
     caseInfo[c.id] = {
       label: c.individual?.full_name ?? c.case_number,
       imei: c.device?.imei ?? null,
       sim: c.device?.sim_number ?? null,
       risk: c.risk_level ?? null,
-      lat: c.last_position?.latitude ?? null,
-      lng: c.last_position?.longitude ?? null,
+      lat: pos?.latitude ?? c.last_position?.latitude ?? null,
+      lng: pos?.longitude ?? c.last_position?.longitude ?? null,
       online: c.device?.is_online ?? false,
     };
   }
