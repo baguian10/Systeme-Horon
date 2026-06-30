@@ -1,11 +1,11 @@
-import { TrendingUp, Users, Wrench, Calendar, AlertOctagon } from 'lucide-react';
+import { TrendingUp, Activity, Wrench, Calendar, AlertOctagon } from 'lucide-react';
 import { CaseStatusBadge } from '@/components/ui/StatusBadge';
 import { AlertTypeBadge, SeverityDot } from '@/components/ui/StatusBadge';
 import AnimatedKPIGrid from '@/components/dashboard/AnimatedKPIGrid';
 import LiveRadarDot from '@/components/dashboard/LiveRadarDot';
 import {
   fetchOverviewStats, fetchCases, fetchAlerts,
-  fetchAgenda, fetchMaintenanceTickets, fetchRevocations,
+  fetchAgenda, fetchMaintenanceTickets, fetchRevocations, fetchSystemHealth,
 } from '@/lib/mock/helpers';
 import { getSession } from '@/lib/auth/session';
 import { canViewPII } from '@/lib/auth/permissions';
@@ -30,10 +30,15 @@ export default async function DashboardPage() {
   const showPII = canViewPII(session.role);
   const role: UserRole = session.role;
 
+  // Compliance = supervised cases without an active violation, over all supervised
+  // cases (ACTIVE + VIOLATION are disjoint statuses in the stats query).
+  const supervised = stats.active_cases + stats.violation_cases;
+  const complianceRate = supervised > 0 ? Math.round((stats.active_cases / supervised) * 100) : null;
+
   function formatTimeAgo(iso: string) {
     // Server Component renders once per request — Date.now() is deterministic here.
     // eslint-disable-next-line react-hooks/purity
-    const diff = Date.now() - new Date(iso).getTime();
+    const diff = Math.max(0, Date.now() - new Date(iso).getTime());
     const h = Math.floor(diff / 3600000);
     const m = Math.floor((diff % 3600000) / 60000);
     if (h > 0) return `Il y a ${h}h${m > 0 ? m + 'm' : ''}`;
@@ -99,15 +104,13 @@ export default async function DashboardPage() {
           <div className="bg-white rounded-2xl border border-gray-100 p-5">
             <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Taux de conformité</p>
             <p className="text-4xl font-bold text-emerald-600 mb-1">
-              {stats.active_cases > 0
-                ? `${Math.round(((stats.active_cases - stats.violation_cases) / stats.active_cases) * 100)}%`
-                : '—'}
+              {complianceRate !== null ? `${complianceRate}%` : '—'}
             </p>
             <p className="text-xs text-gray-500">Dossiers sans violation active</p>
             <div className="mt-3 h-2 bg-gray-100 rounded-full">
               <div
                 className="h-full bg-emerald-400 rounded-full"
-                style={{ width: stats.active_cases > 0 ? `${Math.round(((stats.active_cases - stats.violation_cases) / stats.active_cases) * 100)}%` : '0%' }}
+                style={{ width: complianceRate !== null ? `${complianceRate}%` : '0%' }}
               />
             </div>
           </div>
@@ -271,14 +274,28 @@ export default async function DashboardPage() {
 }
 
 async function SuperAdminHealthRow() {
-  const [maintenance, revocations] = await Promise.all([
+  const [maintenance, revocations, health] = await Promise.all([
     fetchMaintenanceTickets(),
     fetchRevocations('SUPER_ADMIN', ''),
+    fetchSystemHealth(),
   ]);
 
   const openTickets  = maintenance.filter((m) => m.status !== 'DONE' && m.status !== 'CANCELLED');
   const highPriority = openTickets.filter((m) => m.priority === 3);
   const pendingRevs  = revocations.filter((r) => r.status === 'PENDING' || r.status === 'UNDER_REVIEW');
+
+  // Ingestion freshness — minutes since the last position landed in the pipeline.
+  // Server Component renders once per request — Date.now() is deterministic here.
+  // eslint-disable-next-line react-hooks/purity
+  const now = Date.now();
+  const ingestionAgeMin = health.lastIngestionAt
+    ? Math.max(0, Math.floor((now - new Date(health.lastIngestionAt).getTime()) / 60000))
+    : null;
+  const ingestion =
+    ingestionAgeMin === null ? { label: 'Aucune', tone: 'text-gray-400', detail: 'aucune position reçue' }
+    : ingestionAgeMin < 15   ? { label: 'OK',     tone: 'text-emerald-600', detail: `dernière position il y a ${ingestionAgeMin} min` }
+    : ingestionAgeMin < 60   ? { label: 'Retard',  tone: 'text-amber-600',   detail: `dernière position il y a ${ingestionAgeMin} min` }
+    :                          { label: 'Arrêt',   tone: 'text-red-600',     detail: `aucune position depuis ${Math.floor(ingestionAgeMin / 60)} h` };
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -298,13 +315,13 @@ async function SuperAdminHealthRow() {
         <p className="text-2xl font-bold text-gray-900">{pendingRevs.length}</p>
         <p className="text-xs text-gray-400 mt-0.5">en attente de décision</p>
       </Link>
-      <Link href="/sigep/dashboard/parametres" className="bg-white border border-gray-100 rounded-2xl p-4 hover:border-blue-200 transition-colors group">
+      <Link href="/sigep/dashboard/maintenance" className="bg-white border border-gray-100 rounded-2xl p-4 hover:border-blue-200 transition-colors group">
         <div className="flex items-center gap-2 mb-2">
-          <Users className="w-4 h-4 text-blue-500" />
-          <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Système</span>
+          <Activity className="w-4 h-4 text-blue-500" />
+          <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Ingestion</span>
         </div>
-        <p className="text-2xl font-bold text-emerald-600">OK</p>
-        <p className="text-xs text-gray-400 mt-0.5">Tous les services actifs</p>
+        <p className={`text-2xl font-bold ${ingestion.tone}`}>{ingestion.label}</p>
+        <p className="text-xs text-gray-400 mt-0.5">{ingestion.detail}</p>
       </Link>
     </div>
   );

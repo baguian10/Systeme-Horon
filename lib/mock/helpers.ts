@@ -261,7 +261,9 @@ export async function fetchRevocations(role: UserRole, userId: string): Promise<
     }
     return MOCK_REVOCATIONS;
   }
-  return MOCK_REVOCATIONS;
+  // No revocations table in the production schema yet — return empty rather than
+  // leaking mock data into a live deployment. (Build the table + CRUD to enable.)
+  return [];
 }
 
 export async function fetchJournalEntries(caseId: string): Promise<JournalEntry[]> {
@@ -344,4 +346,26 @@ export async function fetchMessages(threadId: string): Promise<Message[]> {
 export async function fetchViolationHeatPoints(): Promise<ViolationHeatPoint[]> {
   if (IS_DEMO_MODE) return MOCK_VIOLATION_HEATPOINTS;
   return [];
+}
+
+// Real system-health signal: timestamp of the most recent ingested position.
+// Powers the SUPER_ADMIN health card (freshness = ingestion pipeline alive).
+export async function fetchSystemHealth(): Promise<{ lastIngestionAt: string | null }> {
+  if (IS_DEMO_MODE) {
+    const latest = MOCK_POSITIONS.reduce<string | null>(
+      (acc, p) => (!acc || new Date(p.recorded_at) > new Date(acc) ? p.recorded_at : acc),
+      null,
+    );
+    return { lastIngestionAt: latest };
+  }
+  const { createAdminClient } = await import('@/lib/supabase/admin');
+  const supabase = createAdminClient();
+  if (!supabase) return { lastIngestionAt: null };
+  const { data } = await supabase
+    .from('positions')
+    .select('recorded_at')
+    .order('recorded_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  return { lastIngestionAt: (data?.recorded_at as string | undefined) ?? null };
 }
