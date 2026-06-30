@@ -4,16 +4,23 @@ import { revalidatePath } from 'next/cache';
 import { getSession } from '@/lib/auth/session';
 import { canResolveAlert, canResolveAlertType } from '@/lib/auth/permissions';
 
-const isDemoMode = () => !process.env.NEXT_PUBLIC_SUPABASE_URL;
+// Mirror the canonical IS_DEMO_MODE (lib/supabase/client.ts): demo unless BOTH
+// the URL and anon key are present.
+const isDemoMode = () =>
+  !process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
 function revalidate() {
   revalidatePath('/sigep/dashboard/alerts');
   revalidatePath('/sigep/dashboard');
 }
 
+// The alerts table has SELECT-only RLS policies (no FOR UPDATE for any role),
+// so writes through the RLS-scoped server client silently affect 0 rows. Like
+// every other mutation in the app, gate permissions in code (canResolveAlert +
+// canResolveAlertType, checked by each caller) and write via the service role.
 async function getClientFor(alertId: string) {
-  const { createClient } = await import('@/lib/supabase/server');
-  const supabase = await createClient();
+  const { createAdminClient } = await import('@/lib/supabase/admin');
+  const supabase = createAdminClient();
   if (!supabase) return null;
   const { data } = await supabase.from('alerts').select('alert_type').eq('id', alertId).single();
   return { supabase, alertType: data?.alert_type as string | undefined };
@@ -96,7 +103,7 @@ export async function resolveAlertAction(formData: FormData) {
       is_resolved: true, resolved_by: session.id, resolved_at: new Date().toISOString(),
       status, resolution_category: category, resolution_reason: reason,
     })
-    .eq('id', alertId);
+    .eq('id', alertId).eq('is_resolved', false);
   const { writeAudit } = await import('@/lib/audit/log');
   await writeAudit({ userId: session.id, action: 'RESOLVE_ALERT', tableName: 'alerts', recordId: alertId, newData: { status, category } });
   revalidate();
