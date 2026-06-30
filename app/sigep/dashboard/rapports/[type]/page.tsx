@@ -45,6 +45,11 @@ export default async function RapportViewPage({
   const resolvedAlerts = alerts.filter((a) => a.is_resolved);
   const now = new Date().toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' });
 
+  // Real compliance — supervised cases without an active violation. Was a
+  // hardcoded "94 %" in an official judicial report, which is indefensible.
+  const supervised = stats.active_cases + stats.violation_cases;
+  const complianceRate = supervised > 0 ? Math.round((stats.active_cases / supervised) * 100) : null;
+
   return (
     <div className="space-y-6">
       {/* Toolbar — hidden when printing */}
@@ -91,7 +96,7 @@ export default async function RapportViewPage({
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             {[
               { label: 'Dossiers actifs',          value: stats.active_cases,          sub: 'sous surveillance' },
-              { label: 'Taux de conformité',        value: '94 %',                      sub: 'des obligations' },
+              { label: 'Taux de conformité',        value: complianceRate !== null ? `${complianceRate} %` : '—', sub: 'des obligations' },
               { label: 'Alertes traitées',          value: resolvedAlerts.length,       sub: 'sur ' + alerts.length },
               { label: 'Violations enregistrées',   value: stats.violation_cases,       sub: 'dossiers en infraction' },
             ].map((s) => (

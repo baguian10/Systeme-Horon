@@ -6,7 +6,7 @@ import {
 } from 'lucide-react';
 import { getSession } from '@/lib/auth/session';
 import { canViewReports , allow } from '@/lib/auth/permissions';
-import { fetchCases, fetchAlerts, fetchOverviewStats } from '@/lib/mock/helpers';
+import { fetchAlerts, fetchOverviewStats } from '@/lib/mock/helpers';
 
 export const metadata = { title: 'Rapports — SIGEP' };
 export const revalidate = 0;
@@ -65,8 +65,7 @@ export default async function RapportsPage() {
   const session = await getSession();
   if (!session || !allow(session, canViewReports(session.role), 'reports')) redirect('/sigep/dashboard');
 
-  const [, alerts, stats] = await Promise.all([
-    fetchCases(session.role, session.id),
+  const [alerts, stats] = await Promise.all([
     fetchAlerts(session.role),
     fetchOverviewStats(session.role),
   ]);
