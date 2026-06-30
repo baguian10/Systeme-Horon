@@ -1,5 +1,4 @@
-import Link from 'next/link';
-import { Newspaper, Calendar, Tag, ChevronRight, ExternalLink } from 'lucide-react';
+import { Newspaper, Calendar, ExternalLink } from 'lucide-react';
 import SiteHeader from '@/components/public/SiteHeader';
 import SiteFooter from '@/components/public/SiteFooter';
 

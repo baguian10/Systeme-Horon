@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import {
   ArrowRight, Scale, Users, TreePine, Wrench,
-  GraduationCap, Heart, CheckCircle, Clock,
+  GraduationCap, Heart, CheckCircle,
   FileText, Shield, Landmark, AlertCircle,
 } from 'lucide-react';
 import SiteHeader from '@/components/public/SiteHeader';

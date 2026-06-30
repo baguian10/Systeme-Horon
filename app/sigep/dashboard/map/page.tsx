@@ -58,6 +58,8 @@ export default async function MapPage({
     arr.push(g as unknown as EnforceGeofence);
     geoByCase.set(g.case_id, arr);
   }
+  // Server Component renders once per request — Date.now() is deterministic here.
+  // eslint-disable-next-line react-hooks/purity
   const nowMs = Date.now();
   function curfewStatus(caseId: string, lat: number, lng: number): 'in' | 'out' | null {
     const zones = (geoByCase.get(caseId) ?? []).filter((g) => !g.is_exclusion && g.active_start && g.active_end);

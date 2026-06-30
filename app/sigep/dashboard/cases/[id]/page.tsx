@@ -75,6 +75,8 @@ export default async function CaseDetailPage({ params }: { params: Promise<{ id:
     return new Date(iso).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
   }
   function timeAgo(iso: string) {
+    // Server Component renders once per request — Date.now() is deterministic here.
+    // eslint-disable-next-line react-hooks/purity
     const d = Math.floor((Date.now() - new Date(iso).getTime()) / 60000);
     return d < 60 ? `${d}min` : `${Math.floor(d / 60)}h`;
   }

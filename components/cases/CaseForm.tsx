@@ -52,13 +52,13 @@ export default function CaseForm({ unassignedDevices }: Props) {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1.5">Date de l'ordonnance *</label>
+            <label className="block text-xs font-medium text-gray-600 mb-1.5">Date de l&apos;ordonnance *</label>
             <input name="court_order_date" type="date" required className={INPUT} />
           </div>
           <div>
             <label className="block text-xs font-medium text-gray-600 mb-1.5">Bracelet assigné</label>
             <select name="device_id" className={`${INPUT} bg-white`}>
-              <option value="">— Aucun pour l'instant —</option>
+              <option value="">— Aucun pour l&apos;instant —</option>
               {unassignedDevices.map((d) => (
                 <option key={d.id} value={d.id}>
                   {d.imei} · {d.model} · {d.battery_pct}% bat.

@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation';
-import { AlertTriangle, CheckCircle2, XCircle, Clock, FileText, User, ChevronRight } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, XCircle, Clock, FileText, User } from 'lucide-react';
 import { getSession } from '@/lib/auth/session';
 import { canViewRevocations, canManageRevocations , allow } from '@/lib/auth/permissions';
 import { fetchRevocations } from '@/lib/mock/helpers';

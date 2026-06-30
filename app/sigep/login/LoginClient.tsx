@@ -62,7 +62,6 @@ export default function LoginClient() {
     startTransition(async () => {
       const supabase = createClient();
       if (!supabase) { router.push(next); return; }
-      const factorType = mfaMethod === 'totp' ? 'totp' : 'phone';
       const { data: factors } = await supabase.auth.mfa.listFactors();
       const factor = factors?.totp?.[0] ?? factors?.phone?.[0];
       if (!factor) { router.push(next); return; }

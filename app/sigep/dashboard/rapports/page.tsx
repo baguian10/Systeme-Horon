@@ -65,7 +65,7 @@ export default async function RapportsPage() {
   const session = await getSession();
   if (!session || !allow(session, canViewReports(session.role), 'reports')) redirect('/sigep/dashboard');
 
-  const [cases, alerts, stats] = await Promise.all([
+  const [, alerts, stats] = await Promise.all([
     fetchCases(session.role, session.id),
     fetchAlerts(session.role),
     fetchOverviewStats(),

@@ -23,6 +23,8 @@ export default function CasePresencePanel({ imei, canCommand, canShutdown }: { i
   }, [imei]);
 
   useEffect(() => {
+    // Async loader — every setState runs after an awaited fetch, not synchronously.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     load();
     const id = setInterval(load, 30000);
     return () => clearInterval(id);

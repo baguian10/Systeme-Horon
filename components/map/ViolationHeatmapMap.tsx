@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 import { MapContainer, TileLayer, CircleMarker, Tooltip, useMap } from 'react-leaflet';
+import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import type { ViolationHeatPoint, AlertType } from '@/lib/supabase/types';
 
@@ -27,10 +28,11 @@ function FitBounds({ points }: { points: ViolationHeatPoint[] }) {
   const map = useMap();
   useEffect(() => {
     if (points.length === 0) return;
-    const L = require('leaflet');
     const bounds = L.latLngBounds(points.map((p) => [p.lat, p.lng]));
     map.fitBounds(bounds, { padding: [60, 60], maxZoom: 14 });
-  }, [points.length]);
+    // Refit only when the set of points changes size, not on every render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [map, points.length]);
   return null;
 }
 

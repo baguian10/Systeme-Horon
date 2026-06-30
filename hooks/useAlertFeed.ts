@@ -8,7 +8,9 @@ type AlertListener = (alert: Alert) => void;
 
 export function useAlertFeed(onNewAlert: AlertListener) {
   const callbackRef = useRef(onNewAlert);
-  callbackRef.current = onNewAlert;
+  useEffect(() => {
+    callbackRef.current = onNewAlert;
+  });
 
   useEffect(() => {
     if (IS_DEMO_MODE) {

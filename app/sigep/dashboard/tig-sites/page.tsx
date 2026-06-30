@@ -3,7 +3,7 @@ import Link from 'next/link';
 import {
   TreePine, MapPin, Phone, Users, Clock,
   Plus, CheckCircle, XCircle, Building2,
-  Heart, GraduationCap, Wrench, Landmark,
+  Heart, GraduationCap, Landmark,
 } from 'lucide-react';
 import { getSession } from '@/lib/auth/session';
 import { canViewTigSites, canManageTigSites , allow } from '@/lib/auth/permissions';

@@ -49,6 +49,8 @@ export default async function InfractionsPage() {
   }
 
   function timeAgo(iso: string) {
+    // Server Component renders once per request — Date.now() is deterministic here.
+    // eslint-disable-next-line react-hooks/purity
     const s = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
     if (s < 60) return `${s}s`;
     const m = Math.floor(s / 60);

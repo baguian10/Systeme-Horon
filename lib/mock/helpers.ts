@@ -61,7 +61,7 @@ export async function fetchCaseById(id: string): Promise<Case | null> {
   return (data as Case) ?? null;
 }
 
-export async function fetchAlerts(role: UserRole): Promise<Alert[]> {
+export async function fetchAlerts(_role: UserRole): Promise<Alert[]> {
   if (IS_DEMO_MODE) return MOCK_ALERTS;
   const { createClient } = await import('@/lib/supabase/server');
   const supabase = await createClient();

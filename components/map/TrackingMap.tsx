@@ -7,7 +7,7 @@ import type { DrawnShape } from '@/components/geofences/GeofenceDrawMap';
 // leaflet/dist/leaflet.css is imported globally in app/layout.tsx
 
 // Use self-hosted icons — avoids CSP issues with external CDNs
-delete (L.Icon.Default.prototype as any)._getIconUrl;
+delete (L.Icon.Default.prototype as unknown as { _getIconUrl?: unknown })._getIconUrl;
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: '/leaflet/marker-icon-2x.png',
   iconUrl:       '/leaflet/marker-icon.png',
@@ -220,6 +220,8 @@ export default function TrackingMap({ markers, geofences = [], center = [12.3647
 
   // Fetch the GPS trail when "Trajet" is enabled (and refresh it as the device moves).
   useEffect(() => {
+    // Conditional reset when the trail is toggled off — not a render cascade.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (!showTrail || !primary?.caseId) { setTrail([]); return; }
     let active = true;
     fetch(`/api/track/history?caseId=${encodeURIComponent(primary.caseId)}`, { cache: 'no-store' })

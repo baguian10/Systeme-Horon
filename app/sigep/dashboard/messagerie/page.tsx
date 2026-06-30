@@ -8,16 +8,6 @@ import NewThreadForm from './NewThreadForm';
 export const metadata = { title: 'Messagerie sécurisée — SIGEP' };
 export const revalidate = 0;
 
-const ROLE_COLORS: Record<string, string> = {
-  SUPER_ADMIN: 'bg-red-100 text-red-700',
-  JUDGE:       'bg-blue-100 text-blue-700',
-  OPERATIONAL: 'bg-emerald-100 text-emerald-700',
-  STRATEGIC:   'bg-purple-100 text-purple-700',
-};
-const ROLE_INITIALS: Record<string, string> = {
-  SUPER_ADMIN: 'SA', JUDGE: 'JG', OPERATIONAL: 'OP', STRATEGIC: 'ST',
-};
-
 function timeAgo(iso: string) {
   const diff = Date.now() - new Date(iso).getTime();
   const h = Math.floor(diff / 3600000);
@@ -32,9 +22,6 @@ export default async function MessageriePage() {
   if (!session) redirect('/sigep/dashboard');
 
   const threads = await fetchThreads(session.id);
-  const unread = threads.filter((t) =>
-    (t.last_message_preview && !t.participant_ids.includes(session.id))
-  ).length;
 
   return (
     <div className="space-y-6">

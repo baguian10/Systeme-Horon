@@ -42,7 +42,11 @@ export default function BeaconsManager({ devices }: { devices: DeviceOpt[] }) {
     } catch { /* ignore */ }
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    // Async loader — setBeacons runs after an awaited fetch, not synchronously.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    load();
+  }, [load]);
 
   async function post(url: string, body: unknown) {
     setBusy(true); setErr(null);

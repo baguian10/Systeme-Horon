@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useRef } from 'react';
 import type { CaseStatus } from '@/lib/supabase/types';
 
 interface MapPoint {

@@ -2,7 +2,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import {
   ArrowLeft, ArrowRight, FileText, Settings, Radio,
-  MapPin, Shield, Activity, AlertTriangle, Lock,
+  MapPin, Shield, AlertTriangle, Lock,
   Wifi, CheckCircle, Eye, Clock, Bluetooth, Home,
 } from 'lucide-react';
 import SiteHeader from '@/components/public/SiteHeader';
@@ -55,57 +55,6 @@ const STEPS = [
       'Alertes instantanées en cas de franchissement non autorisé',
       'Rapports périodiques transmis au magistrat responsable',
     ],
-  },
-];
-
-const TECH_FEATURES = [
-  {
-    icon: <MapPin className="w-6 h-6" />,
-    title: 'Localisation en temps réel',
-    desc: "Positionnement continu avec précision certifiée, mis à jour toutes les 30 secondes en zone active.",
-    tag: 'GPS / GNSS',
-    color: 'bg-emerald-50 text-emerald-700 border-emerald-100',
-    size: 'lg',
-  },
-  {
-    icon: <Eye className="w-6 h-6" />,
-    title: 'Périmètres configurables',
-    desc: "Le magistrat définit des zones d'inclusion et d'exclusion personnalisées selon l'ordonnance.",
-    tag: 'Géofencing',
-    color: 'bg-blue-50 text-blue-700 border-blue-100',
-    size: 'sm',
-  },
-  {
-    icon: <AlertTriangle className="w-6 h-6" />,
-    title: 'Détection de manipulation',
-    desc: "Capteurs certifiés détectant toute tentative de retrait ou de sabotage. Déclenchement immédiat d'une alerte de niveau maximum.",
-    tag: 'Anti-sabotage',
-    color: 'bg-red-50 text-red-700 border-red-100',
-    size: 'sm',
-  },
-  {
-    icon: <Activity className="w-6 h-6" />,
-    title: "Surveillance de l'état de santé",
-    desc: "Monitoring continu des paramètres physiologiques. Détection des situations de détresse médicale avec notification automatique des secours.",
-    tag: 'Santé',
-    color: 'bg-purple-50 text-purple-700 border-purple-100',
-    size: 'sm',
-  },
-  {
-    icon: <Lock className="w-6 h-6" />,
-    title: 'Chiffrement de bout en bout',
-    desc: "Toutes les données transmises sont chiffrées selon les standards gouvernementaux. Aucune donnée n'est accessible sans accréditation judiciaire.",
-    tag: 'Sécurité',
-    color: 'bg-slate-50 text-slate-700 border-slate-100',
-    size: 'sm',
-  },
-  {
-    icon: <Wifi className="w-6 h-6" />,
-    title: 'Connectivité redondante',
-    desc: "Le dispositif utilise plusieurs réseaux de communication en parallèle pour garantir une disponibilité maximale.",
-    tag: 'Résilience',
-    color: 'bg-amber-50 text-amber-700 border-amber-100',
-    size: 'sm',
   },
 ];
 

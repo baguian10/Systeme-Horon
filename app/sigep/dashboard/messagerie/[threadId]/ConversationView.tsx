@@ -27,7 +27,7 @@ interface Props {
   currentUserRole: UserRole;
 }
 
-export default function ConversationView({ threadId, messages, currentUserId, currentUserName, currentUserRole }: Props) {
+export default function ConversationView({ threadId, messages, currentUserId }: Props) {
   const [state, formAction, isPending] = useActionState(sendMessageAction, null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const formRef   = useRef<HTMLFormElement>(null);

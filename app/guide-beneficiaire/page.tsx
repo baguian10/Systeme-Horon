@@ -57,7 +57,7 @@ export default function GuideBeneficiairePage() {
             <span className="text-emerald-400">Programme TIG — Système Horon</span>
           </h1>
           <p className="text-gray-300 text-lg leading-relaxed mb-8">
-            Ce guide vous explique simplement tout ce que vous devez savoir sur votre programme de Travaux d'Intérêt Général :
+            Ce guide vous explique simplement tout ce que vous devez savoir sur votre programme de Travaux d&apos;Intérêt Général :
             vos droits, vos obligations, le fonctionnement du bracelet GPS et les contacts en cas de besoin.
           </p>
           <div className="flex flex-wrap gap-3">
@@ -100,7 +100,7 @@ export default function GuideBeneficiairePage() {
             </div>
           </div>
           <p className="text-gray-600 mb-6 leading-relaxed">
-            En tant que bénéficiaire du programme TIG, vous bénéficiez de droits garantis par l'ordonnance du Tribunal de Grande Instance.
+            En tant que bénéficiaire du programme TIG, vous bénéficiez de droits garantis par l&apos;ordonnance du Tribunal de Grande Instance.
             Ces droits ne peuvent pas être supprimés.
           </p>
           <ul className="space-y-3">
@@ -126,7 +126,7 @@ export default function GuideBeneficiairePage() {
           </div>
           <p className="text-gray-600 mb-6 leading-relaxed">
             Le non-respect de ces obligations peut entraîner une procédure de révocation et la conversion de votre TIG
-            en peine d'emprisonnement ferme (Art. 28 du Code Pénal burkinabè).
+            en peine d&apos;emprisonnement ferme (Art. 28 du Code Pénal burkinabè).
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {OBLIGATIONS.map(({ icon: Icon, title, desc }) => (
@@ -267,7 +267,7 @@ export default function GuideBeneficiairePage() {
           </div>
           <div className="mt-6 bg-gray-50 rounded-2xl p-5">
             <p className="text-sm font-semibold text-gray-800 mb-1">Bureau SIGEP — Ministère de la Justice</p>
-            <p className="text-sm text-gray-600">Avenue de l'Indépendance, Ouagadougou, Burkina Faso</p>
+            <p className="text-sm text-gray-600">Avenue de l&apos;Indépendance, Ouagadougou, Burkina Faso</p>
             <p className="text-sm text-gray-500 mt-1">Lun–Ven : 07h30–12h30 et 15h00–17h30</p>
           </div>
         </section>

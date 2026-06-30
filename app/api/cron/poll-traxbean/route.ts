@@ -14,7 +14,6 @@ export const maxDuration = 60;
 //   https://<site>/api/cron/poll-traxbean?secret=<CRON_SECRET>
 //
 // Battery and signal thresholds raise BATTERY_LOW / SIGNAL_LOST alerts.
-const BATTERY_LOW_PCT = 15;
 const SIGNAL_LOW = 10;
 
 function haversineM(lat1: number, lon1: number, lat2: number, lon2: number): number {

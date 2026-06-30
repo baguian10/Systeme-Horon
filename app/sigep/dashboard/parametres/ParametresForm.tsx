@@ -3,9 +3,6 @@
 import { useState } from 'react';
 import { Save, CheckCircle2, RefreshCw } from 'lucide-react';
 
-const INPUT = 'w-full border border-gray-200 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent bg-white';
-const SELECT = INPUT;
-
 interface ParamGroup {
   title: string;
   params: Param[];

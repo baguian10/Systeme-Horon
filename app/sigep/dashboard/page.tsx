@@ -4,11 +4,11 @@ import { AlertTypeBadge, SeverityDot } from '@/components/ui/StatusBadge';
 import AnimatedKPIGrid from '@/components/dashboard/AnimatedKPIGrid';
 import LiveRadarDot from '@/components/dashboard/LiveRadarDot';
 import {
-  fetchOverviewStats, fetchCases, fetchAlerts, fetchUsers,
+  fetchOverviewStats, fetchCases, fetchAlerts,
   fetchAgenda, fetchMaintenanceTickets, fetchRevocations,
 } from '@/lib/mock/helpers';
 import { getSession } from '@/lib/auth/session';
-import { canViewPII, canViewMaintenance, canViewRevocations } from '@/lib/auth/permissions';
+import { canViewPII } from '@/lib/auth/permissions';
 import Link from 'next/link';
 import type { UserRole } from '@/lib/supabase/types';
 
@@ -31,6 +31,8 @@ export default async function DashboardPage() {
   const role: UserRole = session.role;
 
   function formatTimeAgo(iso: string) {
+    // Server Component renders once per request — Date.now() is deterministic here.
+    // eslint-disable-next-line react-hooks/purity
     const diff = Date.now() - new Date(iso).getTime();
     const h = Math.floor(diff / 3600000);
     const m = Math.floor((diff % 3600000) / 60000);

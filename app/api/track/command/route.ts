@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { getSession } from '@/lib/auth/session';
-import { canManageGeofences, canConfigureHardware , allow } from '@/lib/auth/permissions';
+import { canConfigureHardware, allow } from '@/lib/auth/permissions';
 import { sendDeviceCommand, type TraxbeanCommand } from '@/lib/traxbean/client';
 
 export const dynamic = 'force-dynamic';

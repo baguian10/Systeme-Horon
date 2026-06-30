@@ -24,6 +24,8 @@ export default function CaseSearchSelect({
   const boxRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    // Conditional reset when the query is cleared — not a render cascade.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (!query.trim()) { setHits([]); return; }
     setLoading(true);
     const t = setTimeout(() => {

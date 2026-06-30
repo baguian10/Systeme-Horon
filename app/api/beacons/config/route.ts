@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { getSession } from '@/lib/auth/session';
-import { canConfigureHardware, canManageGeofences , allow } from '@/lib/auth/permissions';
+import { canConfigureHardware, allow } from '@/lib/auth/permissions';
 
 export const dynamic = 'force-dynamic';
 

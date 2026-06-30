@@ -32,7 +32,7 @@ export default function SiteFooter() {
               <span className="font-bold text-white text-sm">Système Horon</span>
             </div>
             <p className="text-xs leading-relaxed text-gray-500 mb-4">
-              Programme national de surveillance électronique placé sous l'autorité du Ministère de la Justice et des Droits Humains du Burkina Faso.
+              Programme national de surveillance électronique placé sous l&apos;autorité du Ministère de la Justice et des Droits Humains du Burkina Faso.
             </p>
             <p className="text-[10px] text-gray-600 uppercase tracking-widest font-medium">
               République du Burkina Faso

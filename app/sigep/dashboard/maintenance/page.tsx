@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation';
-import { Wrench, Battery, Cpu, Settings, CheckCircle2, AlertTriangle, Clock, Plus, Zap } from 'lucide-react';
+import { Wrench, Battery, Cpu, Settings, CheckCircle2, AlertTriangle, Clock, Zap } from 'lucide-react';
 import { getSession } from '@/lib/auth/session';
 import { canViewMaintenance , allow } from '@/lib/auth/permissions';
 import { fetchMaintenanceTickets } from '@/lib/mock/helpers';

@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import {
-  Wifi, WifiOff, RefreshCw, Battery, AlertTriangle,
+  Wifi, WifiOff, RefreshCw, Battery,
   MapPin, Calendar, CheckCircle2, Clock, Send, Smartphone,
   ChevronDown, ChevronUp, Shield,
 } from 'lucide-react';
@@ -60,7 +60,7 @@ function timeAgo(iso: string) {
 
 export default function TerrainApp({ initialData }: { initialData: InitialData }) {
   const [isOnline, setIsOnline]     = useState(true);
-  const [data, setData]             = useState<InitialData>(initialData);
+  const [data]                      = useState<InitialData>(initialData);
   const [queue, setQueue]           = useState<QueuedAction[]>([]);
   const [syncing, setSyncing]       = useState(false);
   const [syncMsg, setSyncMsg]       = useState('');
@@ -72,6 +72,8 @@ export default function TerrainApp({ initialData }: { initialData: InitialData }
   useEffect(() => {
     function onOnline()  { setIsOnline(true); }
     function onOffline() { setIsOnline(false); }
+    // Read the browser-only online status post-hydration to avoid an SSR mismatch.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setIsOnline(navigator.onLine);
     window.addEventListener('online',  onOnline);
     window.addEventListener('offline', onOffline);
@@ -90,6 +92,9 @@ export default function TerrainApp({ initialData }: { initialData: InitialData }
   useEffect(() => {
     try {
       const saved = localStorage.getItem(QUEUE_KEY);
+      // Hydrate the queue from localStorage on mount — effect (not lazy init)
+      // keeps server/client markup identical and avoids a hydration mismatch.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       if (saved) setQueue(JSON.parse(saved));
     } catch {}
   }, []);

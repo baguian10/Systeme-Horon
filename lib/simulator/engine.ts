@@ -1,5 +1,5 @@
 import type { Position, Alert, AlertType, CaseStatus } from '@/lib/supabase/types';
-import { MOCK_CASES, MOCK_POSITIONS, MOCK_ALERTS } from '@/lib/mock/data';
+import { MOCK_CASES, MOCK_POSITIONS } from '@/lib/mock/data';
 
 export interface SimulatedPosition extends Position {
   case_number: string;

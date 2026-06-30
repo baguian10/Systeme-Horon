@@ -1,10 +1,10 @@
-import { NextResponse, type NextRequest } from 'next/server';
+import { NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth/session';
 import { canExportData } from '@/lib/auth/permissions';
 import { fetchCases } from '@/lib/mock/helpers';
 
 // GET /api/export/cases — returns CSV download (STRATEGIC+ only)
-export async function GET(_req: NextRequest) {
+export async function GET() {
   const session = await getSession();
   if (!session || !canExportData(session.role)) {
     return NextResponse.json({ error: 'Accès refusé' }, { status: 403 });

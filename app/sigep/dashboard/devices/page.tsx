@@ -44,10 +44,14 @@ export default async function DevicesPage() {
   const online    = devices.filter((d) => d.is_online).length;
   const unassigned = devices.filter((d) => !d.case_id).length;
   const lowBattery = devices.filter((d) => (d.battery_pct ?? 100) < 20).length;
+  // Server Component renders once per request — Date.now() is deterministic here.
+  // eslint-disable-next-line react-hooks/purity
   const staleContact = devices.filter((d) => d.last_seen_at && (Date.now() - new Date(d.last_seen_at).getTime()) > 86400000).length;
   const simSuspended = devices.filter((d) => d.sim_status === 'SUSPENDED').length;
 
   function timeAgo(iso: string) {
+    // Server Component renders once per request — Date.now() is deterministic here.
+    // eslint-disable-next-line react-hooks/purity
     const d = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
     if (d < 60) return `${d}s`;
     if (d < 3600) return `${Math.floor(d / 60)}min`;

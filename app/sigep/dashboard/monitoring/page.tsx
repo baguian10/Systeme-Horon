@@ -47,6 +47,8 @@ export default async function MonitoringPage() {
   // Metrics
   const online = activeCases.filter((c) => c.device?.is_online).length;
   const battery = activeCases.filter((c) => (c.device?.battery_pct ?? 100) < 20).length;
+  // Server Component renders once per request — Date.now() is deterministic here.
+  // eslint-disable-next-line react-hooks/purity
   const stale = activeCases.filter((c) => c.device?.last_seen_at && (Date.now() - new Date(c.device.last_seen_at).getTime()) > 15 * 60_000).length;
   const violations = activeCases.filter((c) => c.status === 'VIOLATION').length;
   const ackDeltas = alerts.filter((a) => a.acknowledged_at).map((a) => (Date.parse(a.acknowledged_at as string) - Date.parse(a.triggered_at)) / 60_000);

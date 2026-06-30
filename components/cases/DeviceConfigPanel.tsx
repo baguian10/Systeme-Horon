@@ -3,6 +3,26 @@
 import { useState } from 'react';
 import { Settings2, Phone, Clock, ShieldAlert, Signal, Loader2 } from 'lucide-react';
 
+// Hoisted to module scope so it keeps a stable identity across renders
+// (defining it inside the component would remount every button each render).
+function ConfigBtn({
+  k, val, label, icon, busy, onSend,
+}: {
+  k: string;
+  val?: string;
+  label: string;
+  icon: React.ReactNode;
+  busy: string | null;
+  onSend: (kind: string, value: string | undefined, label: string) => void;
+}) {
+  return (
+    <button onClick={() => onSend(k, val, label)} disabled={!!busy} data-tip={`Envoyer la configuration « ${label} » au bracelet`}
+      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-white text-xs font-semibold disabled:opacity-40">
+      {busy === k ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : icon}{label}
+    </button>
+  );
+}
+
 export default function DeviceConfigPanel({ imei }: { imei: string }) {
   const [sos, setSos] = useState('');
   const [strap, setStrap] = useState('5');
@@ -22,13 +42,6 @@ export default function DeviceConfigPanel({ imei }: { imei: string }) {
     } catch { setMsg('Erreur réseau'); } finally { setBusy(null); }
   }
 
-  const Btn = ({ k, val, label, icon }: { k: string; val?: string; label: string; icon: React.ReactNode }) => (
-    <button onClick={() => send(k, val, label)} disabled={!!busy} data-tip={`Envoyer la configuration « ${label} » au bracelet`}
-      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-white text-xs font-semibold disabled:opacity-40">
-      {busy === k ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : icon}{label}
-    </button>
-  );
-
   return (
     <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
       <div className="px-5 py-4 border-b border-gray-50 flex items-center gap-2">
@@ -41,7 +54,7 @@ export default function DeviceConfigPanel({ imei }: { imei: string }) {
         <div className="flex items-center gap-2 flex-wrap">
           <Phone className="w-4 h-4 text-gray-400" />
           <input value={sos} onChange={(e) => setSos(e.target.value)} placeholder="Numéro SOS (centre)" className="border border-gray-300 rounded-lg px-2 py-1.5 text-xs w-44" />
-          <Btn k="sos" val={sos} label="Définir SOS" icon={<Phone className="w-3.5 h-3.5" />} />
+          <ConfigBtn k="sos" val={sos} label="Définir SOS" icon={<Phone className="w-3.5 h-3.5" />} busy={busy} onSend={send} />
         </div>
         {/* APN */}
         <div className="flex items-center gap-2 flex-wrap">
@@ -50,18 +63,18 @@ export default function DeviceConfigPanel({ imei }: { imei: string }) {
             <option value="orange">Orange BF (613-02)</option>
             <option value="moov">Moov Africa (613-03)</option>
           </select>
-          <Btn k="apn" val={apn} label="Configurer APN" icon={<Signal className="w-3.5 h-3.5" />} />
+          <ConfigBtn k="apn" val={apn} label="Configurer APN" icon={<Signal className="w-3.5 h-3.5" />} busy={busy} onSend={send} />
         </div>
         {/* Strap */}
         <div className="flex items-center gap-2 flex-wrap">
           <ShieldAlert className="w-4 h-4 text-gray-400" />
           <input value={strap} onChange={(e) => setStrap(e.target.value)} type="number" min={1} max={10} className="border border-gray-300 rounded-lg px-2 py-1.5 text-xs w-16" />
-          <Btn k="strap" val={strap} label="Sensibilité sangle" icon={<ShieldAlert className="w-3.5 h-3.5" />} />
+          <ConfigBtn k="strap" val={strap} label="Sensibilité sangle" icon={<ShieldAlert className="w-3.5 h-3.5" />} busy={busy} onSend={send} />
         </div>
         {/* Timezone */}
         <div className="flex items-center gap-2 flex-wrap">
           <Clock className="w-4 h-4 text-gray-400" />
-          <Btn k="timezoneBF" label="Fuseau Burkina (GMT)" icon={<Clock className="w-3.5 h-3.5" />} />
+          <ConfigBtn k="timezoneBF" label="Fuseau Burkina (GMT)" icon={<Clock className="w-3.5 h-3.5" />} busy={busy} onSend={send} />
         </div>
         {msg && <p className="text-xs text-gray-500">{msg}</p>}
       </div>

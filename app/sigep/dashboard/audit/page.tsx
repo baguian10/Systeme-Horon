@@ -78,6 +78,8 @@ export default async function AuditPage() {
   }
 
   function timeAgo(iso: string) {
+    // Server Component renders once per request — Date.now() is deterministic here.
+    // eslint-disable-next-line react-hooks/purity
     const d = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
     if (d < 60) return `${d}s`;
     if (d < 3600) return `${Math.floor(d / 60)}min`;
@@ -89,7 +91,7 @@ export default async function AuditPage() {
     <div className="space-y-5">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-bold text-gray-900">Journal d'audit</h2>
+          <h2 className="text-xl font-bold text-gray-900">Journal d&apos;audit</h2>
           <p className="text-sm text-gray-500 mt-0.5">
             {entries.length} entrée{entries.length !== 1 ? 's' : ''} · accès SUPER_ADMIN uniquement
           </p>
@@ -102,7 +104,7 @@ export default async function AuditPage() {
 
       <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
         {entries.length === 0 ? (
-          <p className="text-sm text-gray-400 px-5 py-8 text-center">Aucune entrée d'audit</p>
+          <p className="text-sm text-gray-400 px-5 py-8 text-center">Aucune entrée d&apos;audit</p>
         ) : (
           <div className="divide-y divide-gray-50">
             {entries.map((entry) => (

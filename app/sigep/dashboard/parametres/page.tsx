@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation';
-import { Settings, Shield, Wifi, Clock, Bell, Database, Globe, Lock, CheckCircle2 } from 'lucide-react';
+import { Shield, Wifi, Database, Globe, Lock, CheckCircle2 } from 'lucide-react';
 import { getSession } from '@/lib/auth/session';
 import { canViewParametres } from '@/lib/auth/permissions';
 import { getSettings } from '@/lib/settings';
