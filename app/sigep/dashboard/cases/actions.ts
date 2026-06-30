@@ -7,7 +7,11 @@ import { canCreateCase, canManageGeofences, canUpdateCaseStatus, canManageAssign
 import { writeAudit } from '@/lib/audit/log';
 import type { CaseStatus } from '@/lib/supabase/types';
 
-const isDemoMode = () => !process.env.NEXT_PUBLIC_SUPABASE_URL;
+// Mirror the canonical IS_DEMO_MODE (lib/supabase/client.ts): demo unless BOTH
+// the URL and anon key are present. Checking only the URL split-brained reads
+// (mock) from writes (real) in a half-configured environment.
+const isDemoMode = () =>
+  !process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
 // ── Create case + individual + optional device assignment ─────────────────────
 

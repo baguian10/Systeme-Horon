@@ -32,11 +32,20 @@ export async function fetchCases(role: UserRole, userId: string): Promise<Case[]
     supabase = await createClient();
   }
   if (!supabase) return [];
-  const { data } = await supabase
-    .from('cases')
-    .select('*, individual:individuals(*), judge:users!judge_id(*), device:devices(*)')
-    .order('created_at', { ascending: false });
-  return (data ?? []) as Case[];
+  const [{ data }, { data: alertRows }] = await Promise.all([
+    supabase
+      .from('cases')
+      .select('*, individual:individuals(*), judge:users!judge_id(*), device:devices(*)')
+      .order('created_at', { ascending: false }),
+    // Active-alert count per case — populates the "Alertes" badge that was
+    // always empty in real mode (the cases query carries no aggregate).
+    supabase.from('alerts').select('case_id').eq('is_resolved', false),
+  ]);
+  const alertCounts = new Map<string, number>();
+  for (const a of (alertRows ?? []) as { case_id: string }[]) {
+    alertCounts.set(a.case_id, (alertCounts.get(a.case_id) ?? 0) + 1);
+  }
+  return ((data ?? []) as Case[]).map((c) => ({ ...c, alert_count: alertCounts.get(c.id) ?? 0 }));
 }
 
 export async function fetchCaseById(id: string): Promise<Case | null> {
