@@ -39,6 +39,11 @@ export default async function GeofencesPage() {
   if (!session) redirect('/sigep/login');
 
   const canManage = allow(session, canManageGeofences(session.role), 'geofences');
+  // Managing == viewing here (no view-only geofence role), and the page loads
+  // every geofence via the admin client — so gate direct URL access, not just
+  // the edit buttons. Without this a scoped role could read all departments.
+  if (!canManage) redirect('/sigep/dashboard');
+
   const [geofences, cases] = await Promise.all([fetchGeofences(), fetchCases(session.role, session.id)]);
 
   const gpsZones    = geofences.filter((g) => g.geofence_type === 'GPS_ZONE');
