@@ -129,7 +129,11 @@ export async function forcePasswordResetAction(formData: FormData): Promise<{ er
   const { data: authUser } = await supabase.auth.admin.getUserById(userData.auth_id);
   if (!authUser?.user?.email) return { error: 'Email introuvable pour cet utilisateur' };
 
-  await supabase.auth.admin.generateLink({ type: 'recovery', email: authUser.user.email });
+  // generateLink only *builds* a recovery link (returned in data) — it never
+  // delivers it, so the previous code reported success while sending nothing.
+  // resetPasswordForEmail dispatches the recovery email via Supabase Auth SMTP.
+  const { error: resetErr } = await supabase.auth.resetPasswordForEmail(authUser.user.email);
+  if (resetErr) return { error: "Échec de l'envoi du lien de réinitialisation" };
 
   const { writeAudit } = await import('@/lib/audit/log');
   await writeAudit({ userId: session.id, action: 'FORCE_PASSWORD_RESET', tableName: 'users', recordId: user_id });
