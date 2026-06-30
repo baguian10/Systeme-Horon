@@ -37,7 +37,7 @@ export default async function RapportViewPage({
   const [cases, alerts, stats] = await Promise.all([
     fetchCases(session.role, session.id),
     fetchAlerts(session.role),
-    fetchOverviewStats(),
+    fetchOverviewStats(session.role),
   ]);
 
   const activeCases   = cases.filter((c) => c.status === 'ACTIVE' || c.status === 'VIOLATION');

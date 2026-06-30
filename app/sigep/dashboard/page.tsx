@@ -17,7 +17,7 @@ export default async function DashboardPage() {
   if (!session) return null;
 
   const [stats, cases, alerts, agenda] = await Promise.all([
-    fetchOverviewStats(),
+    fetchOverviewStats(session.role),
     fetchCases(session.role, session.id),
     fetchAlerts(session.role),
     fetchAgenda(session.role, session.id),

@@ -68,7 +68,7 @@ export default async function RapportsPage() {
   const [, alerts, stats] = await Promise.all([
     fetchCases(session.role, session.id),
     fetchAlerts(session.role),
-    fetchOverviewStats(),
+    fetchOverviewStats(session.role),
   ]);
 
   const openAlerts = alerts.filter((a) => !a.is_resolved).length;

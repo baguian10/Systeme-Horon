@@ -97,10 +97,22 @@ export async function fetchUsers(role?: UserRole, userId?: string): Promise<User
   return (data ?? []) as User[];
 }
 
-export async function fetchOverviewStats(): Promise<OverviewStats> {
-  if (IS_DEMO_MODE) return MOCK_STATS;
+// Aggregate stats are global system figures (no PII). Roles without an RLS read
+// policy on cases — SUPER_ADMIN, delegated ADMIN, STRATEGIC — must count through
+// the service role, otherwise every aggregate comes back 0. JUDGE/OPERATIONAL
+// keep their RLS-scoped view.
+async function statsClient(role?: UserRole) {
+  if (role === 'SUPER_ADMIN' || role === 'ADMIN' || role === 'STRATEGIC') {
+    const { createAdminClient } = await import('@/lib/supabase/admin');
+    return createAdminClient();
+  }
   const { createClient } = await import('@/lib/supabase/server');
-  const supabase = await createClient();
+  return createClient();
+}
+
+export async function fetchOverviewStats(role?: UserRole): Promise<OverviewStats> {
+  if (IS_DEMO_MODE) return MOCK_STATS;
+  const supabase = await statsClient(role);
   if (!supabase) return MOCK_STATS;
   const [
     { count: active_cases },
@@ -120,6 +132,45 @@ export async function fetchOverviewStats(): Promise<OverviewStats> {
     monitored_individuals: (active_cases ?? 0) + (violation_cases ?? 0),
     violation_cases: violation_cases ?? 0,
   };
+}
+
+// PII-free status distribution for the aggregate stats view (selects only the
+// status column, so it is safe to expose to STRATEGIC). Counts the whole system.
+export async function fetchCaseStatusCounts(): Promise<Record<string, number>> {
+  const tally: Record<string, number> = {};
+  if (IS_DEMO_MODE) {
+    for (const c of MOCK_CASES) tally[c.status] = (tally[c.status] ?? 0) + 1;
+    return tally;
+  }
+  const { createAdminClient } = await import('@/lib/supabase/admin');
+  const supabase = createAdminClient();
+  if (!supabase) return tally;
+  const { data } = await supabase.from('cases').select('status');
+  for (const r of (data ?? []) as { status: string }[]) tally[r.status] = (tally[r.status] ?? 0) + 1;
+  return tally;
+}
+
+// PII-free alert distribution (type column + resolved flag only). Counts the
+// whole system, for the aggregate stats view.
+export async function fetchAlertTypeCounts(): Promise<{ byType: Record<string, number>; total: number; resolved: number }> {
+  const byType: Record<string, number> = {};
+  let total = 0;
+  let resolved = 0;
+  const add = (type: string, isResolved: boolean) => {
+    byType[type] = (byType[type] ?? 0) + 1;
+    total += 1;
+    if (isResolved) resolved += 1;
+  };
+  if (IS_DEMO_MODE) {
+    for (const a of MOCK_ALERTS) add(a.alert_type, a.is_resolved);
+    return { byType, total, resolved };
+  }
+  const { createAdminClient } = await import('@/lib/supabase/admin');
+  const supabase = createAdminClient();
+  if (!supabase) return { byType, total, resolved };
+  const { data } = await supabase.from('alerts').select('alert_type, is_resolved');
+  for (const r of (data ?? []) as { alert_type: string; is_resolved: boolean }[]) add(r.alert_type, r.is_resolved);
+  return { byType, total, resolved };
 }
 
 export async function fetchUnassignedDevices(): Promise<Device[]> {

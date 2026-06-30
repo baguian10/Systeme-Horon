@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { Download } from 'lucide-react';
 import { getSession } from '@/lib/auth/session';
 import { canViewStats, canExportData , allow } from '@/lib/auth/permissions';
-import { fetchOverviewStats, fetchCases, fetchAlerts } from '@/lib/mock/helpers';
+import { fetchOverviewStats, fetchCaseStatusCounts, fetchAlertTypeCounts } from '@/lib/mock/helpers';
 import type { CaseStatus, AlertType } from '@/lib/supabase/types';
 
 export const metadata = { title: 'Statistiques — SIGEP' };
@@ -33,11 +33,14 @@ export default async function StatsPage() {
   if (!session || !allow(session, canViewStats(session.role), 'stats')) redirect('/sigep/dashboard');
 
   const canExport = canExportData(session.role);
-  const [stats, cases, alerts] = await Promise.all([
-    fetchOverviewStats(),
-    fetchCases(session.role, session.id),
-    fetchAlerts(session.role),
+  // Aggregate, PII-free sources (status/type counts only) — work for both
+  // SUPER_ADMIN and STRATEGIC, neither of which has an RLS read on case rows.
+  const [stats, statusCounts, alertCounts] = await Promise.all([
+    fetchOverviewStats(session.role),
+    fetchCaseStatusCounts(),
+    fetchAlertTypeCounts(),
   ]);
+  const totalCases = Object.values(statusCounts).reduce((s, n) => s + n, 0);
 
   const STATUS_LABELS: Record<CaseStatus, string> = {
     ACTIVE: 'Actifs', PENDING: 'En attente', SUSPENDED: 'Suspendus',
@@ -50,7 +53,7 @@ export default async function StatsPage() {
 
   const casesByStatus = (Object.keys(STATUS_LABELS) as CaseStatus[]).map((s) => ({
     label: STATUS_LABELS[s],
-    value: cases.filter((c) => c.status === s).length,
+    value: statusCounts[s] ?? 0,
     color: STATUS_COLORS[s],
   }));
 
@@ -60,12 +63,12 @@ export default async function StatsPage() {
   };
   const alertsByType = (Object.keys(ALERT_LABELS) as AlertType[]).map((t) => ({
     label: ALERT_LABELS[t]!,
-    value: alerts.filter((a) => a.alert_type === t).length,
+    value: alertCounts.byType[t] ?? 0,
     color: t === 'TAMPER_DETECTED' ? 'bg-red-500' : t === 'GEOFENCE_EXIT' ? 'bg-orange-400' : 'bg-blue-400',
   }));
 
-  const resolvedRate = alerts.length > 0
-    ? Math.round((alerts.filter((a) => a.is_resolved).length / alerts.length) * 100)
+  const resolvedRate = alertCounts.total > 0
+    ? Math.round((alertCounts.resolved / alertCounts.total) * 100)
     : 0;
 
   return (
@@ -89,9 +92,9 @@ export default async function StatsPage() {
       {/* Summary tiles */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
-          { label: 'Total dossiers', value: cases.length, bg: 'bg-blue-50', text: 'text-blue-700' },
+          { label: 'Total dossiers', value: totalCases, bg: 'bg-blue-50', text: 'text-blue-700' },
           { label: 'Dossiers actifs', value: stats.active_cases, bg: 'bg-green-50', text: 'text-green-700' },
-          { label: 'Total alertes', value: alerts.length, bg: 'bg-orange-50', text: 'text-orange-700' },
+          { label: 'Total alertes', value: alertCounts.total, bg: 'bg-orange-50', text: 'text-orange-700' },
           { label: 'Taux résolution', value: `${resolvedRate}%`, bg: 'bg-emerald-50', text: 'text-emerald-700' },
         ].map((t) => (
           <div key={t.label} className={`${t.bg} rounded-2xl p-5 text-center`}>
