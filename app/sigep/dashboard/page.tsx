@@ -6,6 +6,7 @@ import LiveRadarDot from '@/components/dashboard/LiveRadarDot';
 import {
   fetchOverviewStats, fetchCases, fetchAlerts,
   fetchAgenda, fetchMaintenanceTickets, fetchRevocations, fetchSystemHealth,
+  fetchCaseStatusCounts, fetchAlertTypeCounts,
 } from '@/lib/mock/helpers';
 import { getSession } from '@/lib/auth/session';
 import { canViewPII } from '@/lib/auth/permissions';
@@ -16,11 +17,16 @@ export default async function DashboardPage() {
   const session = await getSession();
   if (!session) return null;
 
-  const [stats, cases, alerts, agenda] = await Promise.all([
+  const isStrategic = session.role === 'STRATEGIC';
+  const [stats, cases, alerts, agenda, statusCounts, alertCounts] = await Promise.all([
     fetchOverviewStats(session.role),
     fetchCases(session.role, session.id),
     fetchAlerts(session.role),
     fetchAgenda(session.role, session.id),
+    // STRATEGIC has no RLS read on case rows — its aggregate cards must source
+    // PII-free system-wide counts, not the (empty) scoped lists.
+    isStrategic ? fetchCaseStatusCounts() : Promise.resolve({} as Record<string, number>),
+    isStrategic ? fetchAlertTypeCounts() : Promise.resolve({ byType: {} as Record<string, number>, total: 0, resolved: 0 }),
   ]);
 
   const today = new Date().toISOString().slice(0, 10);
@@ -92,7 +98,7 @@ export default async function DashboardPage() {
           <div className="bg-white rounded-2xl border border-gray-100 p-5">
             <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Répartition par statut</p>
             {(['ACTIVE','VIOLATION','SUSPENDED','TERMINATED'] as const).map((s) => {
-              const count = cases.filter((c) => c.status === s).length;
+              const count = statusCounts[s] ?? 0;
               return (
                 <div key={s} className="flex items-center justify-between py-1.5 border-b border-gray-50 last:border-0">
                   <CaseStatusBadge status={s} />
@@ -117,7 +123,7 @@ export default async function DashboardPage() {
           <div className="bg-white rounded-2xl border border-gray-100 p-5">
             <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Alertes par type</p>
             {(['GEOFENCE_EXIT','TAMPER_DETECTED','BATTERY_LOW','SIGNAL_LOST'] as const).map((t) => {
-              const count = alerts.filter((a) => a.alert_type === t).length;
+              const count = alertCounts.byType[t] ?? 0;
               const labels: Record<string, string> = { GEOFENCE_EXIT: 'Sortie zone', TAMPER_DETECTED: 'Anti-sabotage', BATTERY_LOW: 'Batterie', SIGNAL_LOST: 'Signal perdu' };
               return (
                 <div key={t} className="flex items-center justify-between py-1 border-b border-gray-50 last:border-0 text-sm">
