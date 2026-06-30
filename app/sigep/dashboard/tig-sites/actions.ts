@@ -52,14 +52,15 @@ export async function createTigSiteAction(
   const supabase = createAdminClient();
   if (!supabase) return { error: 'Base de données indisponible' };
 
-  const { error } = await supabase.from('tig_sites').insert({
+  const { data, error } = await supabase.from('tig_sites').insert({
     name, category, address, arrondissement, contact_name, contact_phone,
     capacity, hours, is_active: true,
     latitude: isNaN(latitude) ? null : latitude,
     longitude: isNaN(longitude) ? null : longitude,
-  });
+  }).select('id').single();
 
   if (error) return { error: 'Erreur lors de la création du site' };
+  await writeAudit({ userId: session.id, action: 'CREATE_TIG_SITE', tableName: 'tig_sites', recordId: data?.id, newData: { name } });
   revalidatePath('/sigep/dashboard/tig-sites');
   return null;
 }
@@ -84,5 +85,11 @@ export async function toggleTigSiteAction(formData: FormData): Promise<void> {
   const supabase = createAdminClient();
   if (!supabase) return;
   await supabase.from('tig_sites').update({ is_active: !is_active }).eq('id', site_id);
+  await writeAudit({
+    userId: session.id,
+    action: !is_active ? 'ACTIVATE_TIG_SITE' : 'DEACTIVATE_TIG_SITE',
+    tableName: 'tig_sites',
+    recordId: site_id,
+  });
   revalidatePath('/sigep/dashboard/tig-sites');
 }
