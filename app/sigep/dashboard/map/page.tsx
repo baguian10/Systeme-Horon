@@ -88,26 +88,31 @@ export default async function MapPage({
   const onlineCount  = activeCases.filter((c) => c.device?.is_online).length;
   const alertCount   = activeCases.filter((c) => c.status === 'VIOLATION').length;
 
-  const markers: TrackerMarker[] = positions.map((pos) => {
-    const relatedCase = cases.find((c) => c.id === pos.case_id);
-    return {
+  // Live surveillance shows only actively-monitored subjects. fetchLatestPositions
+  // returns the latest fix per case regardless of status, so without this filter
+  // closed/suspended cases leave stale dots on the map and contradict the
+  // "en ligne / violations" header counts (which are computed over active cases).
+  const markers: TrackerMarker[] = positions
+    .map((pos) => ({ pos, relatedCase: cases.find((c) => c.id === pos.case_id) }))
+    .filter(({ relatedCase }) =>
+      relatedCase != null && (relatedCase.status === 'ACTIVE' || relatedCase.status === 'VIOLATION'))
+    .map(({ pos, relatedCase }) => ({
       id:             pos.id,
       caseId:         pos.case_id,
       caseRef:        pos.case_number,
-      label:          relatedCase?.individual?.full_name ?? pos.case_number,
+      label:          relatedCase!.individual?.full_name ?? pos.case_number,
       lat:            pos.latitude,
       lng:            pos.longitude,
-      status:         STATUS_TO_TRACKER[relatedCase?.status ?? 'PENDING'] ?? 'offline',
+      status:         STATUS_TO_TRACKER[relatedCase!.status] ?? 'offline',
       lastUpdate:     new Date(pos.recorded_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
       lastSeenMs:     Date.parse(pos.recorded_at),
-      battery:        relatedCase?.device?.battery_pct ?? null,
+      battery:        relatedCase!.device?.battery_pct ?? null,
       speedKmh:       pos.speed_kmh ?? null,
-      online:         relatedCase?.device?.is_online ?? false,
-      imei:           relatedCase?.device?.imei ?? null,
-      riskLevel:      relatedCase?.risk_level ?? null,
+      online:         relatedCase!.device?.is_online ?? false,
+      imei:           relatedCase!.device?.imei ?? null,
+      riskLevel:      relatedCase!.risk_level ?? null,
       curfew:         curfewStatus(pos.case_id, pos.latitude, pos.longitude),
-    };
-  });
+    }));
 
   // Heatmap stats
   const hotZones = heatPoints.filter((p) => p.intensity >= 4).length;
