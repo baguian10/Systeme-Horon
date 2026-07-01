@@ -199,6 +199,20 @@ interface ConfigPayload {
   setHomeFromDevice?: boolean; minRssi: number;
 }
 
+// BLE proximity ↔ RSSI, log-distance path-loss model (TxPower -59 dBm @1m,
+// path-loss exponent 2.5 for indoor). Lets the operator think in metres while
+// the device/enforcement works in RSSI dBm.
+const TX_POWER = -59;
+const PATH_LOSS = 2.5;
+function metersToRssi(m: number): number {
+  const d = Math.max(0.5, m);
+  return Math.round(TX_POWER - 10 * PATH_LOSS * Math.log10(d));
+}
+function rssiToMeters(rssi: number): number {
+  const d = Math.pow(10, (TX_POWER - rssi) / (10 * PATH_LOSS));
+  return Math.round(d * 10) / 10;
+}
+
 function BeaconConfigForm({ beacon, onSave }: { beacon: Beacon; onSave: (p: ConfigPayload) => Promise<boolean> }) {
   const [alarmEnabled, setAlarm] = useState(beacon.alarm_enabled ?? true);
   const [maxDistanceM, setDist] = useState(beacon.max_distance_m ?? 50);
@@ -208,6 +222,8 @@ function BeaconConfigForm({ beacon, onSave }: { beacon: Beacon; onSave: (p: Conf
   const [activeEnd, setEnd] = useState(beacon.active_end ?? '');
   const [setHome, setSetHome] = useState(false);
   const [minRssi, setMinRssi] = useState(beacon.min_rssi ?? -85);
+  // BLE proximity expressed in metres (derived from the RSSI threshold).
+  const [bleMeters, setBleMeters] = useState(rssiToMeters(beacon.min_rssi ?? -85));
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const homeSet = beacon.home_lat != null && beacon.home_lng != null;
@@ -233,8 +249,15 @@ function BeaconConfigForm({ beacon, onSave }: { beacon: Beacon; onSave: (p: Conf
         <input type="number" min={0} max={120} value={graceMinutes} onChange={(e) => setGrace(Number(e.target.value))} className={FIELD + ' w-20'} />
       </div>
       <div>
-        <label className="block text-[11px] text-gray-500 mb-0.5" title="Signal min pour considérer 'à domicile' (ex -85). Plus proche de 0 = doit être plus près.">Seuil RSSI (dBm)</label>
-        <input type="number" min={-100} max={-30} value={minRssi} onChange={(e) => setMinRssi(Number(e.target.value))} className={FIELD + ' w-20'} />
+        <label className="block text-[11px] text-gray-500 mb-0.5" title="Distance maximale entre le bracelet et la balise domicile pour être considéré 'à domicile'. Au-delà (beacon trop faible/absent), le sujet est jugé hors domicile → alarme après le délai de grâce.">
+          Distance BLE domicile (m)
+        </label>
+        <input
+          type="number" min={1} max={50} step={1} value={bleMeters}
+          onChange={(e) => { const m = Number(e.target.value); setBleMeters(m); setMinRssi(metersToRssi(m)); }}
+          className={FIELD + ' w-24'}
+        />
+        <p className="text-[9px] text-gray-400 mt-0.5">≈ seuil {minRssi} dBm</p>
       </div>
       <label className="flex items-center gap-1.5 text-xs text-gray-700">
         <input type="checkbox" checked={notifyExit} onChange={(e) => setNotify(e.target.checked)} /> Notifier sortie
