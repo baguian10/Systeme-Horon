@@ -12,6 +12,7 @@ import { canViewPII, canManageGeofences, canUpdateCaseStatus, canManageAssignmen
 import StatusControls from '@/components/cases/StatusControls';
 import MeasureConditionsForm from '@/components/cases/MeasureConditionsForm';
 import CaseActionsPanel from '@/components/cases/CaseActionsPanel';
+import ActivateMonitoringButton from '@/components/cases/ActivateMonitoringButton';
 import GeofenceManager from '@/components/cases/GeofenceManager';
 import MeasurePanel from '@/components/cases/MeasurePanel';
 import CaseBeaconManager from '@/components/cases/CaseBeaconManager';
@@ -116,6 +117,12 @@ export default async function CaseDetailPage({ params }: { params: Promise<{ id:
           </div>
           {canStatus && caseData.status !== 'TERMINATED' && (
             <StatusControls caseId={caseData.id} currentStatus={caseData.status} />
+          )}
+          {/* Activation handshake — verify the bracelet before the case goes live */}
+          {canStatus && caseData.status === 'PENDING' && device && (
+            <div className="mt-2">
+              <ActivateMonitoringButton caseId={caseData.id} />
+            </div>
           )}
           <div className="mt-3">
             {canStatus

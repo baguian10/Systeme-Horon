@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback, Fragment } from 'react';
-import { Bluetooth, Plus, Link2, Unlink, AlertTriangle, CheckCircle2, Settings } from 'lucide-react';
+import { Bluetooth, Plus, Link2, Unlink, AlertTriangle, CheckCircle2, Settings, Radar, Loader2 } from 'lucide-react';
 
 interface DeviceOpt { id: string; imei: string }
 interface Beacon {
@@ -33,6 +33,20 @@ export default function BeaconsManager({ devices }: { devices: DeviceOpt[] }) {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [cfgOpen, setCfgOpen] = useState<string | null>(null);
+  const [testing, setTesting] = useState<string | null>(null);
+  const [testResult, setTestResult] = useState<Record<string, { ok: boolean; reason: string }>>({});
+
+  async function testBeacon(id: string) {
+    setTesting(id);
+    setTestResult((p) => { const n = { ...p }; delete n[id]; return n; });
+    try {
+      const r = await fetch('/api/beacons/test', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ beaconId: id }) });
+      const d = await r.json();
+      setTestResult((p) => ({ ...p, [id]: { ok: Boolean(r.ok && d.strongEnough), reason: d.error ?? d.reason ?? '' } }));
+    } catch {
+      setTestResult((p) => ({ ...p, [id]: { ok: false, reason: 'Erreur réseau' } }));
+    } finally { setTesting(null); }
+  }
 
   const load = useCallback(async () => {
     try {
@@ -146,7 +160,17 @@ export default function BeaconsManager({ devices }: { devices: DeviceOpt[] }) {
                       <button onClick={() => setCfgOpen(cfgOpen === b.id ? null : b.id)} data-tip="Options d'alarme domicile : distance max, délai de grâce, horaires, notifications" className={`p-1 ${cfgOpen === b.id ? 'text-blue-600' : 'text-gray-500 hover:text-blue-600'}`}>
                         <Settings className="w-3.5 h-3.5" />
                       </button>
+                      {b.device_id && (
+                        <button onClick={() => testBeacon(b.id)} disabled={testing === b.id} data-tip="Demander au bracelet lié de scanner en BLE et confirmer que cette balise est réellement détectée" className="p-1 text-gray-500 hover:text-indigo-600 disabled:opacity-50">
+                          {testing === b.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Radar className="w-3.5 h-3.5" />}
+                        </button>
+                      )}
                     </div>
+                    {testResult[b.id] && (
+                      <p className={`text-[10px] mt-1 ${testResult[b.id].ok ? 'text-emerald-600' : 'text-red-600'}`}>
+                        {testResult[b.id].ok ? '✓ ' : '✗ '}{testResult[b.id].reason}
+                      </p>
+                    )}
                   </td>
                 </tr>
                 {cfgOpen === b.id && (
