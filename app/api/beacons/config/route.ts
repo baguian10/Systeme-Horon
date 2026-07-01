@@ -12,7 +12,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Accès refusé' }, { status: 403 });
   }
   let b: {
-    beaconId?: string; alarmEnabled?: boolean; maxDistanceM?: number;
+    beaconId?: string; alarmEnabled?: boolean; alarmMode?: string; maxDistanceM?: number;
     graceMinutes?: number; notifyExit?: boolean; activeStart?: string | null; activeEnd?: string | null;
     setHomeFromDevice?: boolean; minRssi?: number;
   };
@@ -21,6 +21,7 @@ export async function POST(request: NextRequest) {
 
   const update: Record<string, unknown> = {};
   if (b.alarmEnabled !== undefined) update.alarm_enabled = Boolean(b.alarmEnabled);
+  if (b.alarmMode !== undefined && ['GPS', 'BLE', 'BOTH'].includes(b.alarmMode)) update.alarm_mode = b.alarmMode;
   if (b.notifyExit !== undefined) update.notify_exit = Boolean(b.notifyExit);
   if (b.maxDistanceM !== undefined) update.max_distance_m = Math.max(5, Math.min(5000, Math.round(Number(b.maxDistanceM) || 50)));
   if (b.minRssi !== undefined) update.min_rssi = Math.max(-100, Math.min(-30, Math.round(Number(b.minRssi) || -85)));

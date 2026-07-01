@@ -17,6 +17,7 @@ interface Beacon {
   home_lat?: number | null;
   home_lng?: number | null;
   min_rssi?: number;
+  alarm_mode?: 'GPS' | 'BLE' | 'BOTH';
 }
 
 const STATUS_STYLE: Record<string, string> = {
@@ -194,7 +195,7 @@ export default function BeaconsManager({ devices }: { devices: DeviceOpt[] }) {
 }
 
 interface ConfigPayload {
-  alarmEnabled: boolean; maxDistanceM: number; graceMinutes: number;
+  alarmEnabled: boolean; alarmMode: 'GPS' | 'BLE' | 'BOTH'; maxDistanceM: number; graceMinutes: number;
   notifyExit: boolean; activeStart: string | null; activeEnd: string | null;
   setHomeFromDevice?: boolean; minRssi: number;
 }
@@ -215,6 +216,7 @@ function rssiToMeters(rssi: number): number {
 
 function BeaconConfigForm({ beacon, onSave }: { beacon: Beacon; onSave: (p: ConfigPayload) => Promise<boolean> }) {
   const [alarmEnabled, setAlarm] = useState(beacon.alarm_enabled ?? true);
+  const [alarmMode, setMode] = useState<'GPS' | 'BLE' | 'BOTH'>(beacon.alarm_mode ?? 'BOTH');
   const [maxDistanceM, setDist] = useState(beacon.max_distance_m ?? 50);
   const [graceMinutes, setGrace] = useState(beacon.grace_minutes ?? 5);
   const [notifyExit, setNotify] = useState(beacon.notify_exit ?? true);
@@ -230,7 +232,7 @@ function BeaconConfigForm({ beacon, onSave }: { beacon: Beacon; onSave: (p: Conf
 
   async function save() {
     setSaving(true); setSaved(false);
-    const ok = await onSave({ alarmEnabled, maxDistanceM: Number(maxDistanceM), graceMinutes: Number(graceMinutes), notifyExit, activeStart: activeStart || null, activeEnd: activeEnd || null, setHomeFromDevice: setHome, minRssi: Number(minRssi) });
+    const ok = await onSave({ alarmEnabled, alarmMode, maxDistanceM: Number(maxDistanceM), graceMinutes: Number(graceMinutes), notifyExit, activeStart: activeStart || null, activeEnd: activeEnd || null, setHomeFromDevice: setHome, minRssi: Number(minRssi) });
     setSaving(false); setSaved(ok);
   }
 
@@ -241,9 +243,19 @@ function BeaconConfigForm({ beacon, onSave }: { beacon: Beacon; onSave: (p: Conf
         <input type="checkbox" checked={alarmEnabled} onChange={(e) => setAlarm(e.target.checked)} /> Alarme activée
       </label>
       <div>
-        <label className="block text-[11px] text-gray-500 mb-0.5">Distance max alarme (m)</label>
-        <input type="number" min={5} max={5000} value={maxDistanceM} onChange={(e) => setDist(Number(e.target.value))} className={FIELD + ' w-24'} />
+        <label className="block text-[11px] text-gray-500 mb-0.5" title="BLE = proximité balise seule (sans géofence). GPS = rayon domicile. Les deux = GPS avec suppression BLE.">Mode d&apos;alarme</label>
+        <select value={alarmMode} onChange={(e) => setMode(e.target.value as 'GPS' | 'BLE' | 'BOTH')} className={FIELD}>
+          <option value="BLE">Proximité BLE (sans géofence)</option>
+          <option value="GPS">Rayon domicile GPS</option>
+          <option value="BOTH">Les deux (GPS + BLE)</option>
+        </select>
       </div>
+      {alarmMode !== 'BLE' && (
+        <div>
+          <label className="block text-[11px] text-gray-500 mb-0.5">Distance max alarme GPS (m)</label>
+          <input type="number" min={5} max={5000} value={maxDistanceM} onChange={(e) => setDist(Number(e.target.value))} className={FIELD + ' w-24'} />
+        </div>
+      )}
       <div>
         <label className="block text-[11px] text-gray-500 mb-0.5">Délai de grâce (min)</label>
         <input type="number" min={0} max={120} value={graceMinutes} onChange={(e) => setGrace(Number(e.target.value))} className={FIELD + ' w-20'} />
@@ -276,9 +288,14 @@ function BeaconConfigForm({ beacon, onSave }: { beacon: Beacon; onSave: (p: Conf
       <button onClick={save} disabled={saving} data-tip="Enregistrer les options d'alarme domicile de cette balise" className="px-3 py-1.5 rounded-lg bg-blue-600 text-white text-xs font-semibold disabled:opacity-40">
         {saving ? '…' : 'Enregistrer options'}
       </button>
-      <span className={`text-xs ${homeSet ? 'text-emerald-600' : 'text-amber-600'}`}>
-        {homeSet ? 'Domicile défini ✓' : 'Domicile non défini'}
-      </span>
+      {alarmMode !== 'BLE' && (
+        <span className={`text-xs ${homeSet ? 'text-emerald-600' : 'text-amber-600'}`}>
+          {homeSet ? 'Domicile défini ✓' : 'Domicile non défini'}
+        </span>
+      )}
+      {alarmMode === 'BLE' && (
+        <span className="text-xs text-blue-600">Mode BLE : aucune géofence requise</span>
+      )}
       {saved && <span className="text-xs text-emerald-600">Enregistré ✓</span>}
     </div>
   );

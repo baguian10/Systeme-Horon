@@ -126,18 +126,44 @@ export async function GET(request: NextRequest) {
       if (live.signal !== null) deviceUpdate.signal_strength_dbm = live.signal;
       await supabase.from('devices').update(deviceUpdate).eq('id', device.id);
 
-      // ── BLE beacon home alarm: distance + grace period enforcement ──
+      // ── BLE beacon home alarm: GPS / BLE-proximity / BOTH, with grace ──
       const { data: beacon } = await supabase
         .from('beacons')
-        .select('id, uid, min_rssi, alarm_enabled, max_distance_m, grace_minutes, active_start, active_end, home_lat, home_lng, out_since')
+        .select('id, uid, min_rssi, alarm_enabled, alarm_mode, max_distance_m, grace_minutes, active_start, active_end, home_lat, home_lng, out_since')
         .eq('device_id', device.id)
         .maybeSingle();
 
-      if (beacon && beacon.alarm_enabled && beacon.home_lat != null && beacon.home_lng != null
-          && withinActiveWindow(beacon.active_start, beacon.active_end)) {
-        const dist = haversineM(live.lat, live.lng, beacon.home_lat, beacon.home_lng);
-        if (dist > (beacon.max_distance_m ?? 50)) {
-          const now = Date.now();
+      if (beacon && beacon.alarm_enabled && withinActiveWindow(beacon.active_start, beacon.active_end)) {
+        const mode = (beacon.alarm_mode as 'GPS' | 'BLE' | 'BOTH') ?? 'BOTH';
+        const minRssi = beacon.min_rssi ?? -85;
+
+        // BLE presence (needed for BLE + BOTH). null = no scan data → unknown.
+        let bleInRange: boolean | null = null;
+        if (mode === 'BLE' || mode === 'BOTH') {
+          const scan = await getLatestBleScan(device.imei);
+          if (scan) {
+            const hit = scan.sightings.find((s) => s.mac === (beacon.uid ?? '').toUpperCase());
+            bleInRange = !!hit && hit.rssi >= minRssi;
+          }
+        }
+        // GPS distance from the recorded home point (needed for GPS + BOTH).
+        const gpsFar = (beacon.home_lat != null && beacon.home_lng != null)
+          ? haversineM(live.lat, live.lng, beacon.home_lat, beacon.home_lng) > (beacon.max_distance_m ?? 50)
+          : null;
+        const dist = (beacon.home_lat != null && beacon.home_lng != null)
+          ? Math.round(haversineM(live.lat, live.lng, beacon.home_lat, beacon.home_lng)) : null;
+
+        // Decide "away from home" per mode.
+        //  BLE  → beacon no longer seen strongly enough (pure proximity, no geofence).
+        //  GPS  → outside the home radius.
+        //  BOTH → GPS says far AND the beacon isn't in range (indoor-drift safe).
+        let away: boolean | null;
+        if (mode === 'BLE') away = bleInRange === null ? null : !bleInRange;
+        else if (mode === 'GPS') away = gpsFar;
+        else away = (gpsFar === true) ? (bleInRange !== true) : false;
+
+        const now = Date.now();
+        if (away === true) {
           let outSince = beacon.out_since ? new Date(beacon.out_since).getTime() : null;
           if (!outSince) {
             outSince = now;
@@ -145,47 +171,36 @@ export async function GET(request: NextRequest) {
           }
           const elapsedMin = (now - outSince) / 60000;
           if (elapsedMin >= (beacon.grace_minutes ?? 0)) {
-            // Combined logic: GPS says "far", but if the home BLE beacon is still
-            // detected ABOVE the RSSI threshold, the person is actually home
-            // (indoor GPS drift) → suppress. A weak/absent beacon signal = away.
-            const scan = await getLatestBleScan(device.imei);
-            const hit = scan?.sightings.find((s) => s.mac === (beacon.uid ?? '').toUpperCase());
-            const atHome = !!hit && hit.rssi >= (beacon.min_rssi ?? -85);
-            if (atHome) {
-              await supabase.from('beacons').update({ out_since: null }).eq('id', beacon.id);
-            } else {
-              const { count } = await supabase
-                .from('alerts')
-                .select('id', { count: 'exact', head: true })
-                .eq('case_id', device.case_id)
-                .eq('alert_type', 'GEOFENCE_EXIT')
-                .eq('is_resolved', false);
-              if (!count) {
-                await supabase.from('alerts').insert({
-                  case_id: device.case_id,
-                  device_id: device.id,
-                  alert_type: 'GEOFENCE_EXIT',
-                  severity: 4,
-                  description: `Éloignement du domicile : ${Math.round(dist)} m (max ${beacon.max_distance_m} m) depuis ${beacon.grace_minutes} min, beacon non détecté.`,
-                  position_lat: live.lat,
-                  position_lon: live.lng,
-                });
-                // Notify the responsible judge by SMS (if configured + phone set).
-                const { data: kase } = await supabase.from('cases').select('judge_id').eq('id', device.case_id).single();
-                if (kase?.judge_id) {
-                  const { data: ju } = await supabase.from('users').select('phone').eq('id', kase.judge_id).single();
-                  if (ju?.phone) {
-                    const { sendSms } = await import('@/lib/sms');
-                    await sendSms(ju.phone, `SIGEP - ALERTE: eloignement du domicile detecte (${Math.round(dist)} m). Verifiez la plateforme.`);
-                  }
+            const { count } = await supabase
+              .from('alerts')
+              .select('id', { count: 'exact', head: true })
+              .eq('case_id', device.case_id)
+              .eq('alert_type', 'GEOFENCE_EXIT')
+              .eq('is_resolved', false);
+            if (!count) {
+              const detail = mode === 'BLE'
+                ? `Sortie du périmètre domicile (balise BLE hors de portée) depuis ${beacon.grace_minutes} min.`
+                : `Éloignement du domicile : ${dist} m (max ${beacon.max_distance_m} m) depuis ${beacon.grace_minutes} min, balise non détectée.`;
+              await supabase.from('alerts').insert({
+                case_id: device.case_id, device_id: device.id,
+                alert_type: 'GEOFENCE_EXIT', severity: 4, description: detail,
+                position_lat: live.lat, position_lon: live.lng,
+              });
+              const { data: kase } = await supabase.from('cases').select('judge_id').eq('id', device.case_id).single();
+              if (kase?.judge_id) {
+                const { data: ju } = await supabase.from('users').select('phone').eq('id', kase.judge_id).single();
+                if (ju?.phone) {
+                  const { sendSms } = await import('@/lib/sms');
+                  await sendSms(ju.phone, `SIGEP - ALERTE: sortie du domicile detectee. Verifiez la plateforme.`);
                 }
               }
             }
           }
-        } else if (beacon.out_since) {
-          // Back within range → reset the absence timer.
+        } else if (away === false && beacon.out_since) {
+          // Back home → reset the absence timer.
           await supabase.from('beacons').update({ out_since: null }).eq('id', beacon.id);
         }
+        // away === null (no BLE data yet) → leave the grace clock untouched.
       }
 
       // Health alerts (deduped by the alert ingest? — keep simple: emit on threshold)
