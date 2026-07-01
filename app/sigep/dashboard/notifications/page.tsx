@@ -3,6 +3,7 @@ import { Bell, BellOff, CheckCircle2, AlertTriangle, Wifi, Battery, Shield, Zap 
 import { getSession } from '@/lib/auth/session';
 import { fetchAlerts } from '@/lib/mock/helpers';
 import NotificationPrefsForm from './NotificationPrefsForm';
+import PushToggle from '@/components/notifications/PushToggle';
 import type { AlertType } from '@/lib/supabase/types';
 
 export const metadata = { title: 'Notifications & Escalades — SIGEP' };
@@ -68,6 +69,7 @@ export default async function NotificationsPage() {
               <p className="text-xs text-gray-400 mt-0.5">Choisissez les alertes à recevoir</p>
             </div>
             <NotificationPrefsForm initial={initialPrefs} />
+            <PushToggle />
           </div>
 
           {/* Escalation logic */}

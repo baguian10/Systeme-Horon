@@ -40,16 +40,27 @@ export async function dispatchAlertNotifications(params: {
     ].filter(Boolean) as string[];
     if (ids.length === 0) return;
 
-    const { data: users } = await sb.from('users').select('phone, notification_prefs').in('id', ids);
+    const { data: users } = await sb.from('users').select('id, phone, notification_prefs').in('id', ids);
 
     const label = LABELS[alertType] ?? alertType;
     const ref = (c as { case_number?: string } | null)?.case_number;
     const message = `SIGEP - ALERTE ${label}${ref ? ` (${ref})` : ''}.${params.description ? ' ' + params.description : ''} Verifiez la plateforme.`;
 
+    const { sendPushToUser } = await import('@/lib/push');
+
     await Promise.all(
-      ((users ?? []) as { phone: string | null; notification_prefs: Prefs | null }[]).map(async (u) => {
+      ((users ?? []) as { id: string; phone: string | null; notification_prefs: Prefs | null }[]).map(async (u) => {
         const prefs = u.notification_prefs?.[alertType];
-        if (prefs?.sms && u.phone) await sendSms(u.phone, message);
+        if (!prefs) return;
+        if (prefs.sms && u.phone) await sendSms(u.phone, message);
+        if (prefs.push) {
+          await sendPushToUser(sb as unknown as Parameters<typeof sendPushToUser>[0], u.id, {
+            title: `SIGEP — ${label}${ref ? ` (${ref})` : ''}`,
+            body: params.description ?? 'Nouvelle alerte. Vérifiez la plateforme.',
+            url: caseId ? `/sigep/dashboard/cases/${caseId}` : '/sigep/dashboard/monitoring',
+            tag: `alert-${caseId}`,
+          });
+        }
       }),
     );
   } catch {
