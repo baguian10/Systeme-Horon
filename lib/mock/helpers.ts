@@ -103,11 +103,15 @@ export async function fetchUsers(role?: UserRole, userId?: string): Promise<User
   const { createAdminClient } = await import('@/lib/supabase/admin');
   const supabase = createAdminClient();
   if (!supabase) return [];
-  const base = supabase.from('users').select('*').order('created_at', { ascending: false });
+  const base = supabase
+    .from('users')
+    .select('*, creator:users!created_by(full_name)')
+    .order('created_at', { ascending: false });
   const { data } = role === 'JUDGE' && userId
     ? await base.eq('role', 'OPERATIONAL').eq('created_by', userId)
     : await base;
-  return (data ?? []) as User[];
+  type Row = User & { creator?: { full_name?: string } | null };
+  return ((data ?? []) as Row[]).map((u) => ({ ...u, created_by_name: u.creator?.full_name ?? null }));
 }
 
 // Aggregate stats are global system figures (no PII). Roles without an RLS read

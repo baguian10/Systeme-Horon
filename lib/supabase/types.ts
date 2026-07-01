@@ -20,6 +20,7 @@ export interface User {
   created_at: string;
   updated_at: string;
   created_by?: string | null;
+  created_by_name?: string | null;
   access_scope?: 'FULL' | 'RESTRICTED' | null;
   permissions?: string[];
   department_id?: string | null;

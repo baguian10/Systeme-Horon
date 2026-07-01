@@ -88,7 +88,8 @@ export default async function UsersPage() {
                     <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Affectation</th>
                     <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Portée</th>
                     <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Créé le</th>
-                    <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Actif</th>
+                    <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Statut</th>
+                    <th className="px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
@@ -111,8 +112,14 @@ export default async function UsersPage() {
                       </td>
                       <td className="px-5 py-3.5">
                         {user.is_active
-                          ? <CheckCircle className="w-4 h-4 text-green-500" />
-                          : <XCircle className="w-4 h-4 text-gray-300" />}
+                          ? <span className="inline-flex items-center gap-1 text-xs text-green-600"><CheckCircle className="w-3.5 h-3.5" />Actif</span>
+                          : <span className="inline-flex items-center gap-1 text-xs text-gray-400"><XCircle className="w-3.5 h-3.5" />Suspendu</span>}
+                      </td>
+                      <td className="px-5 py-3.5">
+                        <div className="flex items-center justify-end gap-2 flex-wrap">
+                          <ToggleUserButton userId={user.id} isActive={user.is_active} />
+                          <ForceResetButton userId={user.id} />
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -165,6 +172,7 @@ export default async function UsersPage() {
                 <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Badge</th>
                 <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Juridiction</th>
                 <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Portée</th>
+                <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Créé par</th>
                 <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Créé le</th>
                 <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Actif</th>
                 {isSuperAdmin && (
@@ -194,6 +202,9 @@ export default async function UsersPage() {
                   </td>
                   <td className="px-5 py-3.5">
                     <ScopeBadge scope={user.access_scope} />
+                  </td>
+                  <td className="px-5 py-3.5 text-xs text-gray-500">
+                    {user.created_by_name ?? <span className="text-gray-300">Système</span>}
                   </td>
                   <td className="px-5 py-3.5 text-xs text-gray-400">
                     {formatDate(user.created_at)}

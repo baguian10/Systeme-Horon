@@ -2,11 +2,34 @@
 
 import { revalidatePath } from 'next/cache';
 import { getSession } from '@/lib/auth/session';
-import { canViewUsers, canManageAllUsers } from '@/lib/auth/permissions';
+import { canViewUsers, canManageAllUsers, canManageOwnAgents } from '@/lib/auth/permissions';
 import type { UserRole } from '@/lib/supabase/types';
 
 const isDemoMode = () =>
   !process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+// Returns true if the session may manage the target account:
+//  - SUPER_ADMIN → anyone;
+//  - JUDGE → only an OPERATIONAL agent they created (created_by = self).
+// Reads the target via the admin client so created_by/role are authoritative.
+async function canManageTarget(
+  session: { id: string; role: UserRole },
+  targetId: string,
+): Promise<boolean> {
+  if (canManageAllUsers(session.role)) return true;
+  if (!canManageOwnAgents(session.role)) return false;
+  if (isDemoMode()) {
+    const { MOCK_USERS } = await import('@/lib/mock/data');
+    const t = MOCK_USERS.find((u) => u.id === targetId);
+    return t?.role === 'OPERATIONAL' && (t as { created_by?: string }).created_by === session.id;
+  }
+  const { createAdminClient } = await import('@/lib/supabase/admin');
+  const sb = createAdminClient();
+  if (!sb) return false;
+  const { data } = await sb.from('users').select('role, created_by').eq('id', targetId).maybeSingle();
+  const t = data as { role?: UserRole; created_by?: string | null } | null;
+  return t?.role === 'OPERATIONAL' && t?.created_by === session.id;
+}
 
 // Roles each creator is allowed to provision
 const ALLOWED_ROLES: Record<string, UserRole[]> = {
@@ -107,10 +130,11 @@ export async function createUserAction(
 
 export async function forcePasswordResetAction(formData: FormData): Promise<{ error?: string; success?: string }> {
   const session = await getSession();
-  if (!session || !canManageAllUsers(session.role)) return { error: 'Accès refusé' };
+  if (!session) return { error: 'Accès refusé' };
 
   const user_id = formData.get('user_id') as string;
   if (!user_id || user_id === session.id) return { error: 'Opération non autorisée' };
+  if (!(await canManageTarget(session, user_id))) return { error: 'Accès refusé' };
 
   if (isDemoMode()) {
     const { writeAudit } = await import('@/lib/audit/log');
@@ -146,11 +170,12 @@ export async function forcePasswordResetAction(formData: FormData): Promise<{ er
 
 export async function toggleUserActiveAction(formData: FormData): Promise<void> {
   const session = await getSession();
-  if (!session || !canManageAllUsers(session.role)) return;
+  if (!session) return;
 
   const user_id = formData.get('user_id') as string;
   const next_active = formData.get('next_active') === 'true';
   if (!user_id || user_id === session.id) return; // cannot toggle self
+  if (!(await canManageTarget(session, user_id))) return;
 
   if (isDemoMode()) {
     const { MOCK_USERS } = await import('@/lib/mock/data');

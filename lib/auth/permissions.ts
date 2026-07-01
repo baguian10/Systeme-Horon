@@ -95,6 +95,10 @@ export const canViewStats         = (role: UserRole) => role === 'SUPER_ADMIN' |
 // ── Level 2 (JUDGE) — case creation & agent management ──────────────────────
 // SUPER_ADMIN + JUDGE can view users; JUDGE sees only their own agents
 export const canViewUsers         = (role: UserRole) => role === 'SUPER_ADMIN' || role === 'JUDGE';
+// A JUDGE manages (suspend / reactivate / reset password) the OPERATIONAL
+// agents THEY created — never another judge's agents. Enforced with created_by
+// at the action layer. SUPER_ADMIN manages everyone (canManageAllUsers).
+export const canManageOwnAgents   = (role: UserRole) => role === 'JUDGE';
 export const canCreateCase        = (role: UserRole) => role === 'JUDGE' || role === 'SUPER_ADMIN';
 // Geofence tracing = technical task → SUPER_ADMIN only (judges aren't technical).
 export const canManageGeofences   = (role: UserRole) => role === 'SUPER_ADMIN';
