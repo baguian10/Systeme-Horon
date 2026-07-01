@@ -18,9 +18,44 @@
 import { request, Agent } from 'undici';
 
 const API_BASE = process.env.TRAXBEAN_API_BASE ?? 'https://napi.5gcity.com';
-const TOKEN = process.env.TRAXBEAN_TOKEN;
+const STATIC_TOKEN = process.env.TRAXBEAN_TOKEN;          // legacy fallback
+const USERNAME = process.env.TRAXBEAN_USERNAME;
+const PASSWORD = process.env.TRAXBEAN_PASSWORD;
 
 const dispatcher = new Agent({ connect: { rejectUnauthorized: false } });
+
+// ── Auto-renewing session token ──────────────────────────────────────────────
+// The platform JWT is short-lived and, once expired, silently kills all device
+// calls. When TRAXBEAN_USERNAME/PASSWORD are set we log in programmatically and
+// cache the token, re-logging in on expiry. Falls back to the static token.
+let cachedToken: string | null = null;
+let cachedAt = 0;
+const TOKEN_TTL_MS = 45 * 60_000; // refresh well before typical expiry
+
+async function login(): Promise<string | null> {
+  if (!USERNAME || !PASSWORD) return null;
+  try {
+    const res = await request(`${API_BASE}/admin/login`, {
+      method: 'POST', dispatcher,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: USERNAME, password: PASSWORD }),
+    });
+    const json = (await res.body.json().catch(() => null)) as { data?: { token?: string } } | null;
+    const token = json?.data?.token;
+    if (token) { cachedToken = token; cachedAt = Date.now(); return token; }
+    return null;
+  } catch { return null; }
+}
+
+// Current auth token: cached login token, a fresh login, or the static token.
+async function getToken(forceRefresh = false): Promise<string | null> {
+  if (USERNAME && PASSWORD) {
+    if (!forceRefresh && cachedToken && Date.now() - cachedAt < TOKEN_TTL_MS) return cachedToken;
+    const t = await login();
+    return t ?? cachedToken ?? STATIC_TOKEN ?? null;
+  }
+  return STATIC_TOKEN ?? null;
+}
 
 export type TraxbeanLocation = {
   imei: string;
@@ -35,47 +70,71 @@ export type TraxbeanLocation = {
 };
 
 export function isTraxbeanConfigured(): boolean {
-  return Boolean(TOKEN);
+  return Boolean((USERNAME && PASSWORD) || STATIC_TOKEN);
+}
+
+export type TraxbeanAuth = 'ok' | 'expired' | 'unconfigured' | 'unreachable';
+
+// Lightweight auth probe: the platform returns { message: "Login identity has
+// expired" } (or a non-200 business code) once the captured JWT is invalidated.
+// Distinguishes an expired token from a network failure or a device with no fix.
+export async function checkTraxbeanAuth(): Promise<TraxbeanAuth> {
+  if (!isTraxbeanConfigured()) return 'unconfigured';
+  const token = await getToken(true); // force a fresh login when possible
+  if (!token) return 'expired';
+  try {
+    const res = await request(`${API_BASE}/admin/business/target/page`, {
+      method: 'POST', dispatcher,
+      headers: { 'Content-Type': 'application/json', Authorization: token },
+      body: JSON.stringify({ departmentId: DEPARTMENT_ID, pageNum: 1, pageSize: 1 }),
+    });
+    const json = (await res.body.json().catch(() => null)) as { code?: number; message?: string } | null;
+    if (!json) return 'unreachable';
+    const msg = (json.message ?? '').toLowerCase();
+    if (msg.includes('expired') || msg.includes('login') || msg.includes('token') || msg.includes('unauthor')) return 'expired';
+    if (json.code === 200) return 'ok';
+    // Any other non-200 business code with no auth wording → treat as expired/denied.
+    return 'expired';
+  } catch {
+    return 'unreachable';
+  }
 }
 
 // Fetch the latest known position for one IMEI. Returns null on any failure
 // (unconfigured token, network error, non-200 platform code, no data).
 export async function getDeviceLocation(imei: string): Promise<TraxbeanLocation | null> {
-  if (!TOKEN) return null;
+  let token = await getToken();
+  if (!token) return null;
 
   try {
-    const res = await request(`${API_BASE}/admin/business/location/getDeviceLocationLK`, {
-      method: 'POST',
-      dispatcher,
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: TOKEN,
-      },
+    let res = await request(`${API_BASE}/admin/business/location/getDeviceLocationLK`, {
+      method: 'POST', dispatcher,
+      headers: { 'Content-Type': 'application/json', Authorization: token },
       body: JSON.stringify({ imei }),
     });
+    let json = (await res.body.json().catch(() => null)) as { code?: number; message?: string; data?: Record<string, unknown> } | null;
+    // Token expired mid-flight → re-login once and retry.
+    if (json && (json.message ?? '').toLowerCase().includes('expired')) {
+      token = await getToken(true);
+      if (token) {
+        res = await request(`${API_BASE}/admin/business/location/getDeviceLocationLK`, {
+          method: 'POST', dispatcher,
+          headers: { 'Content-Type': 'application/json', Authorization: token },
+          body: JSON.stringify({ imei }),
+        });
+        json = (await res.body.json().catch(() => null)) as typeof json;
+      }
+    }
 
-    if (res.statusCode < 200 || res.statusCode >= 300) {
-      res.body.dump();
+    if (res.statusCode < 200 || res.statusCode >= 300 || !json) {
       return null;
     }
 
-    const json = (await res.body.json()) as {
-      code?: number;
-      data?: {
-        lat: number;
-        lng: number;
-        battery?: number;
-        signal?: number;
-        speed?: number;
-        locationType?: number;
-        utcTimestamp?: number; // epoch milliseconds
-        address?: string;
-      };
-    };
-
-    if (json?.code !== 200 || !json.data) return null;
-    const d = json.data;
-    if (typeof d.lat !== 'number' || typeof d.lng !== 'number') return null;
+    const d = json.data as {
+      lat?: number; lng?: number; battery?: number; signal?: number;
+      speed?: number; locationType?: number; utcTimestamp?: number | string; address?: string;
+    } | undefined;
+    if (!d || typeof d.lat !== 'number' || typeof d.lng !== 'number') return null;
 
     return {
       imei,
@@ -86,7 +145,7 @@ export async function getDeviceLocation(imei: string): Promise<TraxbeanLocation 
       speedKmh: d.speed ?? null,
       locationType: d.locationType ?? null,
       recordedAt: d.utcTimestamp
-        ? new Date(d.utcTimestamp).toISOString()
+        ? new Date(Number(d.utcTimestamp)).toISOString()
         : new Date().toISOString(),
       address: d.address || null,
     };
@@ -101,17 +160,24 @@ export async function getDeviceLocation(imei: string): Promise<TraxbeanLocation 
 const DEPARTMENT_ID = Number(process.env.TRAXBEAN_DEPARTMENT_ID ?? '914');
 
 async function traxbeanPost<T>(path: string, body: unknown): Promise<T | null> {
-  if (!TOKEN) return null;
-  try {
+  let token = await getToken();
+  if (!token) return null;
+  const call = async (tok: string) => {
     const res = await request(`${API_BASE}/admin/${path}`, {
-      method: 'POST',
-      dispatcher,
-      headers: { 'Content-Type': 'application/json', Authorization: TOKEN },
+      method: 'POST', dispatcher,
+      headers: { 'Content-Type': 'application/json', Authorization: tok },
       body: JSON.stringify(body),
     });
-    if (res.statusCode < 200 || res.statusCode >= 300) { res.body.dump(); return null; }
-    const json = (await res.body.json()) as { code?: number; data?: T };
-    if (json?.code !== 200) return null;
+    return (await res.body.json().catch(() => null)) as { code?: number; message?: string; data?: T } | null;
+  };
+  try {
+    let json = await call(token);
+    // Expired token mid-flight → re-login once and retry.
+    if (json && (json.message ?? '').toLowerCase().includes('expired')) {
+      token = (await getToken(true)) ?? '';
+      if (token) json = await call(token);
+    }
+    if (!json || json.code !== 200) return null;
     return (json.data ?? null) as T | null;
   } catch {
     return null;

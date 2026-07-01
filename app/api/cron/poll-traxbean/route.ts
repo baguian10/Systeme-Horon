@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server';
-import { isTraxbeanConfigured, getDeviceLocation, getLatestBleScan, getWearingStatus, getLatestHealth } from '@/lib/traxbean/client';
+import { isTraxbeanConfigured, getDeviceLocation, getLatestBleScan, getWearingStatus, getLatestHealth, checkTraxbeanAuth } from '@/lib/traxbean/client';
 import { getSettings } from '@/lib/settings';
 
 export const dynamic = 'force-dynamic';
@@ -58,6 +58,29 @@ export async function GET(request: NextRequest) {
   const supabase = createAdminClient();
   if (!supabase) {
     return NextResponse.json({ error: 'DB unavailable' }, { status: 503 });
+  }
+
+  // ── Auth health-check: an expired TRAXBEAN_TOKEN silently kills all tracking.
+  // Record the state and alert the super admins (deduped) when it goes bad. ──
+  const auth = await checkTraxbeanAuth();
+  await supabase.from('system_settings').update({
+    traxbean_auth_ok: auth === 'ok',
+    traxbean_auth_checked_at: new Date().toISOString(),
+  }).eq('id', 1);
+  if (auth !== 'ok') {
+    const { data: st } = await supabase.from('system_settings').select('traxbean_auth_alerted_at').eq('id', 1).maybeSingle();
+    const lastAlert = (st as { traxbean_auth_alerted_at?: string | null } | null)?.traxbean_auth_alerted_at;
+    const dueForAlert = !lastAlert || (Date.now() - Date.parse(lastAlert)) > 6 * 3600_000;
+    if (dueForAlert && auth !== 'unconfigured') {
+      const { data: admins } = await supabase.from('users').select('phone').eq('role', 'SUPER_ADMIN').eq('is_active', true);
+      const { sendSms } = await import('@/lib/sms');
+      for (const a of (admins ?? []) as { phone: string | null }[]) {
+        if (a.phone) await sendSms(a.phone, `SIGEP - CRITIQUE: lien plateforme GPS (Traxbean) ${auth === 'expired' ? 'expire' : 'injoignable'}. Le suivi des bracelets est interrompu. Renouvelez le token.`);
+      }
+      await supabase.from('system_settings').update({ traxbean_auth_alerted_at: new Date().toISOString() }).eq('id', 1);
+    }
+    // Nothing more to poll while auth is down.
+    return NextResponse.json({ ok: false, auth, note: 'Traxbean auth not OK — tracking paused' }, { status: 200 });
   }
 
   // Only poll devices assigned to a case (positions require a case_id).

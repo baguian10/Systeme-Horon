@@ -694,12 +694,16 @@ export async function fetchServiceStatus(): Promise<ServiceStatus[]> {
     let dbOk = false;
     let smsEnabled = false;
     let smsProvider: string | null = null;
+    let traxbeanAuthOk: boolean | null = null;
+    let traxbeanCheckedAt: string | null = null;
     if (sb) {
       try {
-        const { data, error } = await sb.from('system_settings').select('sms_enabled, sms_provider').eq('id', 1).maybeSingle();
+        const { data, error } = await sb.from('system_settings').select('sms_enabled, sms_provider, traxbean_auth_ok, traxbean_auth_checked_at').eq('id', 1).maybeSingle();
         dbOk = !error;
         smsEnabled = Boolean(data?.sms_enabled);
         smsProvider = (data?.sms_provider as string | null) ?? null;
+        traxbeanAuthOk = (data as { traxbean_auth_ok?: boolean | null } | null)?.traxbean_auth_ok ?? null;
+        traxbeanCheckedAt = (data as { traxbean_auth_checked_at?: string | null } | null)?.traxbean_auth_checked_at ?? null;
       } catch { dbOk = false; }
     }
     out.push({ label: 'Base de données', state: dbOk ? 'ok' : 'down', detail: dbOk ? 'Connectée (Supabase)' : 'Injoignable' });
@@ -715,12 +719,15 @@ export async function fetchServiceStatus(): Promise<ServiceStatus[]> {
       :                 { label: 'Ingestion GPS', state: 'down', detail: `Aucune position depuis ${Math.floor(ageMin / 60)} h` },
     );
     out.push({ label: 'Passerelle SMS', state: smsEnabled ? 'ok' : 'warn', detail: smsEnabled ? (smsProvider ?? 'Activée') : 'Désactivée' });
-  }
 
-  out.push({
-    label: 'Plateforme GPS (Traxbean)',
-    state: isTraxbeanConfigured() ? 'ok' : 'warn',
-    detail: isTraxbeanConfigured() ? 'Configurée' : 'Non configurée',
-  });
+    // Real Traxbean auth state, from the last poll health-check.
+    const checkedAgo = traxbeanCheckedAt ? Math.floor((Date.now() - Date.parse(traxbeanCheckedAt)) / 60000) : null;
+    out.push(
+      !isTraxbeanConfigured() ? { label: 'Plateforme GPS (Traxbean)', state: 'warn', detail: 'Non configurée (TRAXBEAN_TOKEN absent)' }
+      : traxbeanAuthOk === true  ? { label: 'Plateforme GPS (Traxbean)', state: 'ok',   detail: `Connectée${checkedAgo !== null ? ` (vérifié il y a ${checkedAgo} min)` : ''}` }
+      : traxbeanAuthOk === false ? { label: 'Plateforme GPS (Traxbean)', state: 'down', detail: 'Token expiré / injoignable — suivi bracelets interrompu' }
+      :                            { label: 'Plateforme GPS (Traxbean)', state: 'warn', detail: 'État inconnu (aucune vérification récente)' },
+    );
+  }
   return out;
 }
