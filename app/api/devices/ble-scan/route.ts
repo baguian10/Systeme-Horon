@@ -51,7 +51,7 @@ export async function POST(request: NextRequest) {
     reason: !commanded ? 'Commande de scan non transmise au bracelet'
       : !scan ? 'Aucun scan BLE reçu — module BLE éteint ou bracelet hors ligne'
       : stale ? `Aucun scan récent (dernier il y a ${Math.round(scanAgeMin!)} min) — le bracelet ne scanne pas actuellement`
-      : sightings.length === 0 ? 'Aucun appareil BLE détecté autour du bracelet'
+      : sightings.length === 0 ? 'Le bracelet scanne mais ne capte aucun BLE. S\'il est porté, le corps atténue fortement le signal — retirez-le et posez-le près de la balise pour l\'appairage.'
       : `${sightings.length} appareil(s) BLE détecté(s)`,
   });
 }
