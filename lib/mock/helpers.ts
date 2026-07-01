@@ -111,7 +111,19 @@ export async function fetchUsers(role?: UserRole, userId?: string): Promise<User
     ? await base.eq('role', 'OPERATIONAL').eq('created_by', userId)
     : await base;
   type Row = User & { creator?: { full_name?: string } | null };
-  return ((data ?? []) as Row[]).map((u) => ({ ...u, created_by_name: u.creator?.full_name ?? null }));
+  const users = ((data ?? []) as Row[]).map((u) => ({ ...u, created_by_name: u.creator?.full_name ?? null }));
+
+  // Per-judge caseload count (super admin view) — needed to gate deletion and
+  // drive the transfer UI. One aggregate read, tallied in memory.
+  if (role !== 'JUDGE') {
+    const { data: caseRows } = await supabase.from('cases').select('judge_id');
+    const counts = new Map<string, number>();
+    for (const c of (caseRows ?? []) as { judge_id: string | null }[]) {
+      if (c.judge_id) counts.set(c.judge_id, (counts.get(c.judge_id) ?? 0) + 1);
+    }
+    return users.map((u) => (u.role === 'JUDGE' ? { ...u, case_count: counts.get(u.id) ?? 0 } : u));
+  }
+  return users;
 }
 
 // Aggregate stats are global system figures (no PII). Roles without an RLS read
@@ -389,10 +401,11 @@ export async function fetchJournalEntries(caseId: string): Promise<JournalEntry[
     .select('*, author:users!author_id(full_name, role)')
     .eq('case_id', caseId)
     .order('created_at', { ascending: false });
-  type Row = JournalEntry & { author?: { full_name?: string; role?: UserRole } | null };
+  type Row = JournalEntry & { author?: { full_name?: string; role?: UserRole } | null; author_name?: string | null };
   return ((data ?? []) as unknown as Row[]).map((e) => ({
     id: e.id, case_id: e.case_id, author_id: e.author_id,
-    author_name: e.author?.full_name ?? '—', author_role: e.author?.role ?? 'OPERATIONAL',
+    // Live author, else the snapshot (account deleted), else placeholder.
+    author_name: e.author?.full_name ?? e.author_name ?? 'Compte supprimé', author_role: e.author?.role ?? 'OPERATIONAL',
     entry_type: e.entry_type, content: e.content, created_at: e.created_at,
   }));
 }
@@ -520,10 +533,11 @@ export async function fetchMessages(threadId: string): Promise<Message[]> {
     .select('*, sender:users!sender_id(full_name, role)')
     .eq('thread_id', threadId)
     .order('created_at', { ascending: true });
-  type Row = Message & { sender?: { full_name?: string; role?: UserRole } | null };
+  type Row = Message & { sender?: { full_name?: string; role?: UserRole } | null; sender_name?: string | null };
   return ((data ?? []) as unknown as Row[]).map((m) => ({
     id: m.id, thread_id: m.thread_id, sender_id: m.sender_id,
-    sender_name: m.sender?.full_name ?? '—', sender_role: m.sender?.role ?? 'OPERATIONAL',
+    // Live sender, else the snapshot (account deleted), else placeholder.
+    sender_name: m.sender?.full_name ?? m.sender_name ?? 'Compte supprimé', sender_role: m.sender?.role ?? 'OPERATIONAL',
     content: m.content, is_read_by: m.is_read_by ?? [], created_at: m.created_at,
   }));
 }

@@ -15,8 +15,16 @@ export async function writeAudit(entry: AuditEntry): Promise<void> {
     const { createAdminClient } = await import('@/lib/supabase/admin');
     const supabase = createAdminClient();
     if (!supabase) return;
+    // Snapshot the actor's name so the audit trail stays readable even after the
+    // account is deleted (user_id becomes NULL, actor_name preserves identity).
+    let actorName: string | null = null;
+    try {
+      const { data } = await supabase.from('users').select('full_name').eq('id', entry.userId).maybeSingle();
+      actorName = (data as { full_name?: string } | null)?.full_name ?? null;
+    } catch { /* keep null */ }
     await supabase.from('audit_log').insert({
       user_id: entry.userId,
+      actor_name: actorName,
       action: entry.action,
       table_name: entry.tableName ?? null,
       record_id: entry.recordId ?? null,

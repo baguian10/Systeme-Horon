@@ -9,6 +9,7 @@ import ToggleUserButton from '@/components/users/ToggleUserButton';
 import ForceResetButton from '@/components/users/ForceResetButton';
 import DeleteUserButton from '@/components/users/DeleteUserButton';
 import EditPermissionsButton from '@/components/users/EditPermissionsButton';
+import TransferCasesButton from '@/components/users/TransferCasesButton';
 
 export const metadata = { title: 'Gestion des utilisateurs — SIGEP' };
 
@@ -33,6 +34,8 @@ export default async function UsersPage() {
   const isJudge = session.role === 'JUDGE';
 
   const users = await fetchUsers(session.role, session.id);
+  // Active judges = valid transfer destinations for a departing judge's caseload.
+  const activeJudges = users.filter((u) => u.role === 'JUDGE' && u.is_active).map((u) => ({ id: u.id, full_name: u.full_name }));
 
   // ── JUDGE VIEW ────────────────────────────────────────────────────────────
   if (isJudge) {
@@ -223,7 +226,11 @@ export default async function UsersPage() {
                           )}
                           <ToggleUserButton userId={user.id} isActive={user.is_active} />
                           <ForceResetButton userId={user.id} />
-                          <DeleteUserButton userId={user.id} name={user.full_name} />
+                          {user.role === 'JUDGE' && (user.case_count ?? 0) > 0 ? (
+                            <TransferCasesButton fromJudge={user.id} fromName={user.full_name} caseCount={user.case_count ?? 0} judges={activeJudges} />
+                          ) : (
+                            <DeleteUserButton userId={user.id} name={user.full_name} />
+                          )}
                         </div>
                       )}
                     </td>

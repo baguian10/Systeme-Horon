@@ -41,7 +41,7 @@ export async function addJournalEntryAction(
   const supabase = createAdminClient();
   if (!supabase) return { error: 'Base de données indisponible' };
   const { error } = await supabase.from('journal_entries').insert({
-    case_id, entry_type, content, author_id: session.id,
+    case_id, entry_type, content, author_id: session.id, author_name: session.full_name,
   });
   if (error) return { error: 'Erreur lors de l\'ajout de l\'entrée' };
   revalidatePath(`/sigep/dashboard/cases/${case_id}`);

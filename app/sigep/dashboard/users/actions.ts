@@ -221,13 +221,45 @@ export async function updateUserPermissionsAction(formData: FormData): Promise<v
   revalidatePath('/sigep/dashboard/users');
 }
 
+// ── Transfer a judge's caseload to another judge ─────────────────────────────
+// Prerequisite before deleting a judge who still owns cases. SUPER_ADMIN only.
+export async function transferJudgeCasesAction(formData: FormData): Promise<{ error?: string; ok?: boolean }> {
+  const session = await getSession();
+  if (!session || !canManageAllUsers(session.role)) return { error: 'Accès refusé' };
+  const from_judge = formData.get('from_judge') as string;
+  const to_judge = formData.get('to_judge') as string;
+  if (!from_judge || !to_judge || from_judge === to_judge) return { error: 'Sélectionnez un juge destinataire différent.' };
+
+  if (isDemoMode()) {
+    const { MOCK_CASES } = await import('@/lib/mock/data');
+    for (const c of MOCK_CASES) if (c.judge_id === from_judge) c.judge_id = to_judge;
+    revalidatePath('/sigep/dashboard/users');
+    return { ok: true };
+  }
+
+  const { createAdminClient } = await import('@/lib/supabase/admin');
+  const supabase = createAdminClient();
+  if (!supabase) return { error: 'Base de données indisponible' };
+  // Destination must be an active JUDGE.
+  const { data: dest } = await supabase.from('users').select('role, is_active').eq('id', to_judge).maybeSingle();
+  const d = dest as { role?: UserRole; is_active?: boolean } | null;
+  if (d?.role !== 'JUDGE' || d?.is_active === false) return { error: 'Le destinataire doit être un juge actif.' };
+
+  const { error } = await supabase.from('cases').update({ judge_id: to_judge, updated_at: new Date().toISOString() }).eq('judge_id', from_judge);
+  if (error) return { error: 'Erreur lors du transfert des dossiers.' };
+  const { writeAudit } = await import('@/lib/audit/log');
+  await writeAudit({ userId: session.id, action: 'TRANSFER_CASELOAD', tableName: 'cases', newData: { from_judge, to_judge } });
+  revalidatePath('/sigep/dashboard/users');
+  return { ok: true };
+}
+
 // ── Delete user (hard delete) ────────────────────────────────────────────────
 
-export async function deleteUserAction(formData: FormData): Promise<void> {
+export async function deleteUserAction(formData: FormData): Promise<{ error?: string } | void> {
   const session = await getSession();
-  if (!session || !canManageAllUsers(session.role)) return;
+  if (!session || !canManageAllUsers(session.role)) return { error: 'Accès refusé' };
   const user_id = formData.get('user_id') as string;
-  if (!user_id || user_id === session.id) return; // cannot delete self
+  if (!user_id || user_id === session.id) return { error: 'Opération non autorisée' }; // cannot delete self
 
   if (isDemoMode()) {
     const { MOCK_USERS } = await import('@/lib/mock/data');
@@ -239,11 +271,21 @@ export async function deleteUserAction(formData: FormData): Promise<void> {
 
   const { createAdminClient } = await import('@/lib/supabase/admin');
   const supabase = createAdminClient();
-  if (!supabase) return;
+  if (!supabase) return { error: 'Base de données indisponible' };
 
-  const { data: u } = await supabase.from('users').select('auth_id').eq('id', user_id).single();
-  await supabase.from('users').delete().eq('id', user_id);
-  if (u?.auth_id) { try { await supabase.auth.admin.deleteUser(u.auth_id); } catch {} }
+  const { data: target } = await supabase.from('users').select('auth_id, role').eq('id', user_id).single();
+  // A judge with an active caseload cannot be deleted — cases.judge_id is NOT
+  // NULL, so the DB would reject the delete (and the auth account would be
+  // orphaned). Require a caseload transfer first.
+  if ((target as { role?: UserRole } | null)?.role === 'JUDGE') {
+    const { count } = await supabase.from('cases').select('id', { count: 'exact', head: true }).eq('judge_id', user_id);
+    if (count && count > 0) return { error: `Ce juge détient ${count} dossier(s). Transférez son portefeuille avant suppression.` };
+  }
+
+  const { error: delErr } = await supabase.from('users').delete().eq('id', user_id);
+  if (delErr) return { error: 'Suppression refusée (références existantes). Transférez ou clôturez ses éléments.' };
+  const authId = (target as { auth_id?: string } | null)?.auth_id;
+  if (authId) { try { await supabase.auth.admin.deleteUser(authId); } catch {} }
 
   const { writeAudit } = await import('@/lib/audit/log');
   await writeAudit({ userId: session.id, action: 'DELETE_USER', tableName: 'users', recordId: user_id });

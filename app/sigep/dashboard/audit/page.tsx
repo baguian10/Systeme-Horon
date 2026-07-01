@@ -67,7 +67,11 @@ export default async function AuditPage() {
           id: r.id,
           action: r.action,
           table_name: r.table_name,
-          user_name: (r.user as { full_name?: string } | null)?.full_name ?? 'Système',
+          // Live user if still present, else the snapshotted actor_name (account
+          // deleted), else Système.
+          user_name: (r.user as { full_name?: string } | null)?.full_name
+            ?? (r.actor_name as string | null)
+            ?? 'Système',
           user_role: (r.user as { role?: string } | null)?.role ?? null,
           record_id: r.record_id,
           logged_at: r.logged_at,

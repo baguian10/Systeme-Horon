@@ -21,6 +21,7 @@ export interface User {
   updated_at: string;
   created_by?: string | null;
   created_by_name?: string | null;
+  case_count?: number;
   access_scope?: 'FULL' | 'RESTRICTED' | null;
   permissions?: string[];
   department_id?: string | null;

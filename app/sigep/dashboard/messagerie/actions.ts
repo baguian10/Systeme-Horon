@@ -65,7 +65,7 @@ export async function createThreadAction(
   }).select('id').single();
   if (error || !thread) return { error: 'Erreur lors de la création du fil' };
   await supabase.from('messages').insert({
-    thread_id: thread.id, sender_id: session.id, content, is_read_by: [session.id],
+    thread_id: thread.id, sender_id: session.id, sender_name: session.full_name, content, is_read_by: [session.id],
   });
   await writeAudit({ userId: session.id, action: 'CREATE_THREAD', tableName: 'message_threads', recordId: thread.id, newData: { subject } });
   revalidatePath('/sigep/dashboard/messagerie');
@@ -111,7 +111,7 @@ export async function sendMessageAction(
   const supabase = createAdminClient();
   if (!supabase) return { error: 'Base de données indisponible' };
   const { error } = await supabase.from('messages').insert({
-    thread_id, sender_id: session.id, content, is_read_by: [session.id],
+    thread_id, sender_id: session.id, sender_name: session.full_name, content, is_read_by: [session.id],
   });
   if (error) return { error: "Échec de l'envoi" };
   // Bump the thread preview/timestamp and make sure the sender is a participant.
