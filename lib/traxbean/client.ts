@@ -215,7 +215,8 @@ export async function getDeviceLocation(imei: string): Promise<TraxbeanLocation 
 
 const DEPARTMENT_ID = Number(process.env.TRAXBEAN_DEPARTMENT_ID ?? '914');
 
-async function traxbeanPost<T>(path: string, body: unknown): Promise<T | null> {
+// Raw call with token + one expiry retry. Returns the parsed platform envelope.
+async function traxbeanCall<T>(path: string, body: unknown): Promise<{ code?: number; message?: string; data?: T } | null> {
   let token = await getToken();
   if (!token) return null;
   const call = async (tok: string) => {
@@ -233,11 +234,26 @@ async function traxbeanPost<T>(path: string, body: unknown): Promise<T | null> {
       token = (await getToken(true)) ?? '';
       if (token) json = await call(token);
     }
-    if (!json || json.code !== 200) return null;
-    return (json.data ?? null) as T | null;
+    return json;
   } catch {
     return null;
   }
+}
+
+// Returns the data payload (null on failure). Use when the caller needs data.
+async function traxbeanPost<T>(path: string, body: unknown): Promise<T | null> {
+  const json = await traxbeanCall<T>(path, body);
+  if (!json || json.code !== 200) return null;
+  return (json.data ?? null) as T | null;
+}
+
+// Returns true when the platform accepts a command (code 200) — regardless of
+// whether it returns a data payload. Command endpoints like
+// updateDeviceInitConfig reply { code:200, message:"success" } with NO data, so
+// keying success off `data` (as before) wrongly reported them as failed.
+async function traxbeanOk(path: string, body: unknown): Promise<boolean> {
+  const json = await traxbeanCall<unknown>(path, body);
+  return json?.code === 200;
 }
 
 // Map an IMEI to its Traxbean numeric targetId (needed by several endpoints).
@@ -262,7 +278,7 @@ export type TraxbeanCommand =
   | 'setInterval' // GPS report interval (value = seconds)
   | 'realtime';   // intensive real-time tracking (10s interval)
 
-const post = async (path: string, body: unknown) => (await traxbeanPost<number>(path, body)) !== null;
+const post = async (path: string, body: unknown) => traxbeanOk(path, body);
 
 // Send a remote command to the bracelet. `value` is used by setInterval (seconds).
 export async function sendDeviceCommand(imei: string, command: TraxbeanCommand, value?: number): Promise<boolean> {
