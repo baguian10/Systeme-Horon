@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Settings2, Phone, Clock, ShieldAlert, Signal, Loader2 } from 'lucide-react';
+import { Settings2, Phone, Clock, ShieldAlert, Signal, Loader2, PersonStanding, ShieldOff, ShieldCheck } from 'lucide-react';
 
 // Hoisted to module scope so it keeps a stable identity across renders
 // (defining it inside the component would remount every button each render).
@@ -27,6 +27,7 @@ export default function DeviceConfigPanel({ imei }: { imei: string }) {
   const [sos, setSos] = useState('');
   const [strap, setStrap] = useState('5');
   const [apn, setApn] = useState<'orange' | 'moov'>('orange');
+  const [fallSens, setFallSens] = useState('1000');
   const [busy, setBusy] = useState<string | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
 
@@ -75,6 +76,26 @@ export default function DeviceConfigPanel({ imei }: { imei: string }) {
         <div className="flex items-center gap-2 flex-wrap">
           <Clock className="w-4 h-4 text-gray-400" />
           <ConfigBtn k="timezoneBF" label="Fuseau Burkina (GMT)" icon={<Clock className="w-3.5 h-3.5" />} busy={busy} onSend={send} />
+        </div>
+
+        <div className="border-t border-gray-50 pt-3 mt-1">
+          <p className="text-[11px] font-semibold text-gray-400 uppercase mb-2">Sécurité du porteur</p>
+          {/* Wearing / removal detection */}
+          <div className="flex items-center gap-2 flex-wrap mb-2">
+            <ShieldCheck className="w-4 h-4 text-gray-400" />
+            <span className="text-xs text-gray-600 mr-1">Détection de retrait :</span>
+            <ConfigBtn k="wearOn" label="Activer" icon={<ShieldCheck className="w-3.5 h-3.5" />} busy={busy} onSend={send} />
+            <ConfigBtn k="wearOff" label="Désactiver" icon={<ShieldOff className="w-3.5 h-3.5" />} busy={busy} onSend={send} />
+          </div>
+          {/* Fall detection */}
+          <div className="flex items-center gap-2 flex-wrap">
+            <PersonStanding className="w-4 h-4 text-gray-400" />
+            <span className="text-xs text-gray-600 mr-1">Détection de chute :</span>
+            <ConfigBtn k="fallOn" label="Activer" icon={<PersonStanding className="w-3.5 h-3.5" />} busy={busy} onSend={send} />
+            <ConfigBtn k="fallOff" label="Désactiver" icon={<ShieldOff className="w-3.5 h-3.5" />} busy={busy} onSend={send} />
+            <input value={fallSens} onChange={(e) => setFallSens(e.target.value)} type="number" min={100} max={5000} step={100} title="Seuil de sensibilité : plus petit = plus sensible" className="border border-gray-300 rounded-lg px-2 py-1.5 text-xs w-20" />
+            <ConfigBtn k="fallSensitivity" val={fallSens} label="Sensibilité" icon={<PersonStanding className="w-3.5 h-3.5" />} busy={busy} onSend={send} />
+          </div>
         </div>
         {msg && <p className="text-xs text-gray-500">{msg}</p>}
       </div>

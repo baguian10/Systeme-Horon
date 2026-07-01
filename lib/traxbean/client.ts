@@ -186,6 +186,44 @@ export async function getLatestBleScan(imei: string): Promise<BleScan> {
   return { at: ts ? new Date(ts).toISOString() : new Date().toISOString(), sightings };
 }
 
+// BP40 shortcut relay (same path as enableBle): >*keyword@value*<
+async function sendShortcut(imei: string, shortcut: string): Promise<boolean> {
+  const targetId = await getTargetIdByImei(imei);
+  if (!targetId) return false;
+  return post('business/target/sendCommand', { targetId, imei, command: shortcut });
+}
+
+// Fall detection (>*fall@1|0*<) + sensitivity (>*fallconfig@<threshold>*<; smaller =
+// more sensitive; the "falling trend" must exceed the threshold to alarm).
+export async function setFallAlarm(imei: string, on: boolean): Promise<boolean> {
+  return sendShortcut(imei, `>*fall@${on ? 1 : 0}*<`);
+}
+export async function setFallSensitivity(imei: string, threshold: number): Promise<boolean> {
+  const t = Math.max(100, Math.min(5000, Math.round(threshold) || 1000));
+  return sendShortcut(imei, `>*fallconfig@${t}*<`);
+}
+// Wearing-status detection (>*wearconfig@1|0*<). When on, the device reports
+// APWR (1 = worn on body, 0 = removed) — the anti-removal signal.
+export async function setWearingDetection(imei: string, on: boolean): Promise<boolean> {
+  return sendShortcut(imei, `>*wearconfig@${on ? 1 : 0}*<`);
+}
+
+// Latest wearing status from the device log. APWR line: IWAPWR,IMEI,flag#
+// flag 1 = worn on body, 0 = removed. null = no APWR seen (unknown).
+export async function getWearingStatus(imei: string): Promise<{ worn: boolean; at: string } | null> {
+  const lines = await traxbeanPost<string[]>('business/device/fetchDeviceLog', {
+    imei,
+    startTime: new Date(Date.now() - 30 * 60000).toISOString(),
+  });
+  if (!Array.isArray(lines)) return null;
+  const wr = lines.filter((l) => typeof l === 'string' && l.includes('APWR'));
+  if (wr.length === 0) return null;
+  const line = wr[wr.length - 1];
+  const m = /APWR,\s*\d+\s*,\s*([01])/.exec(line);
+  if (!m) return null;
+  return { worn: m[1] === '1', at: new Date().toISOString() };
+}
+
 export type DeviceConfigKind = 'sos' | 'timezoneBF' | 'strap' | 'apn';
 
 // Device-level configuration (SUPER_ADMIN / technical).

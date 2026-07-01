@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server';
-import { isTraxbeanConfigured, getDeviceLocation, getLatestBleScan } from '@/lib/traxbean/client';
+import { isTraxbeanConfigured, getDeviceLocation, getLatestBleScan, getWearingStatus } from '@/lib/traxbean/client';
 import { getSettings } from '@/lib/settings';
 
 export const dynamic = 'force-dynamic';
@@ -201,6 +201,31 @@ export async function GET(request: NextRequest) {
           await supabase.from('beacons').update({ out_since: null }).eq('id', beacon.id);
         }
         // away === null (no BLE data yet) → leave the grace clock untouched.
+      }
+
+      // ── Wearing status (anti-removal): APWR flag 0 = bracelet removed → TAMPER ──
+      const wearing = await getWearingStatus(device.imei);
+      if (wearing && !wearing.worn) {
+        const { count } = await supabase
+          .from('alerts')
+          .select('id', { count: 'exact', head: true })
+          .eq('case_id', device.case_id)
+          .eq('alert_type', 'TAMPER_DETECTED')
+          .eq('is_resolved', false);
+        if (!count) {
+          await supabase.from('alerts').insert({
+            case_id: device.case_id, device_id: device.id,
+            alert_type: 'TAMPER_DETECTED', severity: 5,
+            description: 'Bracelet retiré du corps (détection de port).',
+            position_lat: live.lat, position_lon: live.lng,
+          });
+          await supabase.from('cases').update({ status: 'VIOLATION', updated_at: new Date().toISOString() }).eq('id', device.case_id);
+          const { data: kase } = await supabase.from('cases').select('judge_id').eq('id', device.case_id).single();
+          if (kase?.judge_id) {
+            const { data: ju } = await supabase.from('users').select('phone').eq('id', kase.judge_id).single();
+            if (ju?.phone) { const { sendSms } = await import('@/lib/sms'); await sendSms(ju.phone, 'SIGEP - ALERTE: bracelet retire du corps. Verifiez la plateforme.'); }
+          }
+        }
       }
 
       // Health alerts (deduped by the alert ingest? — keep simple: emit on threshold)
