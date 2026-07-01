@@ -1,11 +1,11 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { Plus, MapPin, Bluetooth, ShieldAlert, ShieldCheck, Clock, Trash2, Pencil } from 'lucide-react';
+import { Plus, MapPin, Bluetooth, ShieldAlert, ShieldCheck, Clock, Pencil } from 'lucide-react';
 import { getSession } from '@/lib/auth/session';
 import { canManageGeofences , allow } from '@/lib/auth/permissions';
 import { fetchGeofences, fetchCases } from '@/lib/mock/helpers';
-import { deleteGeofenceAction } from './actions';
 import GeofenceMapClient from '@/components/geofences/GeofenceMapClient';
+import DeleteGeofenceButton from '@/components/geofences/DeleteGeofenceButton';
 import type { Geofence } from '@/lib/supabase/types';
 
 function GeofenceBadge({ g }: { g: Geofence }) {
@@ -170,17 +170,7 @@ export default async function GeofencesPage() {
                         >
                           <Pencil className="w-3.5 h-3.5" />
                         </Link>
-                        <form action={deleteGeofenceAction}>
-                          <input type="hidden" name="geofence_id" value={g.id} />
-                          <input type="hidden" name="case_id"     value={g.case_id} />
-                          <button
-                            type="submit"
-                            title="Supprimer"
-                            className="p-1 text-slate-600 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        </form>
+                        <DeleteGeofenceButton geofenceId={g.id} caseId={g.case_id} name={g.name} />
                       </div>
                     )}
                   </li>
