@@ -80,21 +80,23 @@ export type TraxbeanAuth = 'ok' | 'expired' | 'unconfigured' | 'unreachable';
 // Distinguishes an expired token from a network failure or a device with no fix.
 export async function checkTraxbeanAuth(): Promise<TraxbeanAuth> {
   if (!isTraxbeanConfigured()) return 'unconfigured';
-  const token = await getToken(true); // force a fresh login when possible
-  if (!token) return 'expired';
+  // Programmatic login IS the health check: a fresh token = the link is up.
+  if (USERNAME && PASSWORD) {
+    const t = await login();
+    return t ? 'ok' : 'expired';
+  }
+  // Static-token only: probe a real position call and read the auth wording.
   try {
-    const res = await request(`${API_BASE}/admin/business/target/page`, {
+    const res = await request(`${API_BASE}/admin/business/location/getDeviceLocationLK`, {
       method: 'POST', dispatcher,
-      headers: { 'Content-Type': 'application/json', Authorization: token },
-      body: JSON.stringify({ departmentId: DEPARTMENT_ID, pageNum: 1, pageSize: 1 }),
+      headers: { 'Content-Type': 'application/json', Authorization: STATIC_TOKEN! },
+      body: JSON.stringify({ imei: process.env.TRAXBEAN_DEMO_IMEI ?? '0' }),
     });
-    const json = (await res.body.json().catch(() => null)) as { code?: number; message?: string } | null;
+    const json = (await res.body.json().catch(() => null)) as { code?: number; message?: string; data?: unknown } | null;
     if (!json) return 'unreachable';
     const msg = (json.message ?? '').toLowerCase();
-    if (msg.includes('expired') || msg.includes('login') || msg.includes('token') || msg.includes('unauthor')) return 'expired';
-    if (json.code === 200) return 'ok';
-    // Any other non-200 business code with no auth wording → treat as expired/denied.
-    return 'expired';
+    if (msg.includes('expired') || msg.includes('login') || msg.includes('unauthor')) return 'expired';
+    return json.data ? 'ok' : 'expired';
   } catch {
     return 'unreachable';
   }
