@@ -5,6 +5,7 @@ import { canViewParametres } from '@/lib/auth/permissions';
 import { getSettings } from '@/lib/settings';
 import { fetchServiceStatus } from '@/lib/mock/helpers';
 import ActiveSettingsForm from '@/components/settings/ActiveSettingsForm';
+import pkg from '@/package.json';
 
 const STATE_META = {
   ok:   { color: 'text-emerald-600', label: 'Opérationnel', Icon: CheckCircle2 },
@@ -14,19 +15,25 @@ const STATE_META = {
 
 export const metadata = { title: 'Paramètres système — SIGEP' };
 
-const SYSTEM_INFO = [
-  { label: 'Version SIGEP',        value: '2.5.0',                icon: Shield },
-  { label: 'Protocole',            value: 'MQTT over TLS 1.3',    icon: Wifi },
-  { label: 'Base de données',      value: 'Supabase PostgreSQL 15', icon: Database },
-  { label: 'Serveur GPS',          value: 'gps.sigep.gov.bf:8883', icon: Globe },
-  { label: 'Certificat SSL',       value: 'Valide jusqu\'au 31/12/2026', icon: Lock },
-];
+function buildSystemInfo() {
+  const isDemo = !process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  let gpsHost = '—';
+  try { gpsHost = new URL(process.env.TRAXBEAN_API_BASE ?? 'https://napi.5gcity.com').host; } catch {}
+  return [
+    { label: 'Version SIGEP',   value: pkg.version,                          icon: Shield },
+    { label: 'Transport',       value: 'HTTPS (ingest) + Traxbean',          icon: Wifi },
+    { label: 'Base de données', value: 'Supabase PostgreSQL',                icon: Database },
+    { label: 'Plateforme GPS',  value: gpsHost,                              icon: Globe },
+    { label: 'Environnement',   value: isDemo ? 'Démonstration' : 'Production', icon: Lock },
+  ];
+}
 
 export default async function ParametresPage() {
   const session = await getSession();
   if (!session || !canViewParametres(session.role)) redirect('/sigep/dashboard');
 
   const [settings, services] = await Promise.all([getSettings(), fetchServiceStatus()]);
+  const systemInfo = buildSystemInfo();
 
   return (
     <div className="space-y-6">
@@ -51,7 +58,7 @@ export default async function ParametresPage() {
               <h3 className="font-semibold text-gray-900 text-sm">Informations système</h3>
             </div>
             <ul className="divide-y divide-gray-50">
-              {SYSTEM_INFO.map((item) => {
+              {systemInfo.map((item) => {
                 const Icon = item.icon;
                 return (
                   <li key={item.label} className="px-5 py-3 flex items-center gap-3">
