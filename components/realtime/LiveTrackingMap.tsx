@@ -19,6 +19,7 @@ const DOT_COLORS: Record<CaseStatus, string> = {
   PENDING:    '#facc15',
   SUSPENDED:  '#9ca3af',
   TERMINATED: '#cbd5e1',
+  ARCHIVED:   '#d1d5db',
 };
 
 const STATUS_LABELS: Record<CaseStatus, string> = {
@@ -27,6 +28,7 @@ const STATUS_LABELS: Record<CaseStatus, string> = {
   PENDING:    'En attente',
   SUSPENDED:  'Suspendu',
   TERMINATED: 'Terminé',
+  ARCHIVED:   'Archivé',
 };
 
 function makeIcon(status: CaseStatus, alertCount: number) {

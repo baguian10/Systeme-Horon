@@ -4,7 +4,7 @@ import {
   MOCK_REVOCATIONS, MOCK_JOURNAL_ENTRIES, MOCK_MAINTENANCE_TICKETS, MOCK_AGENDA,
   MOCK_THREADS, MOCK_MESSAGES, MOCK_VIOLATION_HEATPOINTS,
 } from './data';
-import type { Case, Alert, AlertType, User, OverviewStats, UserRole, Position, Device, Geofence, TigSite, RevocationRequest, JournalEntry, MaintenanceTick, AgendaObligation, MessageThread, Message, ViolationHeatPoint } from '@/lib/supabase/types';
+import type { Case, Alert, AlertType, User, OverviewStats, UserRole, Position, Device, Geofence, TigSite, RevocationRequest, JournalEntry, MaintenanceTick, AgendaObligation, MessageThread, Message, ViolationHeatPoint, CaseRequest } from '@/lib/supabase/types';
 import { isTraxbeanConfigured, getDeviceLocation } from '@/lib/traxbean/client';
 
 export const IS_DEMO_MODE =
@@ -568,6 +568,32 @@ export async function fetchSystemHealth(): Promise<{ lastIngestionAt: string | n
     .limit(1)
     .maybeSingle();
   return { lastIngestionAt: (data?.recorded_at as string | undefined) ?? null };
+}
+
+// Case requests (institutional workflow). SUPER_ADMIN sees all via the admin
+// client; JUDGE sees their own cases' requests via RLS.
+export async function fetchCaseRequests(role: UserRole): Promise<CaseRequest[]> {
+  if (IS_DEMO_MODE) return [];
+  const supabase = await caseScopedClient(role);
+  if (!supabase) return [];
+  const { data } = await supabase
+    .from('case_requests')
+    .select('*, case:cases(case_number, individual:individuals(full_name)), requester:users!requested_by(full_name)')
+    .order('created_at', { ascending: false });
+  type Row = CaseRequest & {
+    case?: { case_number?: string; individual?: { full_name?: string } | null } | null;
+    requester?: { full_name?: string } | null;
+  };
+  return ((data ?? []) as unknown as Row[]).map((r) => ({
+    id: r.id, case_id: r.case_id,
+    case_number: r.case?.case_number ?? '',
+    individual_name: r.case?.individual?.full_name ?? '—',
+    request_type: r.request_type, requested_by: r.requested_by,
+    requested_by_name: r.requester?.full_name ?? '—',
+    reason: r.reason, payload: r.payload, status: r.status,
+    decided_by: r.decided_by, decision_note: r.decision_note, decided_at: r.decided_at,
+    created_at: r.created_at,
+  }));
 }
 
 export type ServiceStatus = { label: string; state: 'ok' | 'warn' | 'down'; detail: string };

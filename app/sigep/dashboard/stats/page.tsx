@@ -44,11 +44,11 @@ export default async function StatsPage() {
 
   const STATUS_LABELS: Record<CaseStatus, string> = {
     ACTIVE: 'Actifs', PENDING: 'En attente', SUSPENDED: 'Suspendus',
-    TERMINATED: 'Clôturés', VIOLATION: 'En violation',
+    TERMINATED: 'Clôturés', VIOLATION: 'En violation', ARCHIVED: 'Archivés',
   };
   const STATUS_COLORS: Record<CaseStatus, string> = {
     ACTIVE: 'bg-green-400', PENDING: 'bg-yellow-400', SUSPENDED: 'bg-gray-400',
-    TERMINATED: 'bg-slate-300', VIOLATION: 'bg-red-500',
+    TERMINATED: 'bg-slate-300', VIOLATION: 'bg-red-500', ARCHIVED: 'bg-gray-300',
   };
 
   const casesByStatus = (Object.keys(STATUS_LABELS) as CaseStatus[]).map((s) => ({

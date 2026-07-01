@@ -6,7 +6,7 @@ import type { CaseStatus } from '@/lib/supabase/types';
 
 const STATUS_LABELS: Record<CaseStatus, string> = {
   ACTIVE: 'Actifs', VIOLATION: 'Violation', PENDING: 'En attente',
-  SUSPENDED: 'Suspendus', TERMINATED: 'Clôturés',
+  SUSPENDED: 'Suspendus', TERMINATED: 'Clôturés', ARCHIVED: 'Archivés',
 };
 const STATUSES = Object.keys(STATUS_LABELS) as CaseStatus[];
 

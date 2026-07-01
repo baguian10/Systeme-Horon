@@ -148,3 +148,16 @@ export const canViewNotifications = (_role: UserRole) => true;
 
 // ── System parameters: SUPER_ADMIN only ──────────────────────────────────────
 export const canViewParametres    = (role: UserRole) => role === 'SUPER_ADMIN';
+
+// ── Case requests (institutional workflow) ───────────────────────────────────
+// A JUDGE submits a request (delete/archive/reactivate/extend/modify/transfer);
+// the SUPER_ADMIN decides. Super admin can also act directly without a request.
+export const canRequestCaseAction = (role: UserRole) => role === 'JUDGE';
+export const canDecideCaseRequest = (role: UserRole) => role === 'SUPER_ADMIN';
+export const canViewCaseRequests  = (role: UserRole) => role === 'SUPER_ADMIN' || role === 'JUDGE';
+// Judicial data is never hard-deleted by anyone but the super admin, and only on
+// an archived (closed) case.
+export const canDeleteCase        = (role: UserRole) => role === 'SUPER_ADMIN';
+export const canArchiveCase       = (role: UserRole) => role === 'SUPER_ADMIN';
+// Defining the surveillance measure + its conditions is a judicial act.
+export const canSetMeasureConditions = (role: UserRole) => role === 'JUDGE' || role === 'SUPER_ADMIN';

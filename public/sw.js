@@ -1,7 +1,7 @@
 /* SIGEP Web Push service worker */
 self.addEventListener('push', (event) => {
   let data = {};
-  try { data = event.data ? event.data.json() : {}; } catch (e) { data = {}; }
+  try { data = event.data ? event.data.json() : {}; } catch (_e) { data = {}; }
   const title = data.title || 'SIGEP — Alerte';
   const options = {
     body: data.body || '',

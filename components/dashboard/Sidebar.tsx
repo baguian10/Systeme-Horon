@@ -9,7 +9,7 @@ import {
   Activity, ClipboardList, Watch, Hexagon,
   FileText, AlertTriangle, Shovel, Calendar,
   XOctagon, Wrench, BellRing, Settings,
-  MessageSquare, Smartphone, Building2,
+  MessageSquare, Smartphone, Building2, Inbox,
 } from 'lucide-react';
 import type { UserRole } from '@/lib/supabase/types';
 import {
@@ -17,6 +17,7 @@ import {
   canViewCases, canViewRealtime, canViewAudit,
   canManageGeofences, canViewReports, canViewViolations, canViewTigSites,
   canViewRevocations, canViewMaintenance, canViewAgenda, canViewParametres,
+  canViewCaseRequests,
   allow,
 } from '@/lib/auth/permissions';
 
@@ -78,6 +79,9 @@ function buildNav(session: Sess): NavItem[] {
   if (allow(session, canViewRevocations(role), 'revocations')) {
     items.push({ href: '/sigep/dashboard/revocations', label: 'Révocations', icon: <XOctagon className="w-4 h-4" /> });
   }
+  if (canViewCaseRequests(role)) {
+    items.push({ href: '/sigep/dashboard/requetes', label: 'Requêtes', icon: <Inbox className="w-4 h-4" /> });
+  }
   if (allow(session, canViewCases(role), 'cases.viewAll')) {
     items.push({ href: '/sigep/dashboard/messagerie', label: 'Messagerie', icon: <MessageSquare className="w-4 h-4" /> });
   }
@@ -114,6 +118,7 @@ const NAV_TIPS: Record<string, string> = {
   '/sigep/dashboard/tig-sites': "Catalogue des sites de travail d'intérêt général",
   '/sigep/dashboard/agenda': 'Agenda des échéances et rendez-vous',
   '/sigep/dashboard/revocations': 'Procédures de révocation de mesure',
+  '/sigep/dashboard/requetes': 'Requêtes institutionnelles : suppression, archivage, réactivation, transfert',
   '/sigep/dashboard/messagerie': 'Messagerie interne entre agents',
   '/sigep/dashboard/notifications': 'Préférences de notification (push/SMS/email)',
   '/sigep/dashboard/terrain': 'Mode terrain pour agents en déplacement',

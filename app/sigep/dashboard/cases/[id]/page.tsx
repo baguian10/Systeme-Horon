@@ -8,8 +8,10 @@ import { fetchCaseById, fetchCaseAssignments, fetchOperationalUsers, fetchJourna
 import { getSession } from '@/lib/auth/session';
 import { CaseStatusBadge, AlertTypeBadge, SeverityDot, RiskBadge } from '@/components/ui/StatusBadge';
 import RiskControl from '@/components/cases/RiskControl';
-import { canViewPII, canManageGeofences, canUpdateCaseStatus, canManageAssignments, canWriteJournal, canConfigureHardware, allow } from '@/lib/auth/permissions';
+import { canViewPII, canManageGeofences, canUpdateCaseStatus, canManageAssignments, canWriteJournal, canConfigureHardware, canSetMeasureConditions, allow } from '@/lib/auth/permissions';
 import StatusControls from '@/components/cases/StatusControls';
+import MeasureConditionsForm from '@/components/cases/MeasureConditionsForm';
+import CaseActionsPanel from '@/components/cases/CaseActionsPanel';
 import GeofenceManager from '@/components/cases/GeofenceManager';
 import MeasurePanel from '@/components/cases/MeasurePanel';
 import CaseBeaconManager from '@/components/cases/CaseBeaconManager';
@@ -272,6 +274,31 @@ export default async function CaseDetailPage({ params }: { params: Promise<{ id:
             canAmend={canStatus}
             terminated={caseData.status === 'TERMINATED'}
           />
+
+          {/* Conditions structurées de la mesure */}
+          <MeasureConditionsForm
+            caseId={caseData.id}
+            canEdit={canSetMeasureConditions(session.role) && caseData.status !== 'TERMINATED' && caseData.status !== 'ARCHIVED'}
+            initial={{
+              measure_kind: caseData.measure_kind,
+              is_permanent: caseData.is_permanent,
+              end_date: caseData.end_date,
+              curfew_days: caseData.curfew_days,
+              curfew_start: caseData.curfew_start,
+              curfew_end: caseData.curfew_end,
+              obligations: caseData.obligations,
+            }}
+          />
+
+          {/* Actions institutionnelles : requêtes (juge) / actes directs (super admin) */}
+          {(session.role === 'JUDGE' || session.role === 'SUPER_ADMIN') && (
+            <CaseActionsPanel
+              caseId={caseData.id}
+              status={caseData.status}
+              isJudge={session.role === 'JUDGE'}
+              isSuperAdmin={session.role === 'SUPER_ADMIN'}
+            />
+          )}
 
           {/* Geofences */}
           <GeofenceManager

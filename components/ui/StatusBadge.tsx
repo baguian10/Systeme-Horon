@@ -16,6 +16,7 @@ const CASE_CONFIG: Record<CaseStatus, { label: string; className: string }> = {
   ACTIVE:     { label: 'Actif',       className: 'bg-green-100 text-green-700' },
   SUSPENDED:  { label: 'Suspendu',    className: 'bg-gray-100 text-gray-600' },
   TERMINATED: { label: 'Clôturé',     className: 'bg-slate-100 text-slate-600' },
+  ARCHIVED:   { label: 'Archivé',     className: 'bg-gray-100 text-gray-500' },
   VIOLATION:  { label: 'Violation',   className: 'bg-red-100 text-red-700' },
 };
 

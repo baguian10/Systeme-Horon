@@ -16,6 +16,7 @@ const STATUS_COLORS: Record<CaseStatus, string> = {
   PENDING:    'bg-yellow-400',
   SUSPENDED:  'bg-gray-400',
   TERMINATED: 'bg-slate-300',
+  ARCHIVED:   'bg-gray-300',
   VIOLATION:  'bg-red-500',
 };
 

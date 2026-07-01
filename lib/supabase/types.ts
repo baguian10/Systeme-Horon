@@ -1,5 +1,5 @@
 export type UserRole = 'SUPER_ADMIN' | 'ADMIN' | 'STRATEGIC' | 'JUDGE' | 'OPERATIONAL';
-export type CaseStatus = 'PENDING' | 'ACTIVE' | 'SUSPENDED' | 'TERMINATED' | 'VIOLATION';
+export type CaseStatus = 'PENDING' | 'ACTIVE' | 'SUSPENDED' | 'TERMINATED' | 'VIOLATION' | 'ARCHIVED';
 export type AlertType =
   | 'GEOFENCE_EXIT'
   | 'CURFEW_VIOLATION'
@@ -164,6 +164,12 @@ export interface Case {
   ordonnance_ref?: string | null;
   ordonnance_url?: string | null;
   obligations?: string | null;
+  // Structured surveillance-measure conditions
+  measure_kind?: MeasureKind | null;
+  is_permanent?: boolean;
+  curfew_days?: number[] | null;   // 0=Sun … 6=Sat
+  curfew_start?: string | null;    // HH:MM[:SS]
+  curfew_end?: string | null;
   created_at: string;
   updated_at: string;
   individual?: Individual;
@@ -180,6 +186,32 @@ export interface CaseAssignment {
   operational_id: string;
   assigned_by: string;
   assigned_at: string;
+}
+
+export type MeasureKind =
+  | 'ASSIGNATION_DOMICILE' | 'DETENTION_DOMICILE' | 'TIG'
+  | 'COUVRE_FEU' | 'INTERDICTION_ZONE' | 'LIBERTE_SURVEILLEE';
+
+export type CaseRequestType =
+  | 'DELETE' | 'ARCHIVE' | 'REACTIVATE' | 'EXTEND' | 'MODIFY_CONDITIONS' | 'TRANSFER_JURISDICTION';
+
+export type CaseRequestStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
+
+export interface CaseRequest {
+  id: string;
+  case_id: string;
+  case_number?: string;
+  individual_name?: string;
+  request_type: CaseRequestType;
+  requested_by: string | null;
+  requested_by_name?: string;
+  reason: string;
+  payload?: Record<string, unknown> | null;
+  status: CaseRequestStatus;
+  decided_by?: string | null;
+  decision_note?: string | null;
+  decided_at?: string | null;
+  created_at: string;
 }
 
 export interface SessionUser {
