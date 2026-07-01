@@ -168,9 +168,21 @@ export async function defineObligationAction(
   if (!supabase) return { error: 'Base de données indisponible' };
 
   // Center = the device's last known position for this case (judge stays non-technical).
-  const { data: pos } = await supabase
+  let { data: pos } = await supabase
     .from('positions').select('latitude, longitude').eq('case_id', case_id)
     .order('recorded_at', { ascending: false }).limit(1).maybeSingle();
+  // Fallback: no position under this case yet (bracelet just reassigned → its
+  // history carries the old case_id). Use the assigned device's last fix.
+  if (!pos) {
+    const { data: dev } = await supabase.from('devices').select('id').eq('case_id', case_id).maybeSingle();
+    const deviceId = (dev as { id?: string } | null)?.id;
+    if (deviceId) {
+      const { data: dpos } = await supabase
+        .from('positions').select('latitude, longitude').eq('device_id', deviceId)
+        .order('recorded_at', { ascending: false }).limit(1).maybeSingle();
+      pos = dpos;
+    }
+  }
   const center_lat = pos?.latitude ?? 12.3714;
   const center_lon = pos?.longitude ?? -1.5197;
 

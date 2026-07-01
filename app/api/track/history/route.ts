@@ -87,7 +87,32 @@ export async function GET(request: NextRequest) {
       .eq('case_id', caseId)
       .order('recorded_at', { ascending: false })
       .limit(limit);
-    const trail = (data ?? [])
+    let rows = data ?? [];
+
+    // Fallback: the case has no position of its own yet — e.g. the bracelet was
+    // just reassigned from another case, so its history carries the OLD case_id.
+    // Centre the map on the assigned device's last known fix instead. Admin-only
+    // (geofence tracing is SUPER_ADMIN) so this never leaks another case's track
+    // to a scoped role; served via the admin client to read across the reassign.
+    if (rows.length === 0 && (session.role === 'SUPER_ADMIN' || session.role === 'ADMIN')) {
+      const { createAdminClient } = await import('@/lib/supabase/admin');
+      const adminSb = createAdminClient();
+      if (adminSb) {
+        const { data: dev } = await adminSb.from('devices').select('id').eq('case_id', caseId).maybeSingle();
+        const deviceId = (dev as { id?: string } | null)?.id;
+        if (deviceId) {
+          const { data: dpos } = await adminSb
+            .from('positions')
+            .select('latitude, longitude, recorded_at')
+            .eq('device_id', deviceId)
+            .order('recorded_at', { ascending: false })
+            .limit(1);
+          rows = dpos ?? [];
+        }
+      }
+    }
+
+    const trail = rows
       .reverse()
       .map((p) => [p.latitude, p.longitude] as [number, number]);
     return NextResponse.json({ trail });
