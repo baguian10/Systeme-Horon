@@ -73,7 +73,7 @@ export default async function RapportsPage() {
   const openAlerts = alerts.filter((a) => !a.is_resolved).length;
 
   function formatDate(iso: string) {
-    return new Date(iso).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' });
+    return new Date(iso).toLocaleDateString('fr-FR', { timeZone: 'Africa/Ouagadougou', day: '2-digit', month: 'long', year: 'numeric' });
   }
 
   return (

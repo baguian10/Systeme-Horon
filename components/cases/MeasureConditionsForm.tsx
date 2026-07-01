@@ -42,7 +42,7 @@ export default function MeasureConditionsForm({ caseId, initial, canEdit }: { ca
         <h3 className="text-sm font-bold text-gray-700 mb-3 flex items-center gap-2"><SlidersHorizontal className="w-4 h-4 text-gray-400" /> Conditions de la mesure</h3>
         <dl className="text-xs text-gray-600 space-y-1.5">
           <div className="flex justify-between"><dt className="text-gray-400">Type</dt><dd>{KINDS.find((k) => k.value === initial.measure_kind)?.label ?? '—'}</dd></div>
-          <div className="flex justify-between"><dt className="text-gray-400">Durée</dt><dd>{initial.is_permanent ? 'Permanente' : (initial.end_date ? `Jusqu'au ${new Date(initial.end_date).toLocaleDateString('fr-FR')}` : '—')}</dd></div>
+          <div className="flex justify-between"><dt className="text-gray-400">Durée</dt><dd>{initial.is_permanent ? 'Permanente' : (initial.end_date ? `Jusqu'au ${new Date(initial.end_date).toLocaleDateString('fr-FR', { timeZone: 'Africa/Ouagadougou' })}` : '—')}</dd></div>
           <div className="flex justify-between"><dt className="text-gray-400">Couvre-feu</dt><dd>{initial.curfew_start ? `${time(initial.curfew_start)}–${time(initial.curfew_end)}` : '—'}</dd></div>
         </dl>
       </div>

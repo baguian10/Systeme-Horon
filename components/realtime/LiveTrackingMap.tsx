@@ -116,7 +116,7 @@ export default function LiveTrackingMap({ positions }: Props) {
                   {pos.latitude.toFixed(5)}, {pos.longitude.toFixed(5)}
                 </div>
                 <div style={{ color: '#94a3b8', fontSize: 10, marginTop: 2 }}>
-                  {new Date(pos.recorded_at).toLocaleTimeString('fr-FR', {
+                  {new Date(pos.recorded_at).toLocaleTimeString('fr-FR', { timeZone: 'Africa/Ouagadougou',
                     hour: '2-digit', minute: '2-digit', second: '2-digit',
                   })}
                 </div>

@@ -47,7 +47,7 @@ export default function LeafletMapWrapper({
           setMarkers((prev) =>
             prev.map((m) =>
               m.caseId === row.case_id
-                ? { ...m, lat: row.latitude, lng: row.longitude, speedKmh: row.speed_kmh ?? m.speedKmh, online: true, lastUpdate: new Date(row.recorded_at).toLocaleTimeString('fr-FR') }
+                ? { ...m, lat: row.latitude, lng: row.longitude, speedKmh: row.speed_kmh ?? m.speedKmh, online: true, lastUpdate: new Date(row.recorded_at).toLocaleTimeString('fr-FR', { timeZone: 'Africa/Ouagadougou' }) }
                 : m,
             ),
           );

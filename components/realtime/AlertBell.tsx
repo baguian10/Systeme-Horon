@@ -110,7 +110,7 @@ export default function AlertBell() {
                         <p className="text-xs font-medium text-gray-900">{TYPE_LABELS[alert.alert_type]}</p>
                         <p className="text-[11px] text-gray-500 truncate">{alert.description}</p>
                         <p className="text-[10px] text-gray-400 mt-0.5">
-                          {new Date(alert.triggered_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                          {new Date(alert.triggered_at).toLocaleTimeString('fr-FR', { timeZone: 'Africa/Ouagadougou', hour: '2-digit', minute: '2-digit' })}
                         </p>
                       </div>
                     </Link>

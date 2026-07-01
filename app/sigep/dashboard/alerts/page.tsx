@@ -34,7 +34,7 @@ export default async function AlertsPage() {
   const resolved = alerts.filter((a) => a.is_resolved);
 
   function formatDate(iso: string) {
-    return new Date(iso).toLocaleString('fr-FR', {
+    return new Date(iso).toLocaleString('fr-FR', { timeZone: 'Africa/Ouagadougou',
       day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit',
     });
   }

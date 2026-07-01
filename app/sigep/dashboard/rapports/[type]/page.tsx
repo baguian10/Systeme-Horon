@@ -53,8 +53,8 @@ export default async function RapportViewPage({
   const resolvedAlerts = alerts.filter((a) => a.is_resolved);
 
   const nowDate = new Date();
-  const now = nowDate.toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' });
-  const monthYear = nowDate.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
+  const now = nowDate.toLocaleDateString('fr-FR', { timeZone: 'Africa/Ouagadougou', day: '2-digit', month: 'long', year: 'numeric' });
+  const monthYear = nowDate.toLocaleDateString('fr-FR', { timeZone: 'Africa/Ouagadougou', month: 'long', year: 'numeric' });
   const year = nowDate.getFullYear();
   const subtitle = isNational ? `Exercice ${year}`
     : isAlertsReport ? `Alertes — ${monthYear}`
@@ -204,7 +204,7 @@ export default async function RapportViewPage({
                           </span>
                         </td>
                         <td className="px-3 py-2 text-gray-500 border border-gray-100">
-                          {c.start_date ? new Date(c.start_date).toLocaleDateString('fr-FR') : '—'}
+                          {c.start_date ? new Date(c.start_date).toLocaleDateString('fr-FR', { timeZone: 'Africa/Ouagadougou' }) : '—'}
                         </td>
                         <td className="px-3 py-2 text-center font-semibold border border-gray-100">
                           <span className={c.alert_count ? 'text-red-600' : 'text-gray-400'}>
@@ -250,7 +250,7 @@ export default async function RapportViewPage({
                           {(a.case as { case_number?: string } | undefined)?.case_number ?? a.case_id.slice(0, 8)}
                         </td>
                         <td className="px-3 py-2 text-gray-500 border border-gray-100">
-                          {new Date(a.triggered_at).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                          {new Date(a.triggered_at).toLocaleString('fr-FR', { timeZone: 'Africa/Ouagadougou', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                         </td>
                       </tr>
                     ))}

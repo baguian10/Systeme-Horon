@@ -154,7 +154,7 @@ export default function TerrainApp({ initialData }: { initialData: InitialData }
               {isOnline ? 'Connecté — Synchronisation active' : 'Mode hors-ligne — Données en cache'}
             </p>
             <p className="text-xs text-gray-500">
-              Cache: {new Date(data.fetched_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+              Cache: {new Date(data.fetched_at).toLocaleTimeString('fr-FR', { timeZone: 'Africa/Ouagadougou', hour: '2-digit', minute: '2-digit' })}
               {queue.length > 0 && ` · ${queue.length} action${queue.length > 1 ? 's' : ''} en attente`}
             </p>
           </div>

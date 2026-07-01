@@ -32,7 +32,7 @@ const PRIORITY_META: Record<number, { label: string; color: string; dot: string 
 
 function formatDate(iso: string | null) {
   if (!iso) return '—';
-  return new Date(iso).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' });
+  return new Date(iso).toLocaleDateString('fr-FR', { timeZone: 'Africa/Ouagadougou', day: '2-digit', month: 'short', year: 'numeric' });
 }
 
 export default async function MaintenancePage() {

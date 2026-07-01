@@ -26,7 +26,7 @@ const STATUS_META: Record<CaseRequestStatus, { label: string; cls: string }> = {
 };
 
 function fmt(iso: string) {
-  return new Date(iso).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  return new Date(iso).toLocaleString('fr-FR', { timeZone: 'Africa/Ouagadougou', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 }
 
 export default async function RequetesPage() {

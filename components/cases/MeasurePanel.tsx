@@ -49,7 +49,7 @@ export default function MeasurePanel(p: Props) {
             <p className="text-sm text-gray-700 whitespace-pre-wrap">{p.obligations}</p>
           </div>
         )}
-        {p.endDate && <Row label="Fin de mesure" value={new Date(p.endDate).toLocaleDateString('fr-FR')} />}
+        {p.endDate && <Row label="Fin de mesure" value={new Date(p.endDate).toLocaleDateString('fr-FR', { timeZone: 'Africa/Ouagadougou' })} />}
 
         {p.canAmend && !p.terminated && (
           <div className="pt-3 border-t border-gray-50 flex flex-wrap gap-2">

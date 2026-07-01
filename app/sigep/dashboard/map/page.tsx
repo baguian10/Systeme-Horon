@@ -122,7 +122,7 @@ export default async function MapPage({
       lat:            pos.latitude,
       lng:            pos.longitude,
       status:         STATUS_TO_TRACKER[relatedCase!.status] ?? 'offline',
-      lastUpdate:     new Date(pos.recorded_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
+      lastUpdate:     new Date(pos.recorded_at).toLocaleTimeString('fr-FR', { timeZone: 'Africa/Ouagadougou', hour: '2-digit', minute: '2-digit' }),
       lastSeenMs:     Date.parse(pos.recorded_at),
       battery:        relatedCase!.device?.battery_pct ?? null,
       speedKmh:       pos.speed_kmh ?? null,

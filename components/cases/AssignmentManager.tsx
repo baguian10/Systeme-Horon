@@ -103,7 +103,7 @@ export default function AssignmentManager({ caseId, assigned, available, canMana
               <div>
                 <p className="text-sm font-medium text-gray-900">{u.full_name}</p>
                 <p className="text-xs text-gray-400">
-                  {u.badge_number ?? '—'} · assigné le {new Date(u.assigned_at).toLocaleDateString('fr-FR')}
+                  {u.badge_number ?? '—'} · assigné le {new Date(u.assigned_at).toLocaleDateString('fr-FR', { timeZone: 'Africa/Ouagadougou' })}
                 </p>
               </div>
               {canManage && (

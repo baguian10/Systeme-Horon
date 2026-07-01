@@ -46,7 +46,7 @@ export async function GET() {
       lat: pos.latitude,
       lng: pos.longitude,
       status: STATUS_TO_TRACKER[relatedCase?.status ?? 'PENDING'] ?? 'offline',
-      lastUpdate: new Date(pos.recorded_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
+      lastUpdate: new Date(pos.recorded_at).toLocaleTimeString('fr-FR', { timeZone: 'Africa/Ouagadougou', hour: '2-digit', minute: '2-digit' }),
       battery: device?.battery_pct ?? null,
       speedKmh: pos.speed_kmh ?? null,
       online: device?.is_online ?? false,

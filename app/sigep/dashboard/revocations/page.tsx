@@ -17,7 +17,7 @@ const STATUS_META: Record<RevocationStatus, { label: string; color: string; bg: 
 };
 
 function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' });
+  return new Date(iso).toLocaleDateString('fr-FR', { timeZone: 'Africa/Ouagadougou', day: '2-digit', month: 'long', year: 'numeric' });
 }
 
 export default async function RevocationsPage() {

@@ -61,7 +61,7 @@ export default function AlertToast({ alert, onDismiss }: { alert: Alert; onDismi
                 </Link>
               )}
               <span className="text-[10px] text-gray-400">
-                {new Date(alert.triggered_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                {new Date(alert.triggered_at).toLocaleTimeString('fr-FR', { timeZone: 'Africa/Ouagadougou', hour: '2-digit', minute: '2-digit', second: '2-digit' })}
               </span>
               {alert.severity >= 4 && (
                 <span className="text-[10px] font-bold text-red-600 uppercase tracking-wide">

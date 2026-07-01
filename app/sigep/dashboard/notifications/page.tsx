@@ -21,7 +21,7 @@ const ALERT_META: Record<AlertType, { label: string; icon: typeof Bell; color: s
 };
 
 function formatDT(iso: string) {
-  return new Date(iso).toLocaleString('fr-FR', {
+  return new Date(iso).toLocaleString('fr-FR', { timeZone: 'Africa/Ouagadougou',
     day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit',
   });
 }

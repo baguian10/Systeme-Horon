@@ -69,7 +69,7 @@ export default function CasePresencePanel({ imei, canCommand, canShutdown }: { i
             )}
             {presence.lastIndoorAt && (
               <span className="text-[11px] text-gray-400">
-                · {new Date(presence.lastIndoorAt).toLocaleTimeString('fr-FR')}
+                · {new Date(presence.lastIndoorAt).toLocaleTimeString('fr-FR', { timeZone: 'Africa/Ouagadougou' })}
               </span>
             )}
           </div>

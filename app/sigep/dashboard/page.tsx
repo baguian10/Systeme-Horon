@@ -75,7 +75,7 @@ export default async function DashboardPage() {
           <h2 className="text-xl font-bold text-gray-900">Vue d&apos;ensemble</h2>
           <div className="flex items-center gap-3 mt-0.5">
             <p className="text-sm text-gray-500">
-              {new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+              {new Date().toLocaleDateString('fr-FR', { timeZone: 'Africa/Ouagadougou', weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
             </p>
             <LiveRadarDot color="green" label="Système actif" />
           </div>

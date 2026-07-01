@@ -88,7 +88,7 @@ export default function SurveillanceView({
       const channel = supabase.channel('surveillance-live')
         .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'positions' }, (payload) => {
           const r = payload.new as { case_id: string; latitude: number; longitude: number; speed_kmh: number | null; recorded_at: string };
-          setMarkers((prev) => prev.map((m) => m.caseId === r.case_id ? { ...m, lat: r.latitude, lng: r.longitude, speedKmh: r.speed_kmh ?? m.speedKmh, online: true, lastSeenMs: Date.parse(r.recorded_at), lastUpdate: new Date(r.recorded_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) } : m));
+          setMarkers((prev) => prev.map((m) => m.caseId === r.case_id ? { ...m, lat: r.latitude, lng: r.longitude, speedKmh: r.speed_kmh ?? m.speedKmh, online: true, lastSeenMs: Date.parse(r.recorded_at), lastUpdate: new Date(r.recorded_at).toLocaleTimeString('fr-FR', { timeZone: 'Africa/Ouagadougou', hour: '2-digit', minute: '2-digit' }) } : m));
         })
         .subscribe((s) => setConnected(s === 'SUBSCRIBED'));
       cleanup = () => { supabase.removeChannel(channel); };

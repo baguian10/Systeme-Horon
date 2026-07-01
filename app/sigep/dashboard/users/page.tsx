@@ -14,7 +14,7 @@ import TransferCasesButton from '@/components/users/TransferCasesButton';
 export const metadata = { title: 'Gestion des utilisateurs — SIGEP' };
 
 function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString('fr-FR', {
+  return new Date(iso).toLocaleDateString('fr-FR', { timeZone: 'Africa/Ouagadougou',
     day: '2-digit', month: '2-digit', year: 'numeric',
   });
 }

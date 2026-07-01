@@ -24,7 +24,8 @@ const INPUT = 'w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 
 export default function NewGeofencePage() {
   const [state, formAction, isPending] = useActionState(createGeofenceAction, null);
 
-  const [geoType, setGeoType]   = useState<GeoType>('GPS_ZONE');
+  // Geofences are GPS-only now (BLE home perimeter lives on the beacon).
+  const geoType: GeoType = 'GPS_ZONE';
   const [shapeType, setShape]   = useState<ShapeType>('POLYGON');
   const [isExclusion, setExcl]  = useState(false);
   const [drawnShape, setDrawn]  = useState<DrawnShape | null>(null);
@@ -53,13 +54,6 @@ export default function NewGeofencePage() {
       const trail = Array.isArray(d.trail) ? d.trail : [];
       setDevicePos(trail.length ? trail[trail.length - 1] : null);
     } catch { setDevicePos(null); }
-  }
-
-  // When geofence type changes, auto-switch to matching shape
-  function handleGeoType(t: GeoType) {
-    setGeoType(t);
-    setShape(t === 'BLE_DOMICILE' ? 'CIRCLE' : 'POLYGON');
-    setDrawn(null);
   }
 
   function handleShape(s: ShapeType) {
@@ -105,54 +99,29 @@ export default function NewGeofencePage() {
           {/* ── Left panel: configuration ────────────────────────────── */}
           <div className="xl:col-span-2 space-y-4">
 
-            {/* Type de géofence */}
+            {/* Type de géofence — GPS only. BLE home perimeter is managed by the
+                beacon in Bracelets (MAC, distance, grace), applied automatically. */}
             <div className="bg-slate-900 border border-slate-700/60 rounded-2xl p-5 space-y-3">
               <h2 className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-                1 — Type de périmètre
+                1 — Zone GPS
               </h2>
-              <div className="grid grid-cols-2 gap-3">
-                {/* GPS Zone */}
-                <button
-                  type="button"
-                  onClick={() => handleGeoType('GPS_ZONE')}
-                  className={`flex flex-col items-center gap-2 p-4 rounded-xl border-2 text-xs font-semibold transition-all ${
-                    geoType === 'GPS_ZONE'
-                      ? 'border-emerald-500 bg-emerald-500/10 text-emerald-300'
-                      : 'border-slate-700 text-slate-500 hover:border-slate-600'
-                  }`}
-                >
-                  <MapPin className="w-6 h-6" />
-                  <span>Zone GPS</span>
-                  <span className="text-[10px] font-normal text-slate-500 text-center leading-tight">
-                    TIG, déplacements, exclusions
-                  </span>
-                </button>
-                {/* BLE Domicile */}
-                <button
-                  type="button"
-                  onClick={() => handleGeoType('BLE_DOMICILE')}
-                  className={`flex flex-col items-center gap-2 p-4 rounded-xl border-2 text-xs font-semibold transition-all ${
-                    geoType === 'BLE_DOMICILE'
-                      ? 'border-blue-500 bg-blue-500/10 text-blue-300'
-                      : 'border-slate-700 text-slate-500 hover:border-slate-600'
-                  }`}
-                >
-                  <Bluetooth className="w-6 h-6" />
-                  <span>Périmètre BLE</span>
-                  <span className="text-[10px] font-normal text-slate-500 text-center leading-tight">
-                    Assignation à domicile
-                  </span>
-                </button>
+              <div className="flex items-center gap-2 p-4 rounded-xl border-2 border-emerald-500 bg-emerald-500/10 text-emerald-300">
+                <MapPin className="w-6 h-6" />
+                <div>
+                  <p className="text-sm font-semibold">Zone GPS tracée</p>
+                  <p className="text-[10px] font-normal text-slate-400">TIG, déplacements autorisés, zones interdites, domicile GPS</p>
+                </div>
               </div>
 
-              {geoType === 'BLE_DOMICILE' && (
-                <div className="flex items-start gap-2 bg-blue-500/10 border border-blue-500/20 rounded-xl p-3">
-                  <Info className="w-4 h-4 text-blue-400 mt-0.5 flex-shrink-0" />
-                  <p className="text-xs text-blue-300 leading-relaxed">
-                    Ce périmètre sera couplé à la balise BLE installée au domicile. Utilisez un cercle et réglez le rayon selon la taille du logement (50 – 200 m).
-                  </p>
-                </div>
-              )}
+              {/* BLE is a separate, beacon-driven system — no drawing needed. */}
+              <div className="flex items-start gap-2 bg-blue-500/10 border border-blue-500/20 rounded-xl p-3">
+                <Bluetooth className="w-4 h-4 text-blue-400 mt-0.5 flex-shrink-0" />
+                <p className="text-xs text-blue-300 leading-relaxed">
+                  <span className="font-semibold">Périmètre BLE domicile ?</span> Pas besoin de tracer.
+                  Il se configure via la <Link href="/sigep/dashboard/devices" className="underline font-semibold">balise dans Bracelets</Link> (MAC, distance, délai de grâce) — appliqué automatiquement.
+                  {' '}Si ce dossier a une zone GPS <span className="font-semibold">et</span> une balise, la sortie n&apos;est confirmée que si les deux concordent.
+                </p>
+              </div>
             </div>
 
             {/* Forme */}
@@ -290,7 +259,7 @@ export default function NewGeofencePage() {
             <div className="bg-slate-900 border border-slate-700/60 rounded-2xl overflow-hidden" style={{ height: 680 }}>
               {/* Map toolbar hint */}
               <div className="flex items-center gap-3 px-4 py-3 border-b border-slate-700/60">
-                <div className={`w-2 h-2 rounded-full ${geoType === 'BLE_DOMICILE' ? 'bg-blue-400' : 'bg-emerald-400'} animate-pulse`} />
+                <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
                 <span className="text-xs text-slate-400">
                   {shapeType === 'CIRCLE'
                     ? 'Cliquez pour placer le centre, puis faites glisser pour définir le rayon'
