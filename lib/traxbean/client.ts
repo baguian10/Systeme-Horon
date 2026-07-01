@@ -292,8 +292,11 @@ export type BleScan = { at: string; sightings: BleSighting[] } | null;
 // come back empty even while a beacon is in range — so we AGGREGATE the scans
 // over a recent window and keep the strongest RSSI per MAC. Taking only the last
 // packet would falsely report a beacon as absent (→ false home-exit alarm).
+// Window is generous (10 min) because a low-power beacon can advertise as slowly
+// as every ~5 s while the tracker only scans in short bursts, so it's caught
+// only intermittently — seen anywhere in the window counts as present.
 // APBL format: IWAPBL,IMEI, Name|MAC|RSSI&Name2|MAC2|RSSI2, terminalMAC, timestamp#
-const BLE_WINDOW_MS = 4 * 60000;
+const BLE_WINDOW_MS = 10 * 60000;
 export async function getLatestBleScan(imei: string): Promise<BleScan> {
   const lines = await traxbeanPost<string[]>('business/device/fetchDeviceLog', {
     imei,
