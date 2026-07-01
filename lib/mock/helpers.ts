@@ -556,3 +556,50 @@ export async function fetchSystemHealth(): Promise<{ lastIngestionAt: string | n
     .maybeSingle();
   return { lastIngestionAt: (data?.recorded_at as string | undefined) ?? null };
 }
+
+export type ServiceStatus = { label: string; state: 'ok' | 'warn' | 'down'; detail: string };
+
+// Real service-health signals for the parametres page (replaces a hardcoded
+// "all green" block). Each row reflects something actually measurable.
+export async function fetchServiceStatus(): Promise<ServiceStatus[]> {
+  const out: ServiceStatus[] = [];
+
+  if (IS_DEMO_MODE) {
+    out.push({ label: 'Base de données', state: 'warn', detail: 'Mode démonstration (données simulées)' });
+    out.push({ label: 'Ingestion GPS', state: 'warn', detail: 'Simulateur en mémoire' });
+  } else {
+    const { createAdminClient } = await import('@/lib/supabase/admin');
+    const sb = createAdminClient();
+    let dbOk = false;
+    let smsEnabled = false;
+    let smsProvider: string | null = null;
+    if (sb) {
+      try {
+        const { data, error } = await sb.from('system_settings').select('sms_enabled, sms_provider').eq('id', 1).maybeSingle();
+        dbOk = !error;
+        smsEnabled = Boolean(data?.sms_enabled);
+        smsProvider = (data?.sms_provider as string | null) ?? null;
+      } catch { dbOk = false; }
+    }
+    out.push({ label: 'Base de données', state: dbOk ? 'ok' : 'down', detail: dbOk ? 'Connectée (Supabase)' : 'Injoignable' });
+
+    const health = await fetchSystemHealth();
+    const ageMin = health.lastIngestionAt
+      ? Math.max(0, Math.floor((Date.now() - new Date(health.lastIngestionAt).getTime()) / 60000))
+      : null;
+    out.push(
+      ageMin === null ? { label: 'Ingestion GPS', state: 'warn', detail: 'Aucune position reçue' }
+      : ageMin < 15   ? { label: 'Ingestion GPS', state: 'ok',   detail: `Dernière position il y a ${ageMin} min` }
+      : ageMin < 60   ? { label: 'Ingestion GPS', state: 'warn', detail: `Retard — ${ageMin} min` }
+      :                 { label: 'Ingestion GPS', state: 'down', detail: `Aucune position depuis ${Math.floor(ageMin / 60)} h` },
+    );
+    out.push({ label: 'Passerelle SMS', state: smsEnabled ? 'ok' : 'warn', detail: smsEnabled ? (smsProvider ?? 'Activée') : 'Désactivée' });
+  }
+
+  out.push({
+    label: 'Plateforme GPS (Traxbean)',
+    state: isTraxbeanConfigured() ? 'ok' : 'warn',
+    detail: isTraxbeanConfigured() ? 'Configurée' : 'Non configurée',
+  });
+  return out;
+}

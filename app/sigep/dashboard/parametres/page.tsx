@@ -1,9 +1,16 @@
 import { redirect } from 'next/navigation';
-import { Shield, Wifi, Database, Globe, Lock, CheckCircle2 } from 'lucide-react';
+import { Shield, Wifi, Database, Globe, Lock, CheckCircle2, AlertTriangle, XCircle } from 'lucide-react';
 import { getSession } from '@/lib/auth/session';
 import { canViewParametres } from '@/lib/auth/permissions';
 import { getSettings } from '@/lib/settings';
+import { fetchServiceStatus } from '@/lib/mock/helpers';
 import ActiveSettingsForm from '@/components/settings/ActiveSettingsForm';
+
+const STATE_META = {
+  ok:   { color: 'text-emerald-600', label: 'Opérationnel', Icon: CheckCircle2 },
+  warn: { color: 'text-amber-600',   label: 'Dégradé',      Icon: AlertTriangle },
+  down: { color: 'text-red-600',     label: 'Hors service', Icon: XCircle },
+} as const;
 
 export const metadata = { title: 'Paramètres système — SIGEP' };
 
@@ -19,7 +26,7 @@ export default async function ParametresPage() {
   const session = await getSession();
   if (!session || !canViewParametres(session.role)) redirect('/sigep/dashboard');
 
-  const settings = await getSettings();
+  const [settings, services] = await Promise.all([getSettings(), fetchServiceStatus()]);
 
   return (
     <div className="space-y-6">
@@ -62,23 +69,22 @@ export default async function ParametresPage() {
           {/* Status overview */}
           <div className="bg-white rounded-2xl border border-gray-100 p-5">
             <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">État des services</h3>
-            <ul className="space-y-2">
-              {[
-                { label: 'API SIGEP',              ok: true },
-                { label: 'Serveur MQTT',           ok: true },
-                { label: 'Base de données',        ok: true },
-                { label: 'Géofencing temps réel',  ok: true },
-                { label: 'Notifications push',     ok: true },
-                { label: 'Export / Rapports PDF',  ok: true },
-              ].map((s) => (
-                <li key={s.label} className="flex items-center justify-between">
-                  <span className="text-sm text-gray-700">{s.label}</span>
-                  <span className={`flex items-center gap-1 text-xs font-semibold ${s.ok ? 'text-emerald-600' : 'text-red-600'}`}>
-                    <CheckCircle2 className="w-3.5 h-3.5" />
-                    {s.ok ? 'Opérationnel' : 'Dégradé'}
-                  </span>
-                </li>
-              ))}
+            <ul className="space-y-2.5">
+              {services.map((s) => {
+                const meta = STATE_META[s.state];
+                return (
+                  <li key={s.label} className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="text-sm text-gray-700">{s.label}</p>
+                      <p className="text-[10px] text-gray-400 truncate">{s.detail}</p>
+                    </div>
+                    <span className={`flex items-center gap-1 text-xs font-semibold flex-shrink-0 ${meta.color}`}>
+                      <meta.Icon className="w-3.5 h-3.5" />
+                      {meta.label}
+                    </span>
+                  </li>
+                );
+              })}
             </ul>
           </div>
       </div>
