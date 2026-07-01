@@ -63,7 +63,7 @@ export async function GET(request: NextRequest) {
   // Only poll devices assigned to a case (positions require a case_id).
   const { data: devices } = await supabase
     .from('devices')
-    .select('id, imei, case_id, battery_pct')
+    .select('id, imei, case_id, battery_pct, is_online, last_seen_at')
     .not('case_id', 'is', null);
 
   if (!devices || devices.length === 0) {
@@ -74,10 +74,32 @@ export async function GET(request: NextRequest) {
   const origin = request.nextUrl.origin;
   const ingestKey = process.env.INGEST_API_KEY ?? '';
 
+  const staleMin = settings.signal_lost_min ?? 15;
+
   const results = await Promise.all(
     devices.map(async (device) => {
       const live = await getDeviceLocation(device.imei);
-      if (!live) return { imei: device.imei, ok: false, reason: 'no-fix' };
+      if (!live) {
+        // Device is silent. Mark it offline once and, if it has been silent
+        // beyond the configured window, raise SIGNAL_LOST — a truthful
+        // connection state instead of a stale "online".
+        const wasOnline = device.is_online === true;
+        const lastSeen = device.last_seen_at ? Date.parse(device.last_seen_at) : null;
+        const silentMin = lastSeen ? (Date.now() - lastSeen) / 60000 : Infinity;
+        await supabase.from('devices').update({ is_online: false, sync_status: 'LOST' }).eq('id', device.id);
+        if (wasOnline) {
+          const { logDeviceEvent } = await import('@/lib/devices/events');
+          await logDeviceEvent(supabase, { deviceId: device.id, caseId: device.case_id, type: 'OFFLINE', detail: 'Perte de contact' });
+        }
+        if (silentMin >= staleMin && device.case_id) {
+          await fetch(`${origin}/api/ingest/alert`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'x-api-key': ingestKey },
+            body: JSON.stringify({ imei: device.imei, type: 'SIGNAL_LOST' }),
+          });
+        }
+        return { imei: device.imei, ok: false, reason: 'no-fix', online: false };
+      }
 
       // Position → standard ingest (handles geofence + GEOFENCE_EXIT alert)
       await fetch(`${origin}/api/ingest/position`, {
@@ -92,13 +114,17 @@ export async function GET(request: NextRequest) {
         }),
       });
 
-      // Sync battery onto the device row
-      if (live.battery !== null) {
-        await supabase
-          .from('devices')
-          .update({ battery_pct: live.battery })
-          .eq('id', device.id);
-      }
+      // Sync live telemetry onto the device row (ingest already set is_online +
+      // last_seen). Freshness → sync_status: recent fix = SYNCED, lagging = DELAYED.
+      const fixAgeMin = (Date.now() - Date.parse(live.recordedAt)) / 60000;
+      const syncStatus = fixAgeMin <= 5 ? 'SYNCED' : fixAgeMin <= staleMin ? 'DELAYED' : 'LOST';
+      const deviceUpdate: Record<string, unknown> = {
+        sync_status: syncStatus,
+        last_heartbeat_at: new Date().toISOString(),
+      };
+      if (live.battery !== null) deviceUpdate.battery_pct = live.battery;
+      if (live.signal !== null) deviceUpdate.signal_strength_dbm = live.signal;
+      await supabase.from('devices').update(deviceUpdate).eq('id', device.id);
 
       // ── BLE beacon home alarm: distance + grace period enforcement ──
       const { data: beacon } = await supabase

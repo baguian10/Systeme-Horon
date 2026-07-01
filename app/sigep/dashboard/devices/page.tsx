@@ -13,6 +13,7 @@ import AssignDeviceControl from '@/components/devices/AssignDeviceControl';
 import SimPanel from '@/components/devices/SimPanel';
 import RegisterDeviceForm from '@/components/devices/RegisterDeviceForm';
 import BeaconsManager from '@/components/devices/BeaconsManager';
+import TestConnectionButton from '@/components/devices/TestConnectionButton';
 
 export const metadata = { title: 'Bracelets & Balises BLE — SIGEP' };
 export const revalidate = 0;
@@ -176,12 +177,13 @@ export default async function DevicesPage() {
                       </td>
                       {isHardwareAdmin && (
                         <td className="px-5 py-3.5">
-                          <div className="flex items-center gap-3">
+                          <div className="flex items-center gap-3 flex-wrap">
                             {assignedCase ? (
                               <span className="text-xs text-gray-400">Assigné</span>
                             ) : (
                               <AssignDeviceControl deviceId={d.id} />
                             )}
+                            <TestConnectionButton imei={d.imei} />
                             <Link
                               href={`/sigep/dashboard/devices/${d.id}/label`}
                               target="_blank"
