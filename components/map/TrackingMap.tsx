@@ -127,6 +127,21 @@ function DrawControl({ onShapeDrawn }: { onShapeDrawn: (s: DrawnShape) => void }
   const setup = useCallback(async () => {
     const Lmod = (await import('leaflet')).default;
     await import('leaflet-draw');
+
+    // leaflet-draw 1.0.4 + Leaflet ≥1.8: readableArea throws while drawing a
+    // polygon (showArea), crashing the draw. Guard it.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const GU = (Lmod as any).GeometryUtil;
+    if (GU && !GU.__horonPatched) {
+      const orig = GU.readableArea;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      GU.readableArea = function (area: number, isMetric: any, precision: any) {
+        try { return orig.call(this, area, isMetric, precision); }
+        catch { return `${Math.round(area)} m²`; }
+      };
+      GU.__horonPatched = true;
+    }
+
     cleanupRef.current();
 
     const drawnItems = new Lmod.FeatureGroup();

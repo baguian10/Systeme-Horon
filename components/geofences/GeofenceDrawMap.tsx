@@ -28,6 +28,22 @@ function DrawControl({ drawMode, onShapeDrawn }: DrawControlProps) {
     const L = (await import('leaflet')).default;
     await import('leaflet-draw');
 
+    // leaflet-draw 1.0.4 + Leaflet ≥1.8 bug: while drawing a polygon it calls
+    // L.GeometryUtil.readableArea with a signature that throws
+    // ("Cannot read properties of undefined (reading 'type')"), crashing the
+    // whole draw. Guard it so the polygon tool works (with area when possible).
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const GU = (L as any).GeometryUtil;
+    if (GU && !GU.__horonPatched) {
+      const orig = GU.readableArea;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      GU.readableArea = function (area: number, isMetric: any, precision: any) {
+        try { return orig.call(this, area, isMetric, precision); }
+        catch { return `${Math.round(area)} m²`; }
+      };
+      GU.__horonPatched = true;
+    }
+
     // Reset previous listeners/controls
     cleanupRef.current();
 
