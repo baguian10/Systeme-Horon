@@ -241,11 +241,17 @@ async function traxbeanPost<T>(path: string, body: unknown): Promise<T | null> {
 }
 
 // Map an IMEI to its Traxbean numeric targetId (needed by several endpoints).
-// target/page returns { list: [...], pagination }.
+// target/page returns { list: [...], pagination }. departmentId 0 is the root
+// scope (returns all devices), so this doesn't depend on TRAXBEAN_DEPARTMENT_ID
+// being set correctly — a wrong dept was making enableBle report the command as
+// "not transmitted" (targetId not found). Fall back to the configured dept.
 export async function getTargetIdByImei(imei: string): Promise<number | null> {
-  const data = await traxbeanPost<{ list?: Array<{ id: number; imei: string }> }>('business/target/page', { departmentId: DEPARTMENT_ID });
-  const list = data?.list ?? [];
-  return list.find((x) => x.imei === imei)?.id ?? null;
+  for (const departmentId of [0, DEPARTMENT_ID]) {
+    const data = await traxbeanPost<{ list?: Array<{ id: number; imei: string }> }>('business/target/page', { departmentId });
+    const hit = (data?.list ?? []).find((x) => x.imei === imei);
+    if (hit) return hit.id;
+  }
+  return null;
 }
 
 export type TraxbeanCommand =
