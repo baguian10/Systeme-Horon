@@ -35,7 +35,7 @@ export default async function MapPage({
   const [cases, positions, heatPoints, geofences, alerts, operationals] = await Promise.all([
     fetchCases(session.role, session.id),
     fetchLatestPositions(),
-    fetchViolationHeatPoints(),
+    fetchViolationHeatPoints(session.role),
     fetchGeofences(),
     fetchAlerts(session.role).catch(() => []),
     fetchOperationalUsers().catch(() => []),

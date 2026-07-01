@@ -4,7 +4,7 @@ import {
   MOCK_REVOCATIONS, MOCK_JOURNAL_ENTRIES, MOCK_MAINTENANCE_TICKETS, MOCK_AGENDA,
   MOCK_THREADS, MOCK_MESSAGES, MOCK_VIOLATION_HEATPOINTS,
 } from './data';
-import type { Case, Alert, User, OverviewStats, UserRole, Position, Device, Geofence, TigSite, RevocationRequest, JournalEntry, MaintenanceTick, AgendaObligation, MessageThread, Message, ViolationHeatPoint } from '@/lib/supabase/types';
+import type { Case, Alert, AlertType, User, OverviewStats, UserRole, Position, Device, Geofence, TigSite, RevocationRequest, JournalEntry, MaintenanceTick, AgendaObligation, MessageThread, Message, ViolationHeatPoint } from '@/lib/supabase/types';
 import { isTraxbeanConfigured, getDeviceLocation } from '@/lib/traxbean/client';
 
 export const IS_DEMO_MODE =
@@ -511,9 +511,28 @@ export async function fetchMessages(threadId: string): Promise<Message[]> {
   }));
 }
 
-export async function fetchViolationHeatPoints(): Promise<ViolationHeatPoint[]> {
+export async function fetchViolationHeatPoints(role: UserRole): Promise<ViolationHeatPoint[]> {
   if (IS_DEMO_MODE) return MOCK_VIOLATION_HEATPOINTS;
-  return [];
+  // Real heat = past behavioural-violation alerts that carry a GPS position.
+  // Intensity uses the alert severity (1-5), which the heatmap colour scale
+  // already expects. Case-scoped: JUDGE/OPERATIONAL see their own via RLS,
+  // admin roles see the whole system.
+  const supabase = await caseScopedClient(role);
+  if (!supabase) return [];
+  const { data } = await supabase
+    .from('alerts')
+    .select('alert_type, severity, position_lat, position_lon')
+    .in('alert_type', ['GEOFENCE_EXIT', 'CURFEW_VIOLATION', 'TAMPER_DETECTED'])
+    .not('position_lat', 'is', null)
+    .not('position_lon', 'is', null)
+    .limit(5000);
+  type Row = { alert_type: AlertType; severity: number | null; position_lat: number; position_lon: number };
+  return ((data ?? []) as unknown as Row[]).map((a) => ({
+    lat: a.position_lat,
+    lng: a.position_lon,
+    intensity: Math.min(5, Math.max(1, a.severity ?? 1)),
+    alert_type: a.alert_type,
+  }));
 }
 
 // Real system-health signal: timestamp of the most recent ingested position.
