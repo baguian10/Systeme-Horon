@@ -32,6 +32,28 @@ let cachedToken: string | null = null;
 let cachedAt = 0;
 const TOKEN_TTL_MS = 45 * 60_000; // refresh well before typical expiry
 
+// DB-backed token cache: serverless invocations don't share module memory, so
+// the token is persisted on system_settings and reused across every function
+// instance. Without this each poll would re-login and the account gets locked.
+async function readDbToken(): Promise<{ token: string; at: number } | null> {
+  try {
+    const { createAdminClient } = await import('@/lib/supabase/admin');
+    const sb = createAdminClient();
+    if (!sb) return null;
+    const { data } = await sb.from('system_settings').select('traxbean_token, traxbean_token_at').eq('id', 1).maybeSingle();
+    const row = data as { traxbean_token?: string | null; traxbean_token_at?: string | null } | null;
+    if (row?.traxbean_token && row.traxbean_token_at) return { token: row.traxbean_token, at: Date.parse(row.traxbean_token_at) };
+    return null;
+  } catch { return null; }
+}
+async function writeDbToken(token: string): Promise<void> {
+  try {
+    const { createAdminClient } = await import('@/lib/supabase/admin');
+    const sb = createAdminClient();
+    if (sb) await sb.from('system_settings').update({ traxbean_token: token, traxbean_token_at: new Date().toISOString() }).eq('id', 1);
+  } catch { /* best effort */ }
+}
+
 async function login(): Promise<string | null> {
   if (!USERNAME || !PASSWORD) return null;
   try {
@@ -42,15 +64,23 @@ async function login(): Promise<string | null> {
     });
     const json = (await res.body.json().catch(() => null)) as { data?: { token?: string } } | null;
     const token = json?.data?.token;
-    if (token) { cachedToken = token; cachedAt = Date.now(); return token; }
+    if (token) { cachedToken = token; cachedAt = Date.now(); await writeDbToken(token); return token; }
     return null;
   } catch { return null; }
 }
 
-// Current auth token: cached login token, a fresh login, or the static token.
+// Current auth token: module cache → DB cache → fresh login → static token.
+// Only logs in when both caches are stale, so at most one login per TTL across
+// all serverless instances.
 async function getToken(forceRefresh = false): Promise<string | null> {
   if (USERNAME && PASSWORD) {
-    if (!forceRefresh && cachedToken && Date.now() - cachedAt < TOKEN_TTL_MS) return cachedToken;
+    // Even on forceRefresh, reuse a token minted in the last 10s — a sibling
+    // call in the same poll just re-logged in (avoids N logins on N expiries).
+    if (cachedToken && Date.now() - cachedAt < (forceRefresh ? 10_000 : TOKEN_TTL_MS)) return cachedToken;
+    if (!forceRefresh) {
+      const db = await readDbToken();
+      if (db && Date.now() - db.at < TOKEN_TTL_MS) { cachedToken = db.token; cachedAt = db.at; return db.token; }
+    }
     const t = await login();
     return t ?? cachedToken ?? STATIC_TOKEN ?? null;
   }
@@ -80,9 +110,10 @@ export type TraxbeanAuth = 'ok' | 'expired' | 'unconfigured' | 'unreachable';
 // Distinguishes an expired token from a network failure or a device with no fix.
 export async function checkTraxbeanAuth(): Promise<TraxbeanAuth> {
   if (!isTraxbeanConfigured()) return 'unconfigured';
-  // Programmatic login IS the health check: a fresh token = the link is up.
+  // Reuse the cached token (logs in only when the cache is empty/stale — at most
+  // once per TTL). Forcing a fresh login every poll gets the account locked out.
   if (USERNAME && PASSWORD) {
-    const t = await login();
+    const t = await getToken();
     return t ? 'ok' : 'expired';
   }
   // Static-token only: probe a real position call and read the auth wording.
