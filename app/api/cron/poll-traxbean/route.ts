@@ -156,6 +156,24 @@ export async function GET(request: NextRequest) {
         .eq('device_id', device.id)
         .maybeSingle();
 
+      // ── Live BLE presence: record whether the tracker currently sees this
+      // beacon (independent of the alarm logic below), so the UI shows a
+      // truthful "BLE connecté / absent" status with the real RSSI. ──
+      if (beacon?.uid) {
+        const presenceScan = await getLatestBleScan(device.imei);
+        if (presenceScan) {
+          const hit = presenceScan.sightings.find((s) => s.mac === (beacon.uid ?? '').toUpperCase());
+          await supabase.from('beacons').update({
+            ble_present: !!hit,
+            ble_rssi: hit ? hit.rssi : null,
+            ble_checked_at: new Date().toISOString(),
+          }).eq('id', beacon.id);
+        } else {
+          // No fresh scan → status unknown (don't fake a connection).
+          await supabase.from('beacons').update({ ble_present: null, ble_checked_at: new Date().toISOString() }).eq('id', beacon.id);
+        }
+      }
+
       // If the case also has a GPS inclusion zone, the geofence enforcer
       // (ingest/position) already cross-checks this beacon and raises the exit —
       // skip the standalone beacon alarm to avoid a duplicate.

@@ -19,6 +19,9 @@ interface Beacon {
   min_rssi?: number;
   alarm_mode?: 'GPS' | 'BLE' | 'BOTH';
   battery_changed_at?: string | null;
+  ble_present?: boolean | null;
+  ble_rssi?: number | null;
+  ble_checked_at?: string | null;
 }
 
 const STATUS_STYLE: Record<string, string> = {
@@ -29,6 +32,12 @@ const STATUS_STYLE: Record<string, string> = {
 
 const MODE_LABEL: Record<string, string> = { BLE: 'Proximité BLE', GPS: 'Rayon GPS', BOTH: 'GPS + BLE' };
 
+// Minutes since an ISO timestamp (kept out of render for hook purity).
+function minutesSince(iso?: string | null): number | null {
+  if (!iso) return null;
+  return (Date.now() - new Date(iso).getTime()) / 60000;
+}
+
 // Read-only summary of the beacon's active alarm parameters (from the DB), so an
 // operator sees the live config at a glance without opening the edit form.
 function BeaconActiveParams({ b }: { b: Beacon }) {
@@ -36,8 +45,18 @@ function BeaconActiveParams({ b }: { b: Beacon }) {
   const bleM = b.min_rssi != null ? rssiToMeters(b.min_rssi) : null;
   const ageM = batteryAgeMonths(b.battery_changed_at);
   const chip = 'inline-block px-1.5 py-0.5 rounded text-[10px] font-medium';
+  // Live BLE connection: present/absent/unknown; stale (>15min) → unknown.
+  const bleFresh = minutesSince(b.ble_checked_at) !== null && minutesSince(b.ble_checked_at)! < 15;
+  const blePresent = bleFresh ? b.ble_present : null;
   return (
     <div className="mt-1 flex flex-wrap gap-1">
+      {b.device_id && (
+        <span className={`${chip} ${blePresent === true ? 'bg-emerald-100 text-emerald-700' : blePresent === false ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-400'}`}>
+          {blePresent === true ? `BLE connecté${b.ble_rssi != null ? ` (${b.ble_rssi} dBm ≈ ${rssiToMeters(b.ble_rssi)} m)` : ''}`
+           : blePresent === false ? 'BLE absent'
+           : 'BLE inconnu'}
+        </span>
+      )}
       <span className={`${chip} ${b.alarm_enabled ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-500'}`}>
         {b.alarm_enabled ? 'Alarme ON' : 'Alarme OFF'}
       </span>
