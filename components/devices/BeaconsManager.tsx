@@ -27,6 +27,39 @@ const STATUS_STYLE: Record<string, string> = {
   SPARE:  'text-amber-700 bg-amber-50',
 };
 
+const MODE_LABEL: Record<string, string> = { BLE: 'Proximité BLE', GPS: 'Rayon GPS', BOTH: 'GPS + BLE' };
+
+// Read-only summary of the beacon's active alarm parameters (from the DB), so an
+// operator sees the live config at a glance without opening the edit form.
+function BeaconActiveParams({ b }: { b: Beacon }) {
+  const mode = b.alarm_mode ?? 'BOTH';
+  const bleM = b.min_rssi != null ? rssiToMeters(b.min_rssi) : null;
+  const ageM = batteryAgeMonths(b.battery_changed_at);
+  const chip = 'inline-block px-1.5 py-0.5 rounded text-[10px] font-medium';
+  return (
+    <div className="mt-1 flex flex-wrap gap-1">
+      <span className={`${chip} ${b.alarm_enabled ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-500'}`}>
+        {b.alarm_enabled ? 'Alarme ON' : 'Alarme OFF'}
+      </span>
+      <span className={`${chip} bg-blue-100 text-blue-700`}>{MODE_LABEL[mode]}</span>
+      {(mode === 'BLE' || mode === 'BOTH') && bleM != null && (
+        <span className={`${chip} bg-indigo-100 text-indigo-700`}>Seuil BLE ≈ {bleM} m ({b.min_rssi} dBm)</span>
+      )}
+      {(mode === 'GPS' || mode === 'BOTH') && (
+        <span className={`${chip} bg-indigo-100 text-indigo-700`}>Rayon GPS {b.max_distance_m ?? 50} m</span>
+      )}
+      <span className={`${chip} bg-amber-100 text-amber-700`}>Grâce {b.grace_minutes ?? 0} min</span>
+      <span className={`${chip} bg-gray-100 text-gray-600`}>
+        {b.active_start && b.active_end ? `${b.active_start}–${b.active_end}` : '24/7'}
+      </span>
+      {b.notify_exit && <span className={`${chip} bg-gray-100 text-gray-600`}>SMS sortie</span>}
+      <span className={`${chip} ${ageM == null || ageM >= 12 ? 'bg-amber-100 text-amber-700' : 'bg-gray-100 text-gray-600'}`}>
+        Pile {ageM == null ? 'non suivie' : `${ageM} mois`}
+      </span>
+    </div>
+  );
+}
+
 // BLE beacon inventory: register, link to a bracelet, swap/unlink, mark faulty.
 export default function BeaconsManager({ devices }: { devices: DeviceOpt[] }) {
   const [beacons, setBeacons] = useState<Beacon[]>([]);
@@ -134,7 +167,10 @@ export default function BeaconsManager({ devices }: { devices: DeviceOpt[] }) {
               return (
                 <Fragment key={b.id}>
                 <tr className="hover:bg-gray-50/50">
-                  <td className="px-5 py-3 font-mono text-xs text-gray-700">{b.uid}</td>
+                  <td className="px-5 py-3 font-mono text-xs text-gray-700 align-top">
+                    {b.uid}
+                    <BeaconActiveParams b={b} />
+                  </td>
                   <td className="px-5 py-3 text-xs text-gray-600">{b.label ?? '—'}</td>
                   <td className="px-5 py-3">
                     <span className={`text-xs font-medium px-2 py-0.5 rounded ${STATUS_STYLE[b.status] ?? ''}`}>{b.status}</span>
