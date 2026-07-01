@@ -212,7 +212,7 @@ export default async function CaseDetailPage({ params }: { params: Promise<{ id:
                     {caseData.last_position.latitude.toFixed(5)}, {caseData.last_position.longitude.toFixed(5)}
                   </p>
                   <div className="flex items-center gap-3 mt-1 text-slate-400 text-xs">
-                    <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {timeAgo(caseData.last_position.recorded_at)} ago</span>
+                    <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> il y a {timeAgo(caseData.last_position.recorded_at)}</span>
                     {caseData.last_position.accuracy_m && (
                       <span>Précision ±{caseData.last_position.accuracy_m}m</span>
                     )}

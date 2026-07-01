@@ -67,7 +67,20 @@ export async function fetchCaseById(id: string): Promise<Case | null> {
     .select('*, individual:individuals(*), judge:users!judge_id(*), device:devices(*), geofences(*), alerts(*), department:departments(name)')
     .eq('id', id)
     .single();
-  return (data as Case) ?? null;
+  const caseRow = (data as Case) ?? null;
+  if (caseRow) {
+    // The cases query carries no position — attach the latest fix so the
+    // dossier's "Dernière position connue" card works in real mode.
+    const { data: pos } = await supabase
+      .from('positions')
+      .select('latitude, longitude, recorded_at, accuracy_m, speed_kmh')
+      .eq('case_id', id)
+      .order('recorded_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (pos) caseRow.last_position = pos as Case['last_position'];
+  }
+  return caseRow;
 }
 
 export async function fetchAlerts(_role: UserRole): Promise<Alert[]> {
