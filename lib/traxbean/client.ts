@@ -50,12 +50,34 @@ async function writeDbToken(token: string): Promise<void> {
   try {
     const { createAdminClient } = await import('@/lib/supabase/admin');
     const sb = createAdminClient();
-    if (sb) await sb.from('system_settings').update({ traxbean_token: token, traxbean_token_at: new Date().toISOString() }).eq('id', 1);
+    if (sb) await sb.from('system_settings').update({ traxbean_token: token, traxbean_token_at: new Date().toISOString(), traxbean_login_fail_at: null }).eq('id', 1);
+  } catch { /* best effort */ }
+}
+
+// Login backoff: after a failed /admin/login, wait before retrying so a frequent
+// cron can't hammer the endpoint and extend a rate-limit lockout.
+const LOGIN_BACKOFF_MS = 5 * 60_000;
+async function loginBackedOff(): Promise<boolean> {
+  try {
+    const { createAdminClient } = await import('@/lib/supabase/admin');
+    const sb = createAdminClient();
+    if (!sb) return false;
+    const { data } = await sb.from('system_settings').select('traxbean_login_fail_at').eq('id', 1).maybeSingle();
+    const failAt = (data as { traxbean_login_fail_at?: string | null } | null)?.traxbean_login_fail_at;
+    return Boolean(failAt) && Date.now() - Date.parse(failAt!) < LOGIN_BACKOFF_MS;
+  } catch { return false; }
+}
+async function markLoginFail(): Promise<void> {
+  try {
+    const { createAdminClient } = await import('@/lib/supabase/admin');
+    const sb = createAdminClient();
+    if (sb) await sb.from('system_settings').update({ traxbean_login_fail_at: new Date().toISOString() }).eq('id', 1);
   } catch { /* best effort */ }
 }
 
 async function login(): Promise<string | null> {
   if (!USERNAME || !PASSWORD) return null;
+  if (await loginBackedOff()) return null; // within cooldown after a failure
   try {
     const res = await request(`${API_BASE}/admin/login`, {
       method: 'POST', dispatcher,
@@ -65,8 +87,9 @@ async function login(): Promise<string | null> {
     const json = (await res.body.json().catch(() => null)) as { data?: { token?: string } } | null;
     const token = json?.data?.token;
     if (token) { cachedToken = token; cachedAt = Date.now(); await writeDbToken(token); return token; }
+    await markLoginFail();
     return null;
-  } catch { return null; }
+  } catch { await markLoginFail(); return null; }
 }
 
 // Current auth token: module cache → DB cache → fresh login → static token.
