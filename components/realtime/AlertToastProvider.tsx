@@ -3,9 +3,12 @@
 import {
   createContext, useCallback, useContext, useRef, useState, useEffect,
 } from 'react';
+import { Volume2, VolumeX } from 'lucide-react';
 import type { Alert, AlertType } from '@/lib/supabase/types';
 import { useAlertFeed } from '@/hooks/useAlertFeed';
 import AlertToast from './AlertToast';
+
+const SOUND_KEY = 'sigep_alert_sound';
 
 interface ToastItem {
   id: string;
@@ -23,34 +26,49 @@ export const useToast = () => useContext(ToastContext);
 const SEVERITY_THRESHOLD_PERSIST = 4; // severity >= 4 stays until dismissed
 const AUTO_DISMISS_MS = 7000;
 
-// Web Audio API — no external dependency
-function playAlertSound(severity: number) {
+// Shared AudioContext — browsers block audio until the user has interacted
+// with the page, so we keep ONE context and unlock/resume it on the first
+// user gesture. Without this the alert sound silently never plays.
+let sharedCtx: AudioContext | null = null;
+function getAudioCtx(): AudioContext | null {
   try {
-    const ctx = new (window.AudioContext || (window as never)['webkitAudioContext'])();
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.connect(gain);
-    gain.connect(ctx.destination);
+    if (!sharedCtx) sharedCtx = new (window.AudioContext || (window as never)['webkitAudioContext'])();
+    if (sharedCtx.state === 'suspended') void sharedCtx.resume();
+    return sharedCtx;
+  } catch { return null; }
+}
+if (typeof window !== 'undefined') {
+  const unlock = () => { getAudioCtx(); };
+  window.addEventListener('pointerdown', unlock);
+  window.addEventListener('keydown', unlock);
+}
 
+// Web Audio API — no external dependency. Louder, repeating siren for critical.
+function playAlertSound(severity: number) {
+  const ctx = getAudioCtx();
+  if (!ctx) return;
+  try {
+    const beep = (freq: number, start: number, dur: number, vol: number) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.frequency.value = freq;
+      gain.gain.setValueAtTime(0, ctx.currentTime + start);
+      gain.gain.linearRampToValueAtTime(vol, ctx.currentTime + start + 0.03);
+      gain.gain.linearRampToValueAtTime(0, ctx.currentTime + start + dur);
+      osc.start(ctx.currentTime + start);
+      osc.stop(ctx.currentTime + start + dur + 0.02);
+    };
     if (severity >= 5) {
-      // Urgent: triple pulse at 880 Hz
-      osc.frequency.value = 880;
-      gain.gain.setValueAtTime(0, ctx.currentTime);
-      for (let i = 0; i < 3; i++) {
-        gain.gain.linearRampToValueAtTime(0.25, ctx.currentTime + i * 0.25 + 0.05);
-        gain.gain.linearRampToValueAtTime(0, ctx.currentTime + i * 0.25 + 0.18);
-      }
-      osc.start(ctx.currentTime);
-      osc.stop(ctx.currentTime + 0.85);
+      // Critical: rising/falling siren, 4 sweeps
+      for (let i = 0; i < 4; i++) { beep(740, i * 0.42, 0.18, 0.35); beep(990, i * 0.42 + 0.2, 0.18, 0.35); }
+    } else if (severity >= 4) {
+      // High: triple pulse 880 Hz
+      for (let i = 0; i < 3; i++) beep(880, i * 0.26, 0.16, 0.3);
     } else if (severity >= 3) {
-      // Warning: single tone at 660 Hz
-      osc.frequency.value = 660;
-      gain.gain.setValueAtTime(0.15, ctx.currentTime);
-      gain.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.4);
-      osc.start(ctx.currentTime);
-      osc.stop(ctx.currentTime + 0.5);
+      // Warning: single tone
+      beep(660, 0, 0.4, 0.18);
     }
-    setTimeout(() => ctx.close(), 1500);
   } catch {}
 }
 
@@ -83,6 +101,27 @@ let toastCounter = 0;
 export default function AlertToastProvider({ children }: { children: React.ReactNode }) {
   const [toasts, setToasts] = useState<ToastItem[]>([]);
   const timers = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
+  const [soundOn, setSoundOn] = useState(true);
+  const soundRef = useRef(true);
+
+  // Load the saved sound preference (default on) once on mount.
+  useEffect(() => {
+    const saved = typeof window !== 'undefined' ? window.localStorage.getItem(SOUND_KEY) : null;
+    const on = saved !== 'off';
+    soundRef.current = on;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setSoundOn(on);
+  }, []);
+
+  const toggleSound = useCallback(() => {
+    setSoundOn((prev) => {
+      const next = !prev;
+      soundRef.current = next;
+      try { window.localStorage.setItem(SOUND_KEY, next ? 'on' : 'off'); } catch {}
+      if (next) { getAudioCtx(); playAlertSound(4); } // unlock + confirm tone
+      return next;
+    });
+  }, []);
 
   const dismiss = useCallback((id: string) => {
     setToasts((prev) =>
@@ -97,7 +136,7 @@ export default function AlertToastProvider({ children }: { children: React.React
     const id = `toast-${++toastCounter}`;
     setToasts((prev) => [{ id, alert, leaving: false }, ...prev].slice(0, 6));
 
-    playAlertSound(alert.severity);
+    if (soundRef.current) playAlertSound(alert.severity);
     requestPushNotification(alert);
 
     if (alert.severity < SEVERITY_THRESHOLD_PERSIST) {
@@ -117,9 +156,20 @@ export default function AlertToastProvider({ children }: { children: React.React
   return (
     <ToastContext.Provider value={{ addToast }}>
       {children}
-      {/* Toast stack — bottom-right */}
+      {/* Sound on/off toggle — always visible, bottom-right above the toasts */}
+      <button
+        onClick={toggleSound}
+        title={soundOn ? 'Alarme sonore activée — cliquer pour couper' : 'Alarme sonore coupée — cliquer pour activer'}
+        className={`fixed bottom-5 right-5 z-50 flex items-center gap-1.5 px-3 py-2 rounded-full shadow-lg text-xs font-semibold transition-colors ${
+          soundOn ? 'bg-emerald-600 hover:bg-emerald-500 text-white' : 'bg-slate-200 hover:bg-slate-300 text-slate-600'
+        }`}
+      >
+        {soundOn ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
+        {soundOn ? 'Son ON' : 'Son OFF'}
+      </button>
+      {/* Toast stack — bottom-right, above the toggle */}
       <div
-        className="fixed bottom-5 right-5 z-50 flex flex-col-reverse gap-3 pointer-events-none"
+        className="fixed bottom-20 right-5 z-50 flex flex-col-reverse gap-3 pointer-events-none"
         style={{ maxWidth: 380 }}
       >
         {toasts.map((item) => (
