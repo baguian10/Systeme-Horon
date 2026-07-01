@@ -22,6 +22,7 @@ const CASE_CONFIG: Record<CaseStatus, { label: string; className: string }> = {
 
 const ALERT_CONFIG: Record<AlertType, { label: string; className: string }> = {
   GEOFENCE_EXIT:    { label: 'Sortie de zone',    className: 'bg-orange-100 text-orange-700' },
+  BLE_EXIT:         { label: 'Sortie domicile (BLE)', className: 'bg-blue-100 text-blue-700' },
   CURFEW_VIOLATION: { label: 'Couvre-feu',        className: 'bg-violet-100 text-violet-700' },
   TAMPER_DETECTED:  { label: 'Sabotage',          className: 'bg-red-100 text-red-700' },
   HEALTH_CRITICAL:  { label: 'Santé critique',    className: 'bg-pink-100 text-pink-700' },

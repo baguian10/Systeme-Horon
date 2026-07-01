@@ -65,6 +65,7 @@ async function requestPushNotification(alert: Alert) {
     const LABELS: Partial<Record<AlertType, string>> = {
       TAMPER_DETECTED: '⚠️ Sabotage bracelet',
       GEOFENCE_EXIT: '📍 Sortie de zone',
+      BLE_EXIT: '🏠 Sortie du domicile (BLE)',
       CURFEW_VIOLATION: '🌙 Couvre-feu non respecté',
       PANIC_BUTTON: '🆘 Bouton panique',
       HEALTH_CRITICAL: '❤️ Santé critique',

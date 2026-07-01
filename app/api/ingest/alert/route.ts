@@ -48,7 +48,7 @@ export async function POST(request: NextRequest) {
   }
 
   const DEFAULT_SEVERITY: Partial<Record<AlertType, number>> = {
-    TAMPER_DETECTED: 5, PANIC_BUTTON: 5, GEOFENCE_EXIT: 4,
+    TAMPER_DETECTED: 5, PANIC_BUTTON: 5, GEOFENCE_EXIT: 4, BLE_EXIT: 4,
     HEALTH_CRITICAL: 3, SIGNAL_LOST: 3, BATTERY_LOW: 2,
   };
 

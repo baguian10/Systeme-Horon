@@ -156,7 +156,17 @@ export async function GET(request: NextRequest) {
         .eq('device_id', device.id)
         .maybeSingle();
 
-      if (beacon && beacon.alarm_enabled && withinActiveWindow(beacon.active_start, beacon.active_end)) {
+      // If the case also has a GPS inclusion zone, the geofence enforcer
+      // (ingest/position) already cross-checks this beacon and raises the exit —
+      // skip the standalone beacon alarm to avoid a duplicate.
+      const { count: inclusionZones } = await supabase
+        .from('geofences')
+        .select('id', { count: 'exact', head: true })
+        .eq('case_id', device.case_id)
+        .eq('is_exclusion', false)
+        .is('active_start', null);
+
+      if (beacon && beacon.alarm_enabled && !inclusionZones && withinActiveWindow(beacon.active_start, beacon.active_end)) {
         const mode = (beacon.alarm_mode as 'GPS' | 'BLE' | 'BOTH') ?? 'BOTH';
         const minRssi = beacon.min_rssi ?? -85;
 
@@ -199,11 +209,14 @@ export async function GET(request: NextRequest) {
           }
           const elapsedMin = (now - outSince) / 60000;
           if (elapsedMin >= (beacon.grace_minutes ?? 0)) {
+            // BLE mode raises the distinct BLE_EXIT type so it never dedupes
+            // against a GPS geofence exit; GPS/BOTH keep GEOFENCE_EXIT.
+            const alertType = mode === 'BLE' ? 'BLE_EXIT' : 'GEOFENCE_EXIT';
             const { count } = await supabase
               .from('alerts')
               .select('id', { count: 'exact', head: true })
               .eq('case_id', device.case_id)
-              .eq('alert_type', 'GEOFENCE_EXIT')
+              .eq('alert_type', alertType)
               .eq('is_resolved', false);
             if (!count) {
               const detail = mode === 'BLE'
@@ -211,7 +224,7 @@ export async function GET(request: NextRequest) {
                 : `Éloignement du domicile : ${dist} m (max ${beacon.max_distance_m} m) depuis ${beacon.grace_minutes} min, balise non détectée.`;
               await supabase.from('alerts').insert({
                 case_id: device.case_id, device_id: device.id,
-                alert_type: 'GEOFENCE_EXIT', severity: 4, description: detail,
+                alert_type: alertType, severity: 4, description: detail,
                 position_lat: live.lat, position_lon: live.lng,
               });
               const { data: kase } = await supabase.from('cases').select('judge_id').eq('id', device.case_id).single();

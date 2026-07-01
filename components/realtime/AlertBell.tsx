@@ -7,7 +7,7 @@ import type { Alert, AlertType } from '@/lib/supabase/types';
 import { useAlertFeed } from '@/hooks/useAlertFeed';
 
 const TYPE_LABELS: Record<AlertType, string> = {
-  GEOFENCE_EXIT: 'Sortie de zone', CURFEW_VIOLATION: 'Couvre-feu', TAMPER_DETECTED: 'Sabotage',
+  GEOFENCE_EXIT: 'Sortie de zone', BLE_EXIT: 'Sortie domicile (BLE)', CURFEW_VIOLATION: 'Couvre-feu', TAMPER_DETECTED: 'Sabotage',
   HEALTH_CRITICAL: 'Santé critique', BATTERY_LOW: 'Batterie faible',
   SIGNAL_LOST: 'Signal perdu', PANIC_BUTTON: 'Bouton panique',
 };

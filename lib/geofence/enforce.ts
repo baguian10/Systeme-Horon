@@ -128,6 +128,38 @@ export async function enforceGeofences(
   const raised: RaisedAlert[] = [];
   const zones = (geofences ?? []) as EnforceGeofence[];
 
+  // ── Cross-check home-exit against the BLE beacon ──
+  // GPS drifts indoors, so "outside the home zone" is confirmed only when the
+  // home beacon is ALSO out of range. If the beacon is still seen, the subject
+  // is home → the GPS reading is drift and the exit is suppressed.
+  //   'in'   → beacon in range (suppress inclusion-zone exit)
+  //   'out'  → beacon out of range (GPS exit confirmed)
+  //   'none' → no beacon / no scan data → GPS decides alone
+  let homeBeacon: 'in' | 'out' | 'none' = 'none';
+  const hasInclusionZone = zones.some((g) => !g.is_exclusion && !(g.active_start && g.active_end) && g.status !== 'REQUESTED');
+  if (hasInclusionZone) {
+    const { data: beacon } = await supabase
+      .from('beacons')
+      .select('uid, min_rssi')
+      .eq('device_id', deviceId)
+      .eq('alarm_enabled', true)
+      .maybeSingle();
+    const bUid = (beacon as { uid?: string | null; min_rssi?: number | null } | null)?.uid;
+    if (bUid) {
+      const { data: dev } = await supabase.from('devices').select('imei').eq('id', deviceId).maybeSingle();
+      const imei = (dev as { imei?: string } | null)?.imei;
+      if (imei) {
+        const { getLatestBleScan } = await import('@/lib/traxbean/client');
+        const scan = await getLatestBleScan(imei);
+        if (scan) {
+          const hit = scan.sightings.find((s) => s.mac === bUid.toUpperCase());
+          const minRssi = (beacon as { min_rssi?: number | null }).min_rssi ?? -85;
+          homeBeacon = hit && hit.rssi >= minRssi ? 'in' : 'out';
+        }
+      }
+    }
+  }
+
   // ── Case-level structured curfew (measure conditions) ──
   // During the curfew schedule (days + hours), the subject must be inside a home
   // inclusion zone. Outside every inclusion zone past the grace delay → violation.
@@ -167,9 +199,13 @@ export async function enforceGeofences(
     const exclusionActive = !hasWindow || withinWindow(g.active_start!, g.active_end!, nowMs);
     const violated = g.is_exclusion ? inside && exclusionActive : !inside;
     if (violated) {
+      // Inclusion (home) zone: if the home beacon is still in range, this is GPS
+      // drift, not a real exit → suppress. Alarm only when both GPS and beacon
+      // agree (beacon out / no beacon). Exclusion zones don't use the beacon.
+      if (!g.is_exclusion && homeBeacon === 'in') continue;
       const desc = g.is_exclusion
         ? `Entrée dans la zone interdite "${g.name}".`
-        : `Sortie de la zone "${g.name}".`;
+        : `Sortie de la zone "${g.name}"${homeBeacon === 'out' ? ' (confirmée par la balise BLE)' : ''}.`;
       if (await insertDeduped(supabase, caseId, deviceId, 'GEOFENCE_EXIT', lat, lon, desc)) {
         raised.push({ alert_type: 'GEOFENCE_EXIT', geofenceName: g.name });
       }

@@ -47,12 +47,12 @@ interface Metrics { online: number; offline: number; violations: number; battery
 const EVENT_LABEL: Record<string, string> = {
   ONLINE: 'Reprise contact', OFFLINE: 'Perte contact', COMMAND: 'Commande', RESTART: 'Redémarrage',
   TAMPER: 'Sabotage', LOW_BATTERY: 'Batterie faible', SIM_CHANGE: 'SIM modifiée', ASSIGN: 'Assignation',
-  GEOFENCE_EXIT: 'Sortie de zone', CURFEW_VIOLATION: 'Couvre-feu', TAMPER_DETECTED: 'Sabotage',
+  GEOFENCE_EXIT: 'Sortie de zone', BLE_EXIT: 'Sortie domicile (BLE)', CURFEW_VIOLATION: 'Couvre-feu', TAMPER_DETECTED: 'Sabotage',
   PANIC_BUTTON: 'Panique', BATTERY_LOW: 'Batterie faible', SIGNAL_LOST: 'Signal perdu', HEALTH_CRITICAL: 'Santé',
 };
 const EVENT_COLOR: Record<string, string> = {
   TAMPER: 'text-red-600', TAMPER_DETECTED: 'text-red-600', PANIC_BUTTON: 'text-red-600',
-  GEOFENCE_EXIT: 'text-orange-600', CURFEW_VIOLATION: 'text-violet-600', OFFLINE: 'text-gray-500',
+  GEOFENCE_EXIT: 'text-orange-600', BLE_EXIT: 'text-blue-600', CURFEW_VIOLATION: 'text-violet-600', OFFLINE: 'text-gray-500',
   ONLINE: 'text-emerald-600', LOW_BATTERY: 'text-amber-600', BATTERY_LOW: 'text-amber-600',
 };
 
@@ -158,7 +158,7 @@ export default function MonitoringConsole({
   const openAlerts = useMemo(() => alerts.slice().sort((a, b) => b.severity - a.severity || Date.parse(a.triggered_at) - Date.parse(b.triggered_at)), [alerts]);
 
   // P — major-incident detection: many simultaneous active violations.
-  const violationCount = useMemo(() => openAlerts.filter((a) => ['GEOFENCE_EXIT', 'CURFEW_VIOLATION', 'TAMPER_DETECTED', 'PANIC_BUTTON'].includes(a.alert_type)).length, [openAlerts]);
+  const violationCount = useMemo(() => openAlerts.filter((a) => ['GEOFENCE_EXIT', 'BLE_EXIT', 'CURFEW_VIOLATION', 'TAMPER_DETECTED', 'PANIC_BUTTON'].includes(a.alert_type)).length, [openAlerts]);
   const major = violationCount >= 3;
   const incidentCtx = incident ? caseInfo[incident] : null;
 
@@ -171,7 +171,7 @@ export default function MonitoringConsole({
 
   const streamView = useMemo(() => events.filter((e) => {
     if (streamFilter === 'all') return true;
-    const violation = ['GEOFENCE_EXIT', 'CURFEW_VIOLATION', 'TAMPER', 'TAMPER_DETECTED', 'PANIC_BUTTON'].includes(e.type);
+    const violation = ['GEOFENCE_EXIT', 'BLE_EXIT', 'CURFEW_VIOLATION', 'TAMPER', 'TAMPER_DETECTED', 'PANIC_BUTTON'].includes(e.type);
     return streamFilter === 'violations' ? violation : !violation;
   }), [events, streamFilter]);
 

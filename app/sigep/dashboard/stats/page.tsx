@@ -58,7 +58,7 @@ export default async function StatsPage() {
   }));
 
   const ALERT_LABELS: Partial<Record<AlertType, string>> = {
-    GEOFENCE_EXIT: 'Sortie zone', TAMPER_DETECTED: 'Sabotage',
+    GEOFENCE_EXIT: 'Sortie zone', BLE_EXIT: 'Sortie domicile (BLE)', TAMPER_DETECTED: 'Sabotage',
     HEALTH_CRITICAL: 'Santé', BATTERY_LOW: 'Batterie', SIGNAL_LOST: 'Signal',
   };
   const alertsByType = (Object.keys(ALERT_LABELS) as AlertType[]).map((t) => ({

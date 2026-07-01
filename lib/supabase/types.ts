@@ -2,6 +2,7 @@ export type UserRole = 'SUPER_ADMIN' | 'ADMIN' | 'STRATEGIC' | 'JUDGE' | 'OPERAT
 export type CaseStatus = 'PENDING' | 'ACTIVE' | 'SUSPENDED' | 'TERMINATED' | 'VIOLATION' | 'ARCHIVED';
 export type AlertType =
   | 'GEOFENCE_EXIT'
+  | 'BLE_EXIT'
   | 'CURFEW_VIOLATION'
   | 'TAMPER_DETECTED'
   | 'HEALTH_CRITICAL'

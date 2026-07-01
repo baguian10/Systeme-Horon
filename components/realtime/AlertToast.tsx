@@ -11,6 +11,7 @@ const TYPE_CONFIG: Record<AlertType, {
   iconBg: string;
 }> = {
   GEOFENCE_EXIT:   { icon: <AlertTriangle className="w-4 h-4" />, label: 'Sortie de zone', borderColor: 'border-orange-500', iconBg: 'bg-orange-500' },
+  BLE_EXIT:        { icon: <AlertTriangle className="w-4 h-4" />, label: 'Sortie domicile (BLE)', borderColor: 'border-blue-500', iconBg: 'bg-blue-500' },
   CURFEW_VIOLATION:{ icon: <AlertTriangle className="w-4 h-4" />, label: 'Couvre-feu',     borderColor: 'border-violet-500', iconBg: 'bg-violet-500' },
   TAMPER_DETECTED: { icon: <ShieldAlert className="w-4 h-4" />,   label: 'Sabotage détecté', borderColor: 'border-red-600',    iconBg: 'bg-red-600' },
   HEALTH_CRITICAL: { icon: <Heart className="w-4 h-4" />,          label: 'Santé critique',   borderColor: 'border-pink-500',   iconBg: 'bg-pink-500' },

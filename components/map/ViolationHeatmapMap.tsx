@@ -8,6 +8,7 @@ import type { ViolationHeatPoint, AlertType } from '@/lib/supabase/types';
 
 const TYPE_LABELS: Record<AlertType, string> = {
   GEOFENCE_EXIT:   'Sortie de zone',
+  BLE_EXIT:        'Sortie domicile (BLE)',
   CURFEW_VIOLATION:'Couvre-feu',
   TAMPER_DETECTED: 'Anti-sabotage',
   HEALTH_CRITICAL: 'Santé critique',
