@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
   }
 
   // In demo mode — just acknowledge (simulator handles state in memory)
-  const isDemoMode = !process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const isDemoMode = !process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   if (isDemoMode) {
     return NextResponse.json({ ok: true, demo: true });
   }

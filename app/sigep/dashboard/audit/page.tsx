@@ -45,7 +45,7 @@ export default async function AuditPage() {
   const session = await getSession();
   if (!session || !allow(session, canViewUsers(session.role), 'audit')) redirect('/sigep/dashboard');
 
-  const isDemoMode = !process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const isDemoMode = !process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
   type AuditRow = {
     id: number; action: string; table_name: string | null; user_name: string;

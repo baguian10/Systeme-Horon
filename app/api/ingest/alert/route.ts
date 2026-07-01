@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Missing required fields: imei, type' }, { status: 400 });
   }
 
-  const isDemoMode = !process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const isDemoMode = !process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   if (isDemoMode) return NextResponse.json({ ok: true, demo: true });
 
   const { createAdminClient } = await import('@/lib/supabase/admin');
