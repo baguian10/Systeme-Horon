@@ -14,6 +14,7 @@ import RegisterDeviceForm from '@/components/devices/RegisterDeviceForm';
 import BeaconsManager from '@/components/devices/BeaconsManager';
 import TestConnectionButton from '@/components/devices/TestConnectionButton';
 import ProvisionButton from '@/components/devices/ProvisionButton';
+import BleScanButton from '@/components/devices/BleScanButton';
 
 export const metadata = { title: 'Bracelets & Balises BLE — SIGEP' };
 export const revalidate = 0;
@@ -184,6 +185,7 @@ export default async function DevicesPage() {
                               <AssignDeviceControl deviceId={d.id} />
                             )}
                             <TestConnectionButton imei={d.imei} />
+                            <BleScanButton imei={d.imei} />
                             <ProvisionButton imei={d.imei} />
                             <Link
                               href={`/sigep/dashboard/devices/${d.id}/label`}
