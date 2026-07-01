@@ -596,6 +596,42 @@ export async function fetchCaseRequests(role: UserRole): Promise<CaseRequest[]> 
   }));
 }
 
+// Non-permanent active measures whose end_date falls within `withinDays`.
+// Drives the dashboard "échéances" card. Case-scoped like the rest.
+export type ExpiringMeasure = { id: string; case_number: string; individual_name: string; end_date: string; days_left: number };
+export async function fetchExpiringMeasures(role: UserRole, userId: string, withinDays = 30): Promise<ExpiringMeasure[]> {
+  if (IS_DEMO_MODE) {
+    const now = Date.now();
+    return MOCK_CASES
+      .filter((c) => (c.status === 'ACTIVE' || c.status === 'VIOLATION') && !c.is_permanent && c.end_date)
+      .map((c) => ({ id: c.id, case_number: c.case_number, individual_name: c.individual?.full_name ?? '—', end_date: c.end_date!,
+        days_left: Math.ceil((new Date(c.end_date!).getTime() - now) / 86400000) }))
+      .filter((m) => m.days_left <= withinDays)
+      .sort((a, b) => a.days_left - b.days_left);
+  }
+  const supabase = role === 'SUPER_ADMIN' || role === 'ADMIN'
+    ? (await import('@/lib/supabase/admin')).createAdminClient()
+    : await (await import('@/lib/supabase/server')).createClient();
+  if (!supabase) return [];
+  const horizon = new Date(Date.now() + withinDays * 86400000).toISOString();
+  const { data } = await supabase
+    .from('cases')
+    .select('id, case_number, end_date, individual:individuals(full_name)')
+    .in('status', ['ACTIVE', 'VIOLATION'])
+    .eq('is_permanent', false)
+    .not('end_date', 'is', null)
+    .lte('end_date', horizon)
+    .order('end_date', { ascending: true });
+  const now = Date.now();
+  type Row = { id: string; case_number: string; end_date: string; individual?: { full_name?: string } | null };
+  return ((data ?? []) as unknown as Row[]).map((c) => ({
+    id: c.id, case_number: c.case_number,
+    individual_name: c.individual?.full_name ?? '—',
+    end_date: c.end_date,
+    days_left: Math.ceil((new Date(c.end_date).getTime() - now) / 86400000),
+  }));
+}
+
 export type ServiceStatus = { label: string; state: 'ok' | 'warn' | 'down'; detail: string };
 
 // Real service-health signals for the parametres page (replaces a hardcoded

@@ -3,10 +3,11 @@ import { CaseStatusBadge } from '@/components/ui/StatusBadge';
 import { AlertTypeBadge, SeverityDot } from '@/components/ui/StatusBadge';
 import AnimatedKPIGrid from '@/components/dashboard/AnimatedKPIGrid';
 import LiveRadarDot from '@/components/dashboard/LiveRadarDot';
+import { CalendarClock } from 'lucide-react';
 import {
   fetchOverviewStats, fetchCases, fetchAlerts,
   fetchAgenda, fetchMaintenanceTickets, fetchRevocations, fetchSystemHealth,
-  fetchCaseStatusCounts, fetchAlertTypeCounts,
+  fetchCaseStatusCounts, fetchAlertTypeCounts, fetchExpiringMeasures,
 } from '@/lib/mock/helpers';
 import { getSession } from '@/lib/auth/session';
 import { canViewPII } from '@/lib/auth/permissions';
@@ -28,6 +29,9 @@ export default async function DashboardPage() {
     isStrategic ? fetchCaseStatusCounts() : Promise.resolve({} as Record<string, number>),
     isStrategic ? fetchAlertTypeCounts() : Promise.resolve({ byType: {} as Record<string, number>, total: 0, resolved: 0 }),
   ]);
+
+  // Non-permanent measures nearing their end date (judge/operational/admin view).
+  const expiring = isStrategic ? [] : await fetchExpiringMeasures(session.role, session.id, 30);
 
   const today = new Date().toISOString().slice(0, 10);
   const todayObs = agenda.filter((a) => a.scheduled_date === today);
@@ -200,6 +204,33 @@ export default async function DashboardPage() {
               </ul>
             )}
           </div>
+        </div>
+      )}
+
+      {/* Mesures arrivant à échéance */}
+      {role !== 'STRATEGIC' && expiring.length > 0 && (
+        <div className="bg-white/95 backdrop-blur-sm rounded-2xl border border-amber-100 overflow-hidden shadow-lg shadow-black/5">
+          <div className="px-5 py-4 border-b border-gray-50 flex items-center gap-2">
+            <CalendarClock className="w-4 h-4 text-amber-500" />
+            <h3 className="font-semibold text-gray-900">Mesures arrivant à échéance</h3>
+            <span className="ml-auto text-xs text-gray-400">{expiring.length}</span>
+          </div>
+          <ul className="divide-y divide-gray-50">
+            {expiring.slice(0, 6).map((m) => (
+              <li key={m.id} className="px-5 py-3 flex items-center gap-3">
+                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${m.days_left <= 1 ? 'bg-red-100 text-red-700' : m.days_left <= 7 ? 'bg-amber-100 text-amber-700' : 'bg-gray-100 text-gray-600'}`}>
+                  {m.days_left <= 0 ? "Aujourd'hui" : `J-${m.days_left}`}
+                </span>
+                <div className="flex-1 min-w-0">
+                  <span className="text-xs font-mono font-semibold text-gray-700">{m.case_number}</span>
+                  <p className="text-xs text-gray-500">{showPII ? m.individual_name : 'Identité masquée'}</p>
+                </div>
+                <Link href={`/sigep/dashboard/cases/${m.id}`} className="text-xs text-blue-500 hover:underline flex-shrink-0">
+                  Ouvrir →
+                </Link>
+              </li>
+            ))}
+          </ul>
         </div>
       )}
 

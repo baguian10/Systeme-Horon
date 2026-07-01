@@ -90,11 +90,12 @@ async function executeApprovedRequest(supabase: NonNullable<Sb>, req: ExecReq, a
       await supabase.from('cases').update({ status: 'ARCHIVED', updated_at: new Date().toISOString() }).eq('id', caseId);
       break;
     case 'REACTIVATE':
-      await supabase.from('cases').update({ status: 'ACTIVE', end_date: null, updated_at: new Date().toISOString() }).eq('id', caseId);
+      await supabase.from('cases').update({ status: 'ACTIVE', end_date: null, expiry_reminder_stage: null, updated_at: new Date().toISOString() }).eq('id', caseId);
       break;
     case 'EXTEND': {
       const end = req.payload?.end_date as string | undefined;
-      if (end) await supabase.from('cases').update({ end_date: new Date(end).toISOString(), updated_at: new Date().toISOString() }).eq('id', caseId);
+      // New end date → reset the reminder stage so the new deadline is announced.
+      if (end) await supabase.from('cases').update({ end_date: new Date(end).toISOString(), expiry_reminder_stage: null, updated_at: new Date().toISOString() }).eq('id', caseId);
       break;
     }
     case 'TRANSFER_JURISDICTION': {
@@ -147,7 +148,7 @@ export async function reactivateCaseAction(formData: FormData): Promise<void> {
   if (isDemoMode()) { revalidatePath(`/sigep/dashboard/cases/${case_id}`); return; }
   const supabase = await admin();
   if (!supabase) return;
-  await supabase.from('cases').update({ status: 'ACTIVE', end_date: null, updated_at: new Date().toISOString() }).eq('id', case_id);
+  await supabase.from('cases').update({ status: 'ACTIVE', end_date: null, expiry_reminder_stage: null, updated_at: new Date().toISOString() }).eq('id', case_id);
   await writeAudit({ userId: session.id, action: 'REACTIVATE_CASE', tableName: 'cases', recordId: case_id });
   revalidatePath('/sigep/dashboard/cases');
   revalidatePath(`/sigep/dashboard/cases/${case_id}`);
@@ -197,6 +198,8 @@ export async function setMeasureConditionsAction(
     curfew_start, curfew_end,
     curfew_days: curfew_days.length ? curfew_days : null,
     obligations,
+    // New/cleared end date → re-arm the expiry reminder for the new deadline.
+    expiry_reminder_stage: null,
     updated_at: new Date().toISOString(),
   };
 

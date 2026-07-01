@@ -7,6 +7,7 @@
     "NEXT_TELEMETRY_DISABLED": "1"
   },
   "crons": [
-    { "path": "/api/cron/poll-traxbean", "schedule": "0 6 * * *" }
+    { "path": "/api/cron/poll-traxbean", "schedule": "0 6 * * *" },
+    { "path": "/api/cron/measure-reminders", "schedule": "0 7 * * *" }
   ]
 }
