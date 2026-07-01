@@ -21,15 +21,24 @@ export async function POST(request: NextRequest) {
   const sb = createAdminClient();
   if (!sb) return NextResponse.json({ error: 'DB indisponible' }, { status: 503 });
 
+  let bleActivated = false;
   if (deviceId) {
     // A bracelet holds at most one beacon (device_id is UNIQUE) — free any current one.
     await sb.from('beacons').update({ device_id: null, status: 'SPARE' }).eq('device_id', deviceId);
     const { error } = await sb.from('beacons').update({ device_id: deviceId, status: 'ACTIVE' }).eq('id', beaconId);
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    // Turn on the bracelet's BLE scan so it actually detects the home beacon —
+    // without this the BLE home alarm is silently inoperative.
+    const { data: dev } = await sb.from('devices').select('imei').eq('id', deviceId).maybeSingle();
+    const imei = (dev as { imei?: string } | null)?.imei;
+    if (imei) {
+      const { sendDeviceCommand } = await import('@/lib/traxbean/client');
+      bleActivated = await sendDeviceCommand(imei, 'enableBle');
+    }
   } else {
     const { error } = await sb.from('beacons').update({ device_id: null, status: 'SPARE' }).eq('id', beaconId);
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   }
-  { const { writeAudit } = await import('@/lib/audit/log'); await writeAudit({ userId: session.id, action: 'LINK_BEACON', tableName: 'beacons', recordId: beaconId, newData: { deviceId } }); }
-  return NextResponse.json({ ok: true });
+  { const { writeAudit } = await import('@/lib/audit/log'); await writeAudit({ userId: session.id, action: 'LINK_BEACON', tableName: 'beacons', recordId: beaconId, newData: { deviceId, bleActivated } }); }
+  return NextResponse.json({ ok: true, bleActivated });
 }

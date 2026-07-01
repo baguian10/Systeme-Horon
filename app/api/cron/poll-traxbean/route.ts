@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server';
-import { isTraxbeanConfigured, getDeviceLocation, getLatestBleScan, getWearingStatus } from '@/lib/traxbean/client';
+import { isTraxbeanConfigured, getDeviceLocation, getLatestBleScan, getWearingStatus, getLatestHealth } from '@/lib/traxbean/client';
 import { getSettings } from '@/lib/settings';
 
 export const dynamic = 'force-dynamic';
@@ -144,6 +144,11 @@ export async function GET(request: NextRequest) {
           if (scan) {
             const hit = scan.sightings.find((s) => s.mac === (beacon.uid ?? '').toUpperCase());
             bleInRange = !!hit && hit.rssi >= minRssi;
+          } else {
+            // No BLE scan uploaded → the bracelet's BLE module is off. Re-arm it
+            // (best effort) so the home alarm doesn't silently stop working.
+            const { sendDeviceCommand } = await import('@/lib/traxbean/client');
+            await sendDeviceCommand(device.imei, 'enableBle');
           }
         }
         // GPS distance from the recorded home point (needed for GPS + BOTH).
@@ -224,6 +229,32 @@ export async function GET(request: NextRequest) {
           if (kase?.judge_id) {
             const { data: ju } = await supabase.from('users').select('phone').eq('id', kase.judge_id).single();
             if (ju?.phone) { const { sendSms } = await import('@/lib/sms'); await sendSms(ju.phone, 'SIGEP - ALERTE: bracelet retire du corps. Verifiez la plateforme.'); }
+          }
+        }
+      }
+
+      // ── Health monitoring (APJK): critical vitals → HEALTH_CRITICAL ──
+      const health = await getLatestHealth(device.imei);
+      if (health) {
+        let critical: string | null = null;
+        const v = parseFloat(health.value);
+        if (health.type === 'BODY_TEMP' && !Number.isNaN(v) && (v < 35 || v > 39)) critical = `Température corporelle anormale : ${v} °C.`;
+        else if (health.type === 'HEART_RATE' && !Number.isNaN(v) && (v < 40 || v > 130)) critical = `Fréquence cardiaque anormale : ${v} bpm.`;
+        else if (health.type === 'BLOOD_OXYGEN' && !Number.isNaN(v) && v < 90) critical = `Saturation en oxygène basse : ${v} %.`;
+        if (critical) {
+          const { count } = await supabase.from('alerts').select('id', { count: 'exact', head: true })
+            .eq('case_id', device.case_id).eq('alert_type', 'HEALTH_CRITICAL').eq('is_resolved', false);
+          if (!count) {
+            await supabase.from('alerts').insert({
+              case_id: device.case_id, device_id: device.id,
+              alert_type: 'HEALTH_CRITICAL', severity: 4, description: critical,
+              position_lat: live.lat, position_lon: live.lng,
+            });
+            const { data: kase } = await supabase.from('cases').select('judge_id').eq('id', device.case_id).single();
+            if (kase?.judge_id) {
+              const { data: ju } = await supabase.from('users').select('phone').eq('id', kase.judge_id).single();
+              if (ju?.phone) { const { sendSms } = await import('@/lib/sms'); await sendSms(ju.phone, 'SIGEP - ALERTE SANTE: constante vitale critique du porteur. Verifiez la plateforme.'); }
+            }
           }
         }
       }

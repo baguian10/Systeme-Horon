@@ -186,6 +186,37 @@ export async function getLatestBleScan(imei: string): Promise<BleScan> {
   return { at: ts ? new Date(ts).toISOString() : new Date().toISOString(), sightings };
 }
 
+// BP17 — factory reset (wipes SOS/whitelist/home config of a previous wearer
+// before a bracelet is reassigned). IWBP17,IMEI,serial#
+export async function factoryReset(imei: string): Promise<boolean> {
+  return sendIW(imei, `IWBP17,${imei},${cmdSerial()}#`);
+}
+
+// BP19 — point the bracelet at the SIGEP ingestion server (onboarding a new
+// device). IWBP19,IMEI,serial,DomainFlag,IP/domain,port#  (flag 1=domain, 0=IP)
+export async function setServer(imei: string, host: string, port: number, isDomain = true): Promise<boolean> {
+  const p = Math.max(1, Math.min(65535, Math.round(port) || 8011));
+  return sendIW(imei, `IWBP19,${imei},${cmdSerial()},${isDomain ? 1 : 0},${host},${p}#`);
+}
+
+export type HealthReading = { type: 'BLOOD_PRESSURE' | 'HEART_RATE' | 'BODY_TEMP' | 'BLOOD_OXYGEN'; value: string; at: string };
+const HEALTH_TYPES: Record<string, HealthReading['type']> = { '1': 'BLOOD_PRESSURE', '2': 'HEART_RATE', '3': 'BODY_TEMP', '4': 'BLOOD_OXYGEN' };
+
+// Latest health reading from the device log. APJK: IWAPJK,Datetime,Type,Value#
+// Type 1=blood pressure, 2=heart rate, 3=body temperature, 4=blood oxygen.
+export async function getLatestHealth(imei: string): Promise<HealthReading | null> {
+  const lines = await traxbeanPost<string[]>('business/device/fetchDeviceLog', {
+    imei, startTime: new Date(Date.now() - 30 * 60000).toISOString(),
+  });
+  if (!Array.isArray(lines)) return null;
+  const jk = lines.filter((l) => typeof l === 'string' && l.includes('APJK'));
+  if (jk.length === 0) return null;
+  const line = jk[jk.length - 1];
+  const m = /APJK,\s*[^,]+,\s*([1-4])\s*,\s*([^#,]+)/.exec(line);
+  if (!m) return null;
+  return { type: HEALTH_TYPES[m[1]], value: m[2].trim(), at: new Date().toISOString() };
+}
+
 // BP40 shortcut relay (same path as enableBle): >*keyword@value*<
 async function sendShortcut(imei: string, shortcut: string): Promise<boolean> {
   const targetId = await getTargetIdByImei(imei);

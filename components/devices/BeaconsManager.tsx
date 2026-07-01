@@ -18,6 +18,7 @@ interface Beacon {
   home_lng?: number | null;
   min_rssi?: number;
   alarm_mode?: 'GPS' | 'BLE' | 'BOTH';
+  battery_changed_at?: string | null;
 }
 
 const STATUS_STYLE: Record<string, string> = {
@@ -197,7 +198,13 @@ export default function BeaconsManager({ devices }: { devices: DeviceOpt[] }) {
 interface ConfigPayload {
   alarmEnabled: boolean; alarmMode: 'GPS' | 'BLE' | 'BOTH'; maxDistanceM: number; graceMinutes: number;
   notifyExit: boolean; activeStart: string | null; activeEnd: string | null;
-  setHomeFromDevice?: boolean; minRssi: number;
+  setHomeFromDevice?: boolean; minRssi: number; batteryChanged?: boolean;
+}
+
+// Coin-cell life warning threshold (months) for the passive home beacon.
+function batteryAgeMonths(iso?: string | null): number | null {
+  if (!iso) return null;
+  return Math.floor((Date.now() - new Date(iso).getTime()) / (30 * 86400000));
 }
 
 // BLE proximity ↔ RSSI, log-distance path-loss model (TxPower -59 dBm @1m,
@@ -296,6 +303,24 @@ function BeaconConfigForm({ beacon, onSave }: { beacon: Beacon; onSave: (p: Conf
       {alarmMode === 'BLE' && (
         <span className="text-xs text-blue-600">Mode BLE : aucune géofence requise</span>
       )}
+      {/* Passive beacon battery tracking */}
+      <div className="flex items-center gap-1.5">
+        {(() => {
+          const age = batteryAgeMonths(beacon.battery_changed_at);
+          const warn = age === null || age >= 12;
+          return (
+            <>
+              <span className={`text-[11px] ${warn ? 'text-amber-600' : 'text-gray-400'}`}>
+                Pile : {age === null ? 'non suivie' : `${age} mois`}
+              </span>
+              <button type="button" onClick={() => onSave({ alarmEnabled, alarmMode, maxDistanceM: Number(maxDistanceM), graceMinutes: Number(graceMinutes), notifyExit, activeStart: activeStart || null, activeEnd: activeEnd || null, minRssi: Number(minRssi), batteryChanged: true })}
+                className="text-[11px] px-2 py-0.5 rounded border border-gray-200 text-gray-600 hover:bg-gray-50">
+                Pile remplacée
+              </button>
+            </>
+          );
+        })()}
+      </div>
       {saved && <span className="text-xs text-emerald-600">Enregistré ✓</span>}
     </div>
   );

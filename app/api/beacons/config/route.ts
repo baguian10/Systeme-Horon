@@ -14,7 +14,7 @@ export async function POST(request: NextRequest) {
   let b: {
     beaconId?: string; alarmEnabled?: boolean; alarmMode?: string; maxDistanceM?: number;
     graceMinutes?: number; notifyExit?: boolean; activeStart?: string | null; activeEnd?: string | null;
-    setHomeFromDevice?: boolean; minRssi?: number;
+    setHomeFromDevice?: boolean; minRssi?: number; batteryChanged?: boolean;
   };
   try { b = await request.json(); } catch { return NextResponse.json({ error: 'JSON invalide' }, { status: 400 }); }
   if (!b.beaconId) return NextResponse.json({ error: 'beaconId manquant' }, { status: 400 });
@@ -28,6 +28,7 @@ export async function POST(request: NextRequest) {
   if (b.graceMinutes !== undefined) update.grace_minutes = Math.max(0, Math.min(120, Math.round(Number(b.graceMinutes) || 0)));
   if (b.activeStart !== undefined) update.active_start = b.activeStart || null;
   if (b.activeEnd !== undefined) update.active_end = b.activeEnd || null;
+  if (b.batteryChanged) update.battery_changed_at = new Date().toISOString().slice(0, 10);
 
   const { createAdminClient } = await import('@/lib/supabase/admin');
   const sb = createAdminClient();

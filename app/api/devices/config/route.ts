@@ -1,13 +1,13 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { getSession } from '@/lib/auth/session';
 import { canConfigureHardware, allow } from '@/lib/auth/permissions';
-import { configureDevice, setFallAlarm, setFallSensitivity, setWearingDetection, type DeviceConfigKind } from '@/lib/traxbean/client';
+import { configureDevice, setFallAlarm, setFallSensitivity, setWearingDetection, factoryReset, setServer, type DeviceConfigKind } from '@/lib/traxbean/client';
 
 export const dynamic = 'force-dynamic';
 
 const ALLOWED: DeviceConfigKind[] = ['sos', 'timezoneBF', 'strap', 'apn'];
-// Fall / wearing detection (BP40 shortcuts).
-const EXTRA = ['fallOn', 'fallOff', 'fallSensitivity', 'wearOn', 'wearOff'];
+// Fall / wearing detection (BP40 shortcuts) + lifecycle (reset / server).
+const EXTRA = ['fallOn', 'fallOff', 'fallSensitivity', 'wearOn', 'wearOff', 'factoryReset', 'setServer'];
 
 // POST /api/devices/config — device-level protocol configuration.
 // Body: { imei, kind, value? }. SUPER_ADMIN / ADMIN with 'hardware'.
@@ -30,6 +30,14 @@ export async function POST(request: NextRequest) {
     case 'fallSensitivity': ok = await setFallSensitivity(imei, Number(value)); break;
     case 'wearOn':          ok = await setWearingDetection(imei, true); break;
     case 'wearOff':         ok = await setWearingDetection(imei, false); break;
+    case 'factoryReset':    ok = await factoryReset(imei); break;
+    case 'setServer': {
+      // value = "host:port" (domain by default). Falls back to the site host.
+      const [host, portStr] = (value ?? '').split(':');
+      if (!host) { ok = false; break; }
+      ok = await setServer(imei, host, Number(portStr) || 8011, true);
+      break;
+    }
     default:                ok = await configureDevice(imei, kind as DeviceConfigKind, value);
   }
   if (!ok) return NextResponse.json({ error: 'Commande refusée par la plateforme' }, { status: 502 });

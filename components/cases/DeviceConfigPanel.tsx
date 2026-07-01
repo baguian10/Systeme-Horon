@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Settings2, Phone, Clock, ShieldAlert, Signal, Loader2, PersonStanding, ShieldOff, ShieldCheck } from 'lucide-react';
+import { Settings2, Phone, Clock, ShieldAlert, Signal, Loader2, PersonStanding, ShieldOff, ShieldCheck, RotateCcw, Server } from 'lucide-react';
 
 // Hoisted to module scope so it keeps a stable identity across renders
 // (defining it inside the component would remount every button each render).
@@ -28,6 +28,7 @@ export default function DeviceConfigPanel({ imei }: { imei: string }) {
   const [strap, setStrap] = useState('5');
   const [apn, setApn] = useState<'orange' | 'moov'>('orange');
   const [fallSens, setFallSens] = useState('1000');
+  const [serverHost, setServerHost] = useState('');
   const [busy, setBusy] = useState<string | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
 
@@ -95,6 +96,28 @@ export default function DeviceConfigPanel({ imei }: { imei: string }) {
             <ConfigBtn k="fallOff" label="Désactiver" icon={<ShieldOff className="w-3.5 h-3.5" />} busy={busy} onSend={send} />
             <input value={fallSens} onChange={(e) => setFallSens(e.target.value)} type="number" min={100} max={5000} step={100} title="Seuil de sensibilité : plus petit = plus sensible" className="border border-gray-300 rounded-lg px-2 py-1.5 text-xs w-20" />
             <ConfigBtn k="fallSensitivity" val={fallSens} label="Sensibilité" icon={<PersonStanding className="w-3.5 h-3.5" />} busy={busy} onSend={send} />
+          </div>
+        </div>
+
+        <div className="border-t border-gray-50 pt-3 mt-1">
+          <p className="text-[11px] font-semibold text-gray-400 uppercase mb-2">Cycle de vie du bracelet</p>
+          {/* Configure ingestion server (BP19) */}
+          <div className="flex items-center gap-2 flex-wrap mb-2">
+            <Server className="w-4 h-4 text-gray-400" />
+            <input value={serverHost} onChange={(e) => setServerHost(e.target.value)} placeholder="serveur:port (ex napi.5gcity.com:8011)" className="border border-gray-300 rounded-lg px-2 py-1.5 text-xs w-64" />
+            <ConfigBtn k="setServer" val={serverHost} label="Configurer serveur" icon={<Server className="w-3.5 h-3.5" />} busy={busy} onSend={send} />
+          </div>
+          {/* Factory reset (BP17) */}
+          <div className="flex items-center gap-2 flex-wrap">
+            <RotateCcw className="w-4 h-4 text-gray-400" />
+            <span className="text-xs text-gray-600 mr-1">Avant réassignation :</span>
+            <button
+              onClick={() => { if (confirm('Réinitialiser le bracelet aux réglages d\'usine ? Efface la config du porteur précédent (SOS, liste blanche, domicile).')) send('factoryReset', undefined, 'Réinitialisation usine'); }}
+              disabled={!!busy}
+              data-tip="Réinitialisation usine du bracelet (BP17) — efface la configuration de l'ancien porteur"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-50 text-red-700 border border-red-200 hover:bg-red-100 text-xs font-semibold disabled:opacity-40">
+              <RotateCcw className="w-3.5 h-3.5" /> Réinitialiser (usine)
+            </button>
           </div>
         </div>
         {msg && <p className="text-xs text-gray-500">{msg}</p>}
