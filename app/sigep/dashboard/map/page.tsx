@@ -2,7 +2,7 @@ import { Wifi, AlertTriangle, Flame } from 'lucide-react';
 import { fetchCases, fetchLatestPositions, fetchViolationHeatPoints, fetchGeofences, fetchAlerts, fetchOperationalUsers } from '@/lib/mock/helpers';
 import { redirect } from 'next/navigation';
 import { getSession } from '@/lib/auth/session';
-import { insideGeofence, withinWindow, type EnforceGeofence } from '@/lib/geofence/enforce';
+import { insideGeofence, withinWindow, withinCurfewSchedule, type EnforceGeofence } from '@/lib/geofence/enforce';
 import HeatmapWrapper from '@/components/map/HeatmapWrapper';
 import MapViewToggle from '@/components/map/MapViewToggle';
 import SurveillanceView from '@/components/surveillance/SurveillanceView';
@@ -61,7 +61,15 @@ export default async function MapPage({
   // Server Component renders once per request — Date.now() is deterministic here.
   // eslint-disable-next-line react-hooks/purity
   const nowMs = Date.now();
+  const caseById = new Map(cases.map((c) => [c.id, c]));
   function curfewStatus(caseId: string, lat: number, lng: number): 'in' | 'out' | null {
+    // Structured case-level curfew (measure conditions) takes precedence.
+    const c = caseById.get(caseId);
+    if (c && withinCurfewSchedule(c.curfew_days, c.curfew_start ?? null, c.curfew_end ?? null, nowMs)) {
+      const home = (geoByCase.get(caseId) ?? []).filter((g) => !g.is_exclusion);
+      if (home.length > 0) return home.some((g) => insideGeofence(lat, lng, g)) ? 'in' : 'out';
+    }
+    // Fallback: legacy per-geofence time-windowed inclusion zones.
     const zones = (geoByCase.get(caseId) ?? []).filter((g) => !g.is_exclusion && g.active_start && g.active_end);
     const active = zones.filter((g) => withinWindow(g.active_start!, g.active_end!, nowMs));
     if (active.length === 0) return null;

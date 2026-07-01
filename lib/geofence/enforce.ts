@@ -74,6 +74,36 @@ export function withinWindow(start: string, end: string, nowMs: number): boolean
   return e >= s ? cur >= s && cur <= e : cur >= s || cur <= e; // overnight
 }
 
+/**
+ * Is the case-level structured curfew active now? Days are 0=Sun…6=Sat (UTC,
+ * Burkina Faso = UTC+0). For an overnight window (start > end), the early-morning
+ * part belongs to the day the curfew STARTED, so we also match the previous day.
+ * Empty days list means the curfew applies every day.
+ */
+export function withinCurfewSchedule(
+  days: number[] | null | undefined,
+  start: string | null,
+  end: string | null,
+  nowMs: number,
+): boolean {
+  if (!start || !end) return false;
+  const s = parseHM(start);
+  const e = parseHM(end);
+  if (s == null || e == null) return false;
+  const d = new Date(nowMs);
+  const cur = d.getUTCHours() * 60 + d.getUTCMinutes();
+  const day = d.getUTCDay();
+  const prevDay = (day + 6) % 7;
+  const everyDay = !days || days.length === 0;
+  const onDay = (x: number) => everyDay || days!.includes(x);
+  if (e >= s) {
+    // same-day window
+    return onDay(day) && cur >= s && cur <= e;
+  }
+  // overnight window: [start..24h) on the start day, and [0..end] on the next day
+  return (onDay(day) && cur >= s) || (onDay(prevDay) && cur <= e);
+}
+
 interface RaisedAlert {
   alert_type: 'GEOFENCE_EXIT' | 'CURFEW_VIOLATION';
   geofenceName: string;
@@ -96,9 +126,16 @@ export async function enforceGeofences(
     .eq('case_id', caseId);
 
   const raised: RaisedAlert[] = [];
-  if (!geofences || geofences.length === 0) return raised;
+  const zones = (geofences ?? []) as EnforceGeofence[];
 
-  for (const g of geofences as EnforceGeofence[]) {
+  // ── Case-level structured curfew (measure conditions) ──
+  // During the curfew schedule (days + hours), the subject must be inside a home
+  // inclusion zone. Outside every inclusion zone past the grace delay → violation.
+  await enforceCaseCurfew(supabase, caseId, deviceId, lat, lon, nowMs, zones, raised);
+
+  if (zones.length === 0) return raised;
+
+  for (const g of zones) {
     if (g.status === 'REQUESTED') continue; // not yet validated by an admin
     const inside = insideGeofence(lat, lon, g);
     const hasWindow = !!(g.active_start && g.active_end);
@@ -140,6 +177,63 @@ export async function enforceGeofences(
   }
 
   return raised;
+}
+
+// Grace default (minutes) before a case-level curfew breach becomes an alert.
+const CURFEW_GRACE_MIN = 10;
+
+/**
+ * Enforce the structured case-level curfew. The "home" is any validated
+ * inclusion zone on the case. Uses cases.curfew_out_since as the grace clock,
+ * mirroring the per-geofence out_since logic.
+ */
+async function enforceCaseCurfew(
+  supabase: Supabase,
+  caseId: string,
+  deviceId: string,
+  lat: number,
+  lon: number,
+  nowMs: number,
+  zones: EnforceGeofence[],
+  raised: RaisedAlert[],
+): Promise<void> {
+  const { data: c } = await supabase
+    .from('cases')
+    .select('curfew_days, curfew_start, curfew_end, curfew_out_since')
+    .eq('id', caseId)
+    .maybeSingle();
+  if (!c) return;
+  const curfew = c as { curfew_days: number[] | null; curfew_start: string | null; curfew_end: string | null; curfew_out_since: string | null };
+
+  const active = withinCurfewSchedule(curfew.curfew_days, curfew.curfew_start, curfew.curfew_end, nowMs);
+  if (!active) {
+    if (curfew.curfew_out_since) await supabase.from('cases').update({ curfew_out_since: null }).eq('id', caseId);
+    return;
+  }
+
+  // Home = any validated inclusion zone. No home zone configured → cannot assess.
+  const homeZones = zones.filter((g) => !g.is_exclusion && g.status !== 'REQUESTED');
+  if (homeZones.length === 0) return;
+  const atHome = homeZones.some((g) => insideGeofence(lat, lon, g));
+
+  if (atHome) {
+    if (curfew.curfew_out_since) await supabase.from('cases').update({ curfew_out_since: null }).eq('id', caseId);
+    return;
+  }
+
+  // Outside home during curfew — run the grace clock.
+  const since = curfew.curfew_out_since ? Date.parse(curfew.curfew_out_since) : null;
+  if (since == null) {
+    await supabase.from('cases').update({ curfew_out_since: new Date(nowMs).toISOString() }).eq('id', caseId);
+    return; // start grace, no alert yet
+  }
+  const elapsedMin = (nowMs - since) / 60_000;
+  if (elapsedMin >= CURFEW_GRACE_MIN) {
+    if (await insertDeduped(supabase, caseId, deviceId, 'CURFEW_VIOLATION', lat, lon,
+      `Couvre-feu non respecté : hors du domicile depuis ${Math.round(elapsedMin)} min.`)) {
+      raised.push({ alert_type: 'CURFEW_VIOLATION', geofenceName: 'domicile' });
+    }
+  }
 }
 
 /** Insert an alert unless an unresolved one of the same type already exists. */
