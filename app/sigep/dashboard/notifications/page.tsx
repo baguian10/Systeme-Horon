@@ -107,7 +107,9 @@ export default async function NotificationsPage() {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className={`text-xs font-semibold ${meta.color}`}>{meta.label}</span>
-                          <span className="text-[10px] font-mono text-gray-400">{alert.case_id}</span>
+                          <span className="text-[10px] font-mono text-gray-400">
+                            {(alert as { case?: { case_number?: string } }).case?.case_number ?? alert.case_id.slice(0, 8)}
+                          </span>
                           {alert.is_resolved && (
                             <span className="inline-flex items-center gap-0.5 text-[10px] text-emerald-600 font-medium">
                               <CheckCircle2 className="w-3 h-3" /> Résolu
