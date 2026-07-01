@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation';
 import { getSession } from '@/lib/auth/session';
-import { fetchCases, fetchAlerts, fetchAgenda } from '@/lib/mock/helpers';
+import { fetchCases, fetchAlerts, fetchAgenda, fetchLatestPositions } from '@/lib/mock/helpers';
 import { canViewCases , allow } from '@/lib/auth/permissions';
 import TerrainApp from './TerrainApp';
 
@@ -11,11 +11,16 @@ export default async function TerrainPage() {
   const session = await getSession();
   if (!session || !allow(session, canViewCases(session.role), 'cases.viewAll')) redirect('/sigep/dashboard');
 
-  const [cases, alerts, agenda] = await Promise.all([
+  const [cases, alerts, agenda, latestPositions] = await Promise.all([
     fetchCases(session.role, session.id),
     fetchAlerts(session.role),
     fetchAgenda(session.role, session.id),
+    fetchLatestPositions().catch(() => []),
   ]);
+
+  // fetchCases carries no position, so c.last_position is null in real mode —
+  // join the latest fix per case for the terrain map coordinates.
+  const posByCase = new Map(latestPositions.map((p) => [p.case_id, p]));
 
   const today = new Date().toISOString().slice(0, 10);
 
@@ -31,8 +36,8 @@ export default async function TerrainPage() {
         device_online:   c.device?.is_online ?? false,
         battery_pct:     c.device?.battery_pct ?? null,
         alert_count:     c.alert_count ?? 0,
-        last_lat:        c.last_position?.latitude ?? null,
-        last_lng:        c.last_position?.longitude ?? null,
+        last_lat:        posByCase.get(c.id)?.latitude ?? c.last_position?.latitude ?? null,
+        last_lng:        posByCase.get(c.id)?.longitude ?? c.last_position?.longitude ?? null,
       })),
     alerts: alerts
       .filter((a) => !a.is_resolved)
