@@ -209,12 +209,26 @@ export async function GET(request: NextRequest) {
         const dist = (beacon.home_lat != null && beacon.home_lng != null)
           ? Math.round(haversineM(live.lat, live.lng, beacon.home_lat, beacon.home_lng)) : null;
 
+        // Motion gate: a real home exit means the person WALKED out. When the
+        // subject is asleep/still, a worn bracelet goes to sleep and drops the
+        // BLE scan → the beacon looks "absent". Without motion we must NOT raise
+        // an exit (that would false-alarm every night). So a BLE absence only
+        // STARTS the grace clock if there's movement; once started it keeps
+        // running even if they then stop.
+        const MOTION_KMH = 2;
+        const moving = live.speedKmh != null && live.speedKmh >= MOTION_KMH;
+
         // Decide "away from home" per mode.
-        //  BLE  → beacon no longer seen strongly enough (pure proximity, no geofence).
+        //  BLE  → beacon not seen; confirmed as an exit only with motion (or an
+        //         already-running grace clock). Still + no clock → unknown (asleep).
         //  GPS  → outside the home radius.
         //  BOTH → GPS says far AND the beacon isn't in range (indoor-drift safe).
         let away: boolean | null;
-        if (mode === 'BLE') away = bleInRange === null ? null : !bleInRange;
+        if (mode === 'BLE') {
+          if (bleInRange === null) away = null;
+          else if (bleInRange) away = false;
+          else away = (moving || beacon.out_since) ? true : null;
+        }
         else if (mode === 'GPS') away = gpsFar;
         else away = (gpsFar === true) ? (bleInRange !== true) : false;
 
