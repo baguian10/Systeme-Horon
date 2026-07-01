@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Radar, Loader2, CheckCircle2, AlertTriangle, XCircle } from 'lucide-react';
+import { Radar, Loader2, CheckCircle2, AlertTriangle, XCircle, Link2 } from 'lucide-react';
 
 type Sighting = { name: string; mac: string; rssi: number; meters: number };
 
@@ -9,9 +9,11 @@ type Sighting = { name: string; mac: string; rssi: number; meters: number };
 export default function BleScanButton({ imei }: { imei: string }) {
   const [busy, setBusy] = useState(false);
   const [res, setRes] = useState<{ stale: boolean; reason: string; sightings: Sighting[] } | null>(null);
+  const [pairing, setPairing] = useState<string | null>(null);
+  const [paired, setPaired] = useState<Record<string, string>>({});
 
   async function scan() {
-    setBusy(true); setRes(null);
+    setBusy(true); setRes(null); setPaired({});
     try {
       const r = await fetch('/api/devices/ble-scan', {
         method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ imei }),
@@ -21,6 +23,19 @@ export default function BleScanButton({ imei }: { imei: string }) {
       setRes({ stale: Boolean(d.stale), reason: d.reason ?? '', sightings: Array.isArray(d.sightings) ? d.sightings : [] });
     } catch { setRes({ stale: true, reason: 'Erreur réseau', sightings: [] }); }
     finally { setBusy(false); }
+  }
+
+  async function pair(s: Sighting) {
+    setPairing(s.mac);
+    try {
+      const r = await fetch('/api/beacons/pair', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ imei, mac: s.mac, label: s.name || undefined }),
+      });
+      const d = await r.json();
+      setPaired((p) => ({ ...p, [s.mac]: r.ok ? (d.reused ? 'Rebranché ✓' : 'Connecté ✓') : (d.error ?? 'Échec') }));
+    } catch { setPaired((p) => ({ ...p, [s.mac]: 'Erreur réseau' })); }
+    finally { setPairing(null); }
   }
 
   const ok = res && !res.stale && res.sightings.length > 0;
@@ -41,10 +56,22 @@ export default function BleScanButton({ imei }: { imei: string }) {
             {res.reason}
           </p>
           {res.sightings.length > 0 && (
-            <ul className="mt-0.5 space-y-0.5 text-gray-600">
+            <ul className="mt-0.5 space-y-1 text-gray-600">
               {res.sightings.map((s) => (
-                <li key={s.mac}>
-                  • <span className="font-mono select-all">{s.mac}</span> {s.name && `(${s.name})`} — {s.rssi} dBm ≈ {s.meters} m
+                <li key={s.mac} className="flex items-center gap-1.5 flex-wrap">
+                  <span>• <span className="font-mono select-all">{s.mac}</span> {s.name && `(${s.name})`} — {s.rssi} dBm ≈ {s.meters} m</span>
+                  {paired[s.mac] ? (
+                    <span className="text-emerald-600 font-medium">{paired[s.mac]}</span>
+                  ) : (
+                    <button
+                      onClick={() => pair(s)}
+                      disabled={pairing === s.mac}
+                      data-tip="Enregistrer cette balise et la lier à ce bracelet"
+                      className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 hover:bg-emerald-100 disabled:opacity-50"
+                    >
+                      {pairing === s.mac ? <Loader2 className="w-3 h-3 animate-spin" /> : <Link2 className="w-3 h-3" />} Connecter
+                    </button>
+                  )}
                 </li>
               ))}
             </ul>
