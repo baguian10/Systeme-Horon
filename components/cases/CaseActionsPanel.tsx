@@ -1,6 +1,6 @@
 'use client';
 
-import { useActionState } from 'react';
+import { useActionState, useState } from 'react';
 import { Gavel, Archive, RotateCcw, Trash2, Send, CheckCircle2 } from 'lucide-react';
 import {
   submitCaseRequestAction, archiveCaseAction, reactivateCaseAction, deleteCaseAction,
@@ -10,16 +10,20 @@ import type { CaseStatus, CaseRequestType } from '@/lib/supabase/types';
 const REQUEST_OPTIONS: { value: CaseRequestType; label: string }[] = [
   { value: 'ARCHIVE',    label: 'Archiver le dossier' },
   { value: 'REACTIVATE', label: 'Réactiver le dossier' },
-  { value: 'DELETE',     label: 'Supprimer le dossier' },
+  { value: 'EXTEND',     label: 'Prolonger la mesure' },
   { value: 'TRANSFER_JURISDICTION', label: 'Transférer de juridiction' },
+  { value: 'DELETE',     label: 'Supprimer le dossier' },
 ];
 
 const IN = 'w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500';
 
+type Dept = { id: string; name: string };
+
 export default function CaseActionsPanel({
-  caseId, status, isJudge, isSuperAdmin,
-}: { caseId: string; status: CaseStatus; isJudge: boolean; isSuperAdmin: boolean }) {
+  caseId, status, isJudge, isSuperAdmin, departments = [],
+}: { caseId: string; status: CaseStatus; isJudge: boolean; isSuperAdmin: boolean; departments?: Dept[] }) {
   const [state, action, pending] = useActionState(submitCaseRequestAction, null);
+  const [reqType, setReqType] = useState<CaseRequestType | ''>('');
   const closed = status === 'TERMINATED' || status === 'ARCHIVED';
 
   return (
@@ -33,10 +37,30 @@ export default function CaseActionsPanel({
         <form action={action} className="space-y-2.5">
           <p className="text-xs text-gray-500">Soumettre une requête au Super Administrateur.</p>
           <input type="hidden" name="case_id" value={caseId} />
-          <select name="request_type" required defaultValue="" className={IN}>
+          <select name="request_type" required value={reqType} onChange={(e) => setReqType(e.target.value as CaseRequestType)} className={IN}>
             <option value="" disabled>— Type de requête —</option>
             {REQUEST_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
           </select>
+
+          {/* EXTEND → new end date */}
+          {reqType === 'EXTEND' && (
+            <div>
+              <label className="block text-[11px] text-gray-500 mb-1">Nouvelle date de fin de mesure</label>
+              <input type="date" name="end_date" required className={IN} />
+            </div>
+          )}
+
+          {/* TRANSFER → destination jurisdiction */}
+          {reqType === 'TRANSFER_JURISDICTION' && (
+            <div>
+              <label className="block text-[11px] text-gray-500 mb-1">Juridiction destinataire</label>
+              <select name="department_id" required defaultValue="" className={IN}>
+                <option value="" disabled>— Choisir une entité —</option>
+                {departments.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
+              </select>
+            </div>
+          )}
+
           <textarea name="reason" rows={2} required placeholder="Motif de la requête (obligatoire)…" className={IN} />
           {state?.error && <p className="text-xs text-red-600">{state.error}</p>}
           {state?.ok && <p className="text-xs text-emerald-600 flex items-center gap-1"><CheckCircle2 className="w-3.5 h-3.5" /> Requête soumise.</p>}

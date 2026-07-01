@@ -1,5 +1,5 @@
 import { Wifi, AlertTriangle, Flame } from 'lucide-react';
-import { fetchCases, fetchLatestPositions, fetchViolationHeatPoints, fetchGeofences, fetchAlerts, fetchOperationalUsers } from '@/lib/mock/helpers';
+import { fetchCases, fetchLatestPositions, fetchViolationHeatPoints, fetchGeofences, fetchAlerts, fetchOperationalUsers, fetchDeviceFallbackPositions } from '@/lib/mock/helpers';
 import { redirect } from 'next/navigation';
 import { getSession } from '@/lib/auth/session';
 import { insideGeofence, withinWindow, withinCurfewSchedule, type EnforceGeofence } from '@/lib/geofence/enforce';
@@ -32,7 +32,7 @@ export default async function MapPage({
   const { view } = await searchParams;
   const showHeatmap = view === 'heatmap';
 
-  const [cases, positions, heatPoints, geofences, alerts, operationals] = await Promise.all([
+  const [cases, positionsBase, heatPoints, geofences, alerts, operationals] = await Promise.all([
     fetchCases(session.role, session.id),
     fetchLatestPositions(),
     fetchViolationHeatPoints(session.role),
@@ -40,6 +40,16 @@ export default async function MapPage({
     fetchAlerts(session.role).catch(() => []),
     fetchOperationalUsers().catch(() => []),
   ]);
+
+  // Fallback markers: active cases with an assigned device but no position of
+  // their own yet (bracelet just reassigned) — show the device's last fix so
+  // the subject doesn't vanish from surveillance until the next ingest.
+  const positionedIds = new Set(positionsBase.map((p) => p.case_id));
+  const missing = cases
+    .filter((c) => (c.status === 'ACTIVE' || c.status === 'VIOLATION') && c.device?.id && !positionedIds.has(c.id))
+    .map((c) => ({ caseId: c.id, caseNumber: c.case_number, deviceId: c.device!.id }));
+  const fallbackPositions = await fetchDeviceFallbackPositions(session.role, missing).catch(() => []);
+  const positions = [...positionsBase, ...fallbackPositions];
 
   // Open alerts indexed by case (for the in-panel acknowledge/resolve).
   const openAlertByCase = new Map<string, { id: string; alert_type: string; status: string; assigned_to: string | null; severity: number; description: string | null }>();

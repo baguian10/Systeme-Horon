@@ -650,6 +650,34 @@ export async function fetchExpiringMeasures(role: UserRole, userId: string, with
   }));
 }
 
+// Last known fix per device, for active cases that have no position of their
+// own yet (bracelet just reassigned → history carries the old case_id). Admin
+// roles only, via the service role, so a scoped role never sees another case's
+// track. Returns positions re-labelled with the NEW case_id/number.
+export async function fetchDeviceFallbackPositions(
+  role: UserRole,
+  pairs: { caseId: string; caseNumber: string; deviceId: string }[],
+): Promise<(Position & { case_number: string })[]> {
+  if (pairs.length === 0) return [];
+  if (role !== 'SUPER_ADMIN' && role !== 'ADMIN') return [];
+  if (IS_DEMO_MODE) return [];
+  const { createAdminClient } = await import('@/lib/supabase/admin');
+  const supabase = createAdminClient();
+  if (!supabase) return [];
+  const out: (Position & { case_number: string })[] = [];
+  await Promise.all(pairs.map(async (p) => {
+    const { data } = await supabase
+      .from('positions')
+      .select('*')
+      .eq('device_id', p.deviceId)
+      .order('recorded_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (data) out.push({ ...(data as Position), case_id: p.caseId, case_number: p.caseNumber });
+  }));
+  return out;
+}
+
 export type ServiceStatus = { label: string; state: 'ok' | 'warn' | 'down'; detail: string };
 
 // Real service-health signals for the parametres page (replaces a hardcoded

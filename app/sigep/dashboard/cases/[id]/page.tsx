@@ -49,6 +49,7 @@ export default async function CaseDetailPage({ params }: { params: Promise<{ id:
   let currentBeacon: BeaconRow | null = null;
   let spareBeacons: BeaconRow[] = [];
   let spareDevices: { id: string; imei: string }[] = [];
+  let departments: { id: string; name: string }[] = [];
   if (process.env.NEXT_PUBLIC_SUPABASE_URL) {
     const { createAdminClient } = await import('@/lib/supabase/admin');
     const sb = createAdminClient();
@@ -62,6 +63,11 @@ export default async function CaseDetailPage({ params }: { params: Promise<{ id:
       if (canHardware) {
         const { data: sd } = await sb.from('devices').select('id, imei').is('case_id', null).limit(100);
         spareDevices = (sd as { id: string; imei: string }[]) ?? [];
+      }
+      // Jurisdictions — destination options for a TRANSFER_JURISDICTION request.
+      if (session.role === 'JUDGE') {
+        const { data: dp } = await sb.from('departments').select('id, name').order('name');
+        departments = (dp as { id: string; name: string }[]) ?? [];
       }
     }
   }
@@ -297,6 +303,7 @@ export default async function CaseDetailPage({ params }: { params: Promise<{ id:
               status={caseData.status}
               isJudge={session.role === 'JUDGE'}
               isSuperAdmin={session.role === 'SUPER_ADMIN'}
+              departments={departments}
             />
           )}
 
