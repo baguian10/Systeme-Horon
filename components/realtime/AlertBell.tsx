@@ -9,7 +9,7 @@ import { useAlertFeed } from '@/hooks/useAlertFeed';
 const TYPE_LABELS: Record<AlertType, string> = {
   GEOFENCE_EXIT: 'Sortie de zone', BLE_EXIT: 'Sortie domicile (BLE)', CURFEW_VIOLATION: 'Couvre-feu', TAMPER_DETECTED: 'Sabotage',
   HEALTH_CRITICAL: 'Santé critique', BATTERY_LOW: 'Batterie faible',
-  SIGNAL_LOST: 'Signal perdu', PANIC_BUTTON: 'Bouton panique',
+  SIGNAL_LOST: 'Signal réseau', PANIC_BUTTON: 'Bouton panique',
 };
 
 export default function AlertBell() {

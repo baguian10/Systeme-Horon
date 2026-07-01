@@ -115,10 +115,14 @@ export async function GET(request: NextRequest) {
           await logDeviceEvent(supabase, { deviceId: device.id, caseId: device.case_id, type: 'OFFLINE', detail: 'Perte de contact' });
         }
         if (silentMin >= staleMin && device.case_id) {
+          const mins = Number.isFinite(silentMin) ? Math.round(silentMin) : null;
           await fetch(`${origin}/api/ingest/alert`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'x-api-key': ingestKey },
-            body: JSON.stringify({ imei: device.imei, type: 'SIGNAL_LOST' }),
+            body: JSON.stringify({
+              imei: device.imei, type: 'SIGNAL_LOST',
+              description: `Réseau : bracelet injoignable — aucune donnée reçue${mins != null ? ` depuis ${mins} min` : ''} (perte GSM/data).`,
+            }),
           });
         }
         return { imei: device.imei, ok: false, reason: 'no-fix', online: false };
@@ -335,12 +339,13 @@ export async function GET(request: NextRequest) {
       }
 
       // Health alerts (deduped by the alert ingest? — keep simple: emit on threshold)
-      const alerts: { type: string }[] = [];
+      const alerts: { type: string; description?: string }[] = [];
       if (live.battery !== null && live.battery <= settings.battery_alert_pct) {
-        alerts.push({ type: 'BATTERY_LOW' });
+        alerts.push({ type: 'BATTERY_LOW', description: `Batterie faible : ${live.battery}%.` });
       }
       if (live.signal !== null && live.signal <= SIGNAL_LOW) {
-        alerts.push({ type: 'SIGNAL_LOST' });
+        // Device IS connected but the cellular signal is weak — network, not BLE.
+        alerts.push({ type: 'SIGNAL_LOST', description: `Réseau : signal cellulaire (GSM) faible — ${live.signal} dBm.` });
       }
       for (const a of alerts) {
         await fetch(`${origin}/api/ingest/alert`, {
@@ -349,6 +354,7 @@ export async function GET(request: NextRequest) {
           body: JSON.stringify({
             imei: device.imei,
             type: a.type,
+            description: a.description,
             lat: live.lat,
             lon: live.lng,
           }),

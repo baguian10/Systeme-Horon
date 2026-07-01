@@ -48,7 +48,7 @@ const EVENT_LABEL: Record<string, string> = {
   ONLINE: 'Reprise contact', OFFLINE: 'Perte contact', COMMAND: 'Commande', RESTART: 'Redémarrage',
   TAMPER: 'Sabotage', LOW_BATTERY: 'Batterie faible', SIM_CHANGE: 'SIM modifiée', ASSIGN: 'Assignation',
   GEOFENCE_EXIT: 'Sortie de zone', BLE_EXIT: 'Sortie domicile (BLE)', CURFEW_VIOLATION: 'Couvre-feu', TAMPER_DETECTED: 'Sabotage',
-  PANIC_BUTTON: 'Panique', BATTERY_LOW: 'Batterie faible', SIGNAL_LOST: 'Signal perdu', HEALTH_CRITICAL: 'Santé',
+  PANIC_BUTTON: 'Panique', BATTERY_LOW: 'Batterie faible', SIGNAL_LOST: 'Signal réseau', HEALTH_CRITICAL: 'Santé',
 };
 const EVENT_COLOR: Record<string, string> = {
   TAMPER: 'text-red-600', TAMPER_DETECTED: 'text-red-600', PANIC_BUTTON: 'text-red-600',

@@ -128,7 +128,7 @@ export default async function DashboardPage() {
             <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Alertes par type</p>
             {(['GEOFENCE_EXIT','TAMPER_DETECTED','BATTERY_LOW','SIGNAL_LOST'] as const).map((t) => {
               const count = alertCounts.byType[t] ?? 0;
-              const labels: Record<string, string> = { GEOFENCE_EXIT: 'Sortie zone', TAMPER_DETECTED: 'Anti-sabotage', BATTERY_LOW: 'Batterie', SIGNAL_LOST: 'Signal perdu' };
+              const labels: Record<string, string> = { GEOFENCE_EXIT: 'Sortie zone', TAMPER_DETECTED: 'Anti-sabotage', BATTERY_LOW: 'Batterie', SIGNAL_LOST: 'Signal réseau' };
               return (
                 <div key={t} className="flex items-center justify-between py-1 border-b border-gray-50 last:border-0 text-sm">
                   <span className="text-gray-600">{labels[t]}</span>

@@ -16,7 +16,7 @@ const ALERT_META: Record<AlertType, { label: string; icon: typeof Bell; color: s
   TAMPER_DETECTED:  { label: 'Anti-sabotage',        icon: AlertTriangle, color: 'text-orange-600', desc: 'Tentative de retrait ou d\'altération du bracelet' },
   HEALTH_CRITICAL:  { label: 'Santé critique',       icon: Zap,           color: 'text-red-700',    desc: 'Anomalie critique détectée sur le dispositif' },
   BATTERY_LOW:      { label: 'Batterie faible',      icon: Battery,       color: 'text-amber-600',  desc: 'Batterie < 20% — risque de déconnexion' },
-  SIGNAL_LOST:      { label: 'Signal perdu',         icon: Wifi,          color: 'text-gray-600',   desc: 'Connexion MQTT interrompue > 15 min' },
+  SIGNAL_LOST:      { label: 'Signal réseau',         icon: Wifi,          color: 'text-gray-600',   desc: 'Réseau GSM/data perdu — bracelet injoignable (distinct du BLE)' },
   PANIC_BUTTON:     { label: 'Bouton panique',       icon: Bell,          color: 'text-red-800',    desc: 'Déclenchement manuel par l\'individu' },
 };
 

@@ -16,7 +16,7 @@ const TYPE_CONFIG: Record<AlertType, {
   TAMPER_DETECTED: { icon: <ShieldAlert className="w-4 h-4" />,   label: 'Sabotage détecté', borderColor: 'border-red-600',    iconBg: 'bg-red-600' },
   HEALTH_CRITICAL: { icon: <Heart className="w-4 h-4" />,          label: 'Santé critique',   borderColor: 'border-pink-500',   iconBg: 'bg-pink-500' },
   BATTERY_LOW:     { icon: <BatteryLow className="w-4 h-4" />,    label: 'Batterie faible',  borderColor: 'border-yellow-500', iconBg: 'bg-yellow-500' },
-  SIGNAL_LOST:     { icon: <WifiOff className="w-4 h-4" />,       label: 'Signal perdu',     borderColor: 'border-gray-400',   iconBg: 'bg-gray-500' },
+  SIGNAL_LOST:     { icon: <WifiOff className="w-4 h-4" />,       label: 'Signal réseau',     borderColor: 'border-gray-400',   iconBg: 'bg-gray-500' },
   PANIC_BUTTON:    { icon: <Siren className="w-4 h-4" />,         label: 'Bouton panique',   borderColor: 'border-red-700',    iconBg: 'bg-red-700' },
 };
 

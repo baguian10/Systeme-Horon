@@ -13,7 +13,7 @@ const TYPE_LABELS: Record<AlertType, string> = {
   TAMPER_DETECTED: 'Anti-sabotage',
   HEALTH_CRITICAL: 'Santé critique',
   BATTERY_LOW:     'Batterie faible',
-  SIGNAL_LOST:     'Signal perdu',
+  SIGNAL_LOST:     'Signal réseau',
   PANIC_BUTTON:    'Bouton panique',
 };
 

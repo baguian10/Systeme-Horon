@@ -18,7 +18,7 @@ const TYPE_META: Record<AlertType, { label: string; icon: typeof AlertTriangle; 
   CURFEW_VIOLATION:{ label: 'Couvre-feu',            icon: MapPin,       color: 'text-violet-600', bg: 'bg-violet-50', border: 'border-violet-100' },
   TAMPER_DETECTED: { label: 'Tentative de sabotage',  icon: Zap,          color: 'text-orange-600', bg: 'bg-orange-50', border: 'border-orange-100' },
   BATTERY_LOW:     { label: 'Batterie critique',      icon: Battery,      color: 'text-amber-600',  bg: 'bg-amber-50',  border: 'border-amber-100' },
-  SIGNAL_LOST:     { label: 'Perte de signal',        icon: WifiOff,      color: 'text-slate-600',  bg: 'bg-slate-50',  border: 'border-slate-100' },
+  SIGNAL_LOST:     { label: 'Perte de signal réseau',        icon: WifiOff,      color: 'text-slate-600',  bg: 'bg-slate-50',  border: 'border-slate-100' },
   HEALTH_CRITICAL: { label: 'Urgence médicale',       icon: AlertCircle,  color: 'text-rose-600',   bg: 'bg-rose-50',   border: 'border-rose-100' },
   PANIC_BUTTON:    { label: 'Bouton panique',         icon: ShieldAlert,  color: 'text-red-700',    bg: 'bg-red-100',   border: 'border-red-200' },
 };

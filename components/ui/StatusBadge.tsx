@@ -27,7 +27,7 @@ const ALERT_CONFIG: Record<AlertType, { label: string; className: string }> = {
   TAMPER_DETECTED:  { label: 'Sabotage',          className: 'bg-red-100 text-red-700' },
   HEALTH_CRITICAL:  { label: 'Santé critique',    className: 'bg-pink-100 text-pink-700' },
   BATTERY_LOW:      { label: 'Batterie faible',   className: 'bg-yellow-100 text-yellow-700' },
-  SIGNAL_LOST:      { label: 'Signal perdu',      className: 'bg-gray-100 text-gray-600' },
+  SIGNAL_LOST:      { label: 'Signal réseau',      className: 'bg-gray-100 text-gray-600' },
   PANIC_BUTTON:     { label: 'Bouton panique',    className: 'bg-red-100 text-red-700' },
 };
 

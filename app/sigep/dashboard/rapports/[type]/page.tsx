@@ -22,7 +22,7 @@ const ALERT_LABELS: Record<string, string> = {
   GEOFENCE_EXIT:    'Sortie de périmètre',
   TAMPER_DETECTED:  'Tentative de sabotage',
   BATTERY_LOW:      'Batterie critique',
-  SIGNAL_LOST:      'Perte de signal',
+  SIGNAL_LOST:      'Perte de signal réseau',
   HEALTH_CRITICAL:  'Urgence médicale',
   PANIC_BUTTON:     'Bouton panique',
 };
