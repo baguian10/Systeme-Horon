@@ -282,8 +282,12 @@ export async function sendDeviceCommand(imei: string, command: TraxbeanCommand, 
 export type BleSighting = { name: string; mac: string; rssi: number };
 export type BleScan = { at: string; sightings: BleSighting[] } | null;
 
-// Parse the device's most recent APBL (BLE scan) packet from the raw log.
+// Parse BLE scans from the raw log. APBL scans are intermittent — some cycles
+// come back empty even while a beacon is in range — so we AGGREGATE the scans
+// over a recent window and keep the strongest RSSI per MAC. Taking only the last
+// packet would falsely report a beacon as absent (→ false home-exit alarm).
 // APBL format: IWAPBL,IMEI, Name|MAC|RSSI&Name2|MAC2|RSSI2, terminalMAC, timestamp#
+const BLE_WINDOW_MS = 4 * 60000;
 export async function getLatestBleScan(imei: string): Promise<BleScan> {
   const lines = await traxbeanPost<string[]>('business/device/fetchDeviceLog', {
     imei,
@@ -293,19 +297,28 @@ export async function getLatestBleScan(imei: string): Promise<BleScan> {
   const apbl = lines.filter((l) => typeof l === 'string' && l.includes('IWAPBL,'));
   if (apbl.length === 0) return null;
 
-  const line = apbl[apbl.length - 1];
-  const payload = line.slice(line.indexOf('IWAPBL,') + 'IWAPBL,'.length).replace(/#.*$/, '');
-  // payload = IMEI , bledata , terminalMAC , timestamp   (MACs use ':' not ',')
-  const parts = payload.split(',');
-  if (parts.length < 4) return null;
-  const bledata = parts[1];
-  const ts = Number(parts[parts.length - 1]);
-  const sightings: BleSighting[] = bledata.split('&').map((seg) => {
-    const [name, mac, rssi] = seg.split('|');
-    return { name: name ?? '', mac: (mac ?? '').trim().toUpperCase(), rssi: Number(rssi) };
-  }).filter((s) => s.mac);
-
-  return { at: ts ? new Date(ts).toISOString() : new Date().toISOString(), sightings };
+  // Strongest sighting per MAC across the window; track the newest packet time.
+  const best = new Map<string, BleSighting>();
+  let newestTs = 0;
+  const nowMs = Date.now();
+  for (const line of apbl) {
+    const payload = line.slice(line.indexOf('IWAPBL,') + 'IWAPBL,'.length).replace(/#.*$/, '');
+    const parts = payload.split(','); // IMEI, bledata, terminalMAC, timestamp
+    if (parts.length < 4) continue;
+    const ts = Number(parts[parts.length - 1]);
+    if (ts && nowMs - ts > BLE_WINDOW_MS) continue; // outside the aggregation window
+    if (ts > newestTs) newestTs = ts;
+    for (const seg of parts[1].split('&')) {
+      const [name, mac, rssi] = seg.split('|');
+      const m = (mac ?? '').trim().toUpperCase();
+      const r = Number(rssi);
+      if (!m || Number.isNaN(r)) continue;
+      const prev = best.get(m);
+      if (!prev || r > prev.rssi) best.set(m, { name: name ?? '', mac: m, rssi: r });
+    }
+  }
+  if (best.size === 0 && newestTs === 0) return null;
+  return { at: newestTs ? new Date(newestTs).toISOString() : new Date().toISOString(), sightings: [...best.values()] };
 }
 
 // BP17 — factory reset (wipes SOS/whitelist/home config of a previous wearer
