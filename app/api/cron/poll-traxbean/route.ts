@@ -156,7 +156,7 @@ export async function GET(request: NextRequest) {
       // ── BLE beacon home alarm: GPS / BLE-proximity / BOTH, with grace ──
       const { data: beacon } = await supabase
         .from('beacons')
-        .select('id, uid, min_rssi, alarm_enabled, alarm_mode, max_distance_m, grace_minutes, active_start, active_end, home_lat, home_lng, out_since')
+        .select('id, uid, min_rssi, alarm_enabled, alarm_mode, max_distance_m, grace_minutes, active_start, active_end, home_lat, home_lng, out_since, ble_scan_lost_at')
         .eq('device_id', device.id)
         .maybeSingle();
 
@@ -199,11 +199,34 @@ export async function GET(request: NextRequest) {
           if (scan) {
             const hit = scan.sightings.find((s) => s.mac === (beacon.uid ?? '').toUpperCase());
             bleInRange = !!hit && hit.rssi >= minRssi;
+            if (beacon.ble_scan_lost_at) await supabase.from('beacons').update({ ble_scan_lost_at: null }).eq('id', beacon.id);
           } else {
-            // No BLE scan uploaded → the bracelet's BLE module is off. Re-arm it
-            // (best effort) so the home alarm doesn't silently stop working.
+            // No BLE scan uploaded → the bracelet's BLE module went silent. Re-arm
+            // it aggressively (BLE + wake) so the home alarm resumes, and if it
+            // stays silent too long, alert — a blind BLE surveillance is worse
+            // than a false alarm; the operator must know it stopped.
             const { sendDeviceCommand } = await import('@/lib/traxbean/client');
             await sendDeviceCommand(device.imei, 'enableBle');
+            await sendDeviceCommand(device.imei, 'realtime'); // wake the device
+            const lostAt = beacon.ble_scan_lost_at ? new Date(beacon.ble_scan_lost_at).getTime() : null;
+            if (!lostAt) {
+              await supabase.from('beacons').update({ ble_scan_lost_at: new Date().toISOString() }).eq('id', beacon.id);
+            } else if ((Date.now() - lostAt) / 60000 >= 15) {
+              const { count } = await supabase.from('alerts').select('id', { count: 'exact', head: true })
+                .eq('case_id', device.case_id).eq('alert_type', 'SIGNAL_LOST').eq('is_resolved', false);
+              if (!count) {
+                await supabase.from('alerts').insert({
+                  case_id: device.case_id, device_id: device.id, alert_type: 'SIGNAL_LOST', severity: 4,
+                  description: `Surveillance BLE inactive : le bracelet ne scanne plus la balise domicile depuis ${Math.round((Date.now() - lostAt) / 60000)} min — présence non vérifiable.`,
+                  position_lat: live.lat, position_lon: live.lng,
+                });
+                const { data: kase } = await supabase.from('cases').select('judge_id').eq('id', device.case_id).single();
+                if (kase?.judge_id) {
+                  const { data: ju } = await supabase.from('users').select('phone').eq('id', kase.judge_id).single();
+                  if (ju?.phone) { const { sendSms } = await import('@/lib/sms'); await sendSms(ju.phone, 'SIGEP - ALERTE: surveillance BLE domicile inactive (bracelet ne detecte plus la balise). Verifiez.'); }
+                }
+              }
+            }
           }
         }
         // GPS distance from the recorded home point (needed for GPS + BOTH).
