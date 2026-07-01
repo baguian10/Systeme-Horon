@@ -74,5 +74,9 @@ export async function POST(request: NextRequest) {
       .eq('id', device.case_id);
   }
 
+  // Notify the case's judge + assigned agents per their preferences (best-effort).
+  const { dispatchAlertNotifications } = await import('@/lib/notify');
+  await dispatchAlertNotifications({ caseId: device.case_id, alertType: type, description });
+
   return NextResponse.json({ ok: true, alert_id: alert?.id });
 }

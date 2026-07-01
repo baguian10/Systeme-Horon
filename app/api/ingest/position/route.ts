@@ -82,5 +82,17 @@ export async function POST(request: NextRequest) {
     lon,
   });
 
+  // Notify the case's judge + assigned agents for each raised violation,
+  // per their preferences (best-effort — never blocks ingestion).
+  if (raised.length > 0) {
+    const { dispatchAlertNotifications } = await import('@/lib/notify');
+    await Promise.all(raised.map((r) =>
+      dispatchAlertNotifications({
+        caseId: device.case_id,
+        alertType: r.alert_type,
+        description: (r as { description?: string | null }).description ?? null,
+      })));
+  }
+
   return NextResponse.json({ ok: true, case_id: device.case_id, alerts: raised.map((r) => r.alert_type) });
 }
