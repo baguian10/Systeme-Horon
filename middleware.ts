@@ -42,6 +42,17 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
+  // Enforce completed 2FA: an account that has a verified factor but whose
+  // current session is still aal1 (password only) must finish the second step.
+  // This closes the bypass of navigating straight to the dashboard after the
+  // password step without ever verifying the TOTP code.
+  const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+  if (aal?.nextLevel === 'aal2' && aal.currentLevel !== 'aal2') {
+    const loginUrl = new URL('/sigep/login', request.url);
+    loginUrl.searchParams.set('next', pathname);
+    return NextResponse.redirect(loginUrl);
+  }
+
   return response;
 }
 

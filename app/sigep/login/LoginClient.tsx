@@ -4,12 +4,12 @@ import { useState, useTransition } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
   ShieldCheck, Lock, Eye, EyeOff, AlertCircle,
-  Info, KeyRound, Smartphone, Mail, ArrowLeft,
+  Info, KeyRound, ArrowLeft,
 } from 'lucide-react';
 import { createClient, IS_DEMO_MODE } from '@/lib/supabase/client';
 
 type Step = 'credentials' | 'mfa';
-type MfaMethod = 'totp' | 'email';
+type MfaEnroll = { factorId: string; qr: string; secret: string };
 
 export default function LoginClient() {
   const router = useRouter();
@@ -17,7 +17,7 @@ export default function LoginClient() {
   const next = searchParams.get('next') ?? '/sigep/dashboard';
 
   const [step, setStep]         = useState<Step>('credentials');
-  const [mfaMethod, setMfaMethod] = useState<MfaMethod>('totp');
+  const [mfaEnroll, setMfaEnroll] = useState<MfaEnroll | null>(null);
   const [email, setEmail]       = useState('');
   const [password, setPassword] = useState('');
   const [otpCode, setOtpCode]   = useState('');
@@ -42,6 +42,22 @@ export default function LoginClient() {
         setError('Identifiants invalides. Vérifiez votre email et mot de passe.');
         return;
       }
+      // Enforce TOTP 2FA. Accounts without a verified factor start enrollment
+      // now (QR shown at the next step) — they can no longer bypass the second
+      // factor by simply not having one enrolled.
+      const { data: factors } = await supabase.auth.mfa.listFactors();
+      const verified = factors?.totp?.find((f) => f.status === 'verified');
+      if (!verified) {
+        for (const f of factors?.totp ?? []) {
+          if (f.status !== 'verified') await supabase.auth.mfa.unenroll({ factorId: f.id });
+        }
+        const { data: enroll, error: enrollErr } = await supabase.auth.mfa.enroll({ factorType: 'totp' });
+        if (enrollErr || !enroll) {
+          setError("Impossible d'initialiser la double authentification.");
+          return;
+        }
+        setMfaEnroll({ factorId: enroll.id, qr: enroll.totp.qr_code, secret: enroll.totp.secret });
+      }
       setStep('mfa');
     });
   }
@@ -62,13 +78,18 @@ export default function LoginClient() {
     startTransition(async () => {
       const supabase = createClient();
       if (!supabase) { router.push(next); return; }
-      const { data: factors } = await supabase.auth.mfa.listFactors();
-      const factor = factors?.totp?.[0] ?? factors?.phone?.[0];
-      if (!factor) { router.push(next); return; }
-      const { data: challenge } = await supabase.auth.mfa.challenge({ factorId: factor.id });
+      // Verifying the code activates the factor when enrolling, or satisfies
+      // the challenge for an existing verified factor.
+      let factorId = mfaEnroll?.factorId;
+      if (!factorId) {
+        const { data: factors } = await supabase.auth.mfa.listFactors();
+        factorId = factors?.totp?.find((f) => f.status === 'verified')?.id;
+      }
+      if (!factorId) { setError('Aucun facteur de vérification disponible.'); return; }
+      const { data: challenge } = await supabase.auth.mfa.challenge({ factorId });
       if (!challenge) { setError("Impossible d'initier la vérification MFA."); return; }
       const { error: verifyErr } = await supabase.auth.mfa.verify({
-        factorId: factor.id,
+        factorId,
         challengeId: challenge.id,
         code: otpCode,
       });
@@ -200,42 +221,29 @@ export default function LoginClient() {
                   <KeyRound className="w-4 h-4 text-emerald-400" />
                   <span className="text-sm font-semibold text-emerald-400">Vérification en deux étapes</span>
                 </div>
-                <p className="text-xs text-slate-400 leading-relaxed">
-                  Choisissez votre méthode de vérification et saisissez le code à 6 chiffres fourni.
-                </p>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setMfaMethod('totp')}
-                    className={`flex flex-col items-center gap-2 p-4 rounded-xl border text-xs font-semibold transition-all ${
-                      mfaMethod === 'totp'
-                        ? 'bg-emerald-600/15 border-emerald-500/50 text-emerald-400'
-                        : 'bg-slate-800 border-slate-700 text-slate-500 hover:border-slate-600'
-                    }`}
-                  >
-                    <Smartphone className="w-5 h-5" />
-                    Authenticator<br />(TOTP)
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setMfaMethod('email')}
-                    className={`flex flex-col items-center gap-2 p-4 rounded-xl border text-xs font-semibold transition-all ${
-                      mfaMethod === 'email'
-                        ? 'bg-emerald-600/15 border-emerald-500/50 text-emerald-400'
-                        : 'bg-slate-800 border-slate-700 text-slate-500 hover:border-slate-600'
-                    }`}
-                  >
-                    <Mail className="w-5 h-5" />
-                    Code OTP<br />par email
-                  </button>
-                </div>
+                {mfaEnroll ? (
+                  <div className="space-y-3">
+                    <p className="text-xs text-slate-400 leading-relaxed">
+                      Première connexion : configurez la double authentification. Scannez ce QR code avec une application d&apos;authentification (Google Authenticator, Authy…), puis saisissez le code à 6 chiffres généré.
+                    </p>
+                    <div className="flex justify-center bg-white rounded-xl p-3">
+                      {/* Supabase returns the TOTP QR as an SVG data URI */}
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={mfaEnroll.qr} alt="QR code TOTP" className="w-40 h-40" />
+                    </div>
+                    <p className="text-[10px] text-slate-500 text-center">
+                      Clé manuelle : <span className="font-mono text-slate-300 break-all">{mfaEnroll.secret}</span>
+                    </p>
+                  </div>
+                ) : (
+                  <p className="text-xs text-slate-400 leading-relaxed">
+                    Saisissez le code à 6 chiffres de votre application d&apos;authentification.
+                  </p>
+                )}
 
                 <div>
                   <label className="block text-xs font-semibold text-slate-400 mb-1.5 uppercase tracking-wide">
-                    {mfaMethod === 'totp'
-                      ? 'Code Authenticator (6 chiffres)'
-                      : 'Code OTP reçu par email'}
+                    Code Authenticator (6 chiffres)
                   </label>
                   <input
                     type="text"
@@ -248,17 +256,12 @@ export default function LoginClient() {
                     placeholder="_ _ _ _ _ _"
                     className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-2xl tracking-[0.5em] text-center font-mono"
                   />
-                  {mfaMethod === 'email' && (
-                    <p className="text-[10px] text-slate-500 mt-1.5 text-center">
-                      Un code a été envoyé à votre adresse institutionnelle. Valable 10 minutes.
-                    </p>
-                  )}
                 </div>
 
                 <div className="flex gap-3">
                   <button
                     type="button"
-                    onClick={() => { setStep('credentials'); setOtpCode(''); setError(null); }}
+                    onClick={() => { setStep('credentials'); setOtpCode(''); setError(null); setMfaEnroll(null); }}
                     className="flex items-center gap-1.5 px-4 py-3 rounded-xl border border-slate-700 text-slate-400 text-sm hover:bg-slate-800 transition-colors"
                   >
                     <ArrowLeft className="w-3.5 h-3.5" /> Retour
