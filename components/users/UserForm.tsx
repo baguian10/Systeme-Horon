@@ -12,6 +12,19 @@ const INPUT = 'w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:
 /* ── Role definitions with level, description, and example profiles ── */
 const ROLE_CARDS_SUPER_ADMIN = [
   {
+    value: 'SUPER_ADMIN',
+    level: 'S',
+    color: 'rose',
+    title: 'Super Administrateur',
+    subtitle: 'Administration système — accès total',
+    desc: "Contrôle total de la plateforme. Chaque super admin a son propre compte et sa propre authentification 2FA — permet à plusieurs personnes d'administrer depuis des ordinateurs et pays différents. À créer avec parcimonie.",
+    profiles: [
+      'Co-administrateur système',
+      'Responsable national SIGEP',
+      'Administrateur de secours',
+    ],
+  },
+  {
     value: 'ADMIN',
     level: 'A',
     color: 'fuchsia',
@@ -87,6 +100,14 @@ const ROLE_CARDS_JUDGE = [
 ];
 
 const COLOR_MAP: Record<string, { ring: string; bg: string; badge: string; dot: string; text: string; check: string }> = {
+  rose: {
+    ring:  'border-rose-400 bg-rose-50',
+    bg:    'border-rose-100',
+    badge: 'bg-rose-100 text-rose-700',
+    dot:   'bg-rose-400',
+    text:  'text-rose-700',
+    check: 'text-rose-500',
+  },
   fuchsia: {
     ring:  'border-fuchsia-400 bg-fuchsia-50',
     bg:    'border-fuchsia-100',

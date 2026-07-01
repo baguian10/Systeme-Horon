@@ -33,7 +33,9 @@ async function canManageTarget(
 
 // Roles each creator is allowed to provision
 const ALLOWED_ROLES: Record<string, UserRole[]> = {
-  SUPER_ADMIN: ['ADMIN', 'STRATEGIC', 'JUDGE', 'OPERATIONAL'],
+  // SUPER_ADMIN can create peer super admins so the institution can have
+  // several (different people, each with their own 2FA / computer / country).
+  SUPER_ADMIN: ['SUPER_ADMIN', 'ADMIN', 'STRATEGIC', 'JUDGE', 'OPERATIONAL'],
   JUDGE: ['OPERATIONAL'],
 };
 
