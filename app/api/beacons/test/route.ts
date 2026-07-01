@@ -42,25 +42,43 @@ export async function POST(request: NextRequest) {
   await new Promise((r) => setTimeout(r, 8000));
   const scan = await getLatestBleScan(imei);
 
+  // Freshness guard — never report a stale scan as "connected". The tracker
+  // scans in bursts; if the newest scan is old the device isn't scanning now,
+  // so the beacon status is UNKNOWN, not "detected".
+  const STALE_MIN = 5;
+  const scanAgeMin = scan?.at ? (Date.now() - Date.parse(scan.at)) / 60000 : null;
+  const stale = scanAgeMin === null || scanAgeMin > STALE_MIN;
+
   const targetMac = (b.uid ?? '').trim().toUpperCase();
-  const hit = scan?.sightings.find((s) => s.mac === targetMac) ?? null;
+  const hit = !stale ? (scan?.sightings.find((s) => s.mac === targetMac) ?? null) : null;
   const threshold = b.min_rssi ?? -85;
-  const detected = Boolean(hit);
+  const detected = !stale && Boolean(hit);
   const strongEnough = Boolean(hit && hit.rssi >= threshold);
 
+  // Everything the tracker currently sees (fresh scans only) — lets the operator
+  // identify a beacon's MAC to pair it.
+  const sightings = (!stale && scan ? scan.sightings : [])
+    .slice()
+    .sort((a, c) => c.rssi - a.rssi)
+    .map((s) => ({ name: s.name, mac: s.mac, rssi: s.rssi }));
+
   const { writeAudit } = await import('@/lib/audit/log');
-  await writeAudit({ userId: session.id, action: 'BEACON_TEST', tableName: 'beacons', recordId: b.id, newData: { detected, rssi: hit?.rssi ?? null } });
+  await writeAudit({ userId: session.id, action: 'BEACON_TEST', tableName: 'beacons', recordId: b.id, newData: { detected, stale, rssi: hit?.rssi ?? null } });
 
   return NextResponse.json({
     ok: true,
     detected,
     strongEnough,
+    stale,
     rssi: hit?.rssi ?? null,
     threshold,
     scanAt: scan?.at ?? null,
+    scanAgeMin: scanAgeMin === null ? null : Math.round(scanAgeMin),
+    sightings,
     reason: !commanded ? 'Commande de scan non transmise au bracelet'
-      : !scan ? 'Aucun scan BLE reçu du bracelet'
-      : !detected ? 'Balise non détectée par le bracelet'
+      : !scan ? 'Aucun scan BLE reçu du bracelet — le module BLE est éteint ou le bracelet hors ligne'
+      : stale ? `Aucun scan récent (dernier il y a ${Math.round(scanAgeMin!)} min) — le bracelet ne scanne pas actuellement, statut inconnu`
+      : !detected ? 'Balise non détectée par le bracelet (hors de portée)'
       : !strongEnough ? `Détectée mais signal faible (${hit!.rssi} dBm < seuil ${threshold})`
       : `Détectée (${hit!.rssi} dBm)`,
   });

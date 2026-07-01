@@ -36,7 +36,8 @@ export default function BeaconsManager({ devices }: { devices: DeviceOpt[] }) {
   const [err, setErr] = useState<string | null>(null);
   const [cfgOpen, setCfgOpen] = useState<string | null>(null);
   const [testing, setTesting] = useState<string | null>(null);
-  const [testResult, setTestResult] = useState<Record<string, { ok: boolean; reason: string }>>({});
+  type Sighting = { name: string; mac: string; rssi: number };
+  const [testResult, setTestResult] = useState<Record<string, { ok: boolean; stale: boolean; reason: string; sightings: Sighting[] }>>({});
 
   async function testBeacon(id: string) {
     setTesting(id);
@@ -44,9 +45,14 @@ export default function BeaconsManager({ devices }: { devices: DeviceOpt[] }) {
     try {
       const r = await fetch('/api/beacons/test', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ beaconId: id }) });
       const d = await r.json();
-      setTestResult((p) => ({ ...p, [id]: { ok: Boolean(r.ok && d.strongEnough), reason: d.error ?? d.reason ?? '' } }));
+      setTestResult((p) => ({ ...p, [id]: {
+        ok: Boolean(r.ok && d.strongEnough),
+        stale: Boolean(d.stale),
+        reason: d.error ?? d.reason ?? '',
+        sightings: Array.isArray(d.sightings) ? d.sightings : [],
+      } }));
     } catch {
-      setTestResult((p) => ({ ...p, [id]: { ok: false, reason: 'Erreur réseau' } }));
+      setTestResult((p) => ({ ...p, [id]: { ok: false, stale: false, reason: 'Erreur réseau', sightings: [] } }));
     } finally { setTesting(null); }
   }
 
@@ -169,9 +175,24 @@ export default function BeaconsManager({ devices }: { devices: DeviceOpt[] }) {
                       )}
                     </div>
                     {testResult[b.id] && (
-                      <p className={`text-[10px] mt-1 ${testResult[b.id].ok ? 'text-emerald-600' : 'text-red-600'}`}>
-                        {testResult[b.id].ok ? '✓ ' : '✗ '}{testResult[b.id].reason}
-                      </p>
+                      <div className="mt-1">
+                        <p className={`text-[10px] ${testResult[b.id].ok ? 'text-emerald-600' : testResult[b.id].stale ? 'text-amber-600' : 'text-red-600'}`}>
+                          {testResult[b.id].ok ? '✓ ' : testResult[b.id].stale ? '⚠ ' : '✗ '}{testResult[b.id].reason}
+                        </p>
+                        {testResult[b.id].sightings.length > 0 && (
+                          <div className="mt-1 text-[10px] text-gray-500">
+                            <span className="font-semibold">Vu par le bracelet ({testResult[b.id].sightings.length}) :</span>
+                            <ul className="mt-0.5 space-y-0.5">
+                              {testResult[b.id].sightings.map((s) => (
+                                <li key={s.mac} className={s.mac === (b.uid ?? '').toUpperCase() ? 'text-indigo-600 font-medium' : ''}>
+                                  {s.mac === (b.uid ?? '').toUpperCase() ? '★ ' : '• '}
+                                  <span className="font-mono">{s.mac}</span> {s.name && `(${s.name})`} — {s.rssi} dBm ≈ {rssiToMeters(s.rssi)} m
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                      </div>
                     )}
                   </td>
                 </tr>
