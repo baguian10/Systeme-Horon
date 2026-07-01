@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server';
-import { isTraxbeanConfigured, getDeviceLocation, getLatestBleScan, getWearingStatus, getLatestHealth, checkTraxbeanAuth } from '@/lib/traxbean/client';
+import { isTraxbeanConfigured, getDeviceLocation, getLatestBleScan, getWearingStatus, getDeviceWearStatus, getLatestHealth, checkTraxbeanAuth } from '@/lib/traxbean/client';
 import { getSettings } from '@/lib/settings';
 
 export const dynamic = 'force-dynamic';
@@ -244,9 +244,16 @@ export async function GET(request: NextRequest) {
         // away === null (no BLE data yet) → leave the grace clock untouched.
       }
 
-      // ── Wearing status (anti-removal): APWR flag 0 = bracelet removed → TAMPER ──
-      const wearing = await getWearingStatus(device.imei);
-      if (wearing && !wearing.worn) {
+      // ── Wearing status (anti-removal) → persist + TAMPER on removal ──
+      // Primary source: the platform target `wear` field (1 worn / 0 removed /
+      // null unknown); fall back to APWR in the log if unknown.
+      let worn = await getDeviceWearStatus(device.imei);
+      if (worn === null) {
+        const wr = await getWearingStatus(device.imei);
+        worn = wr ? wr.worn : null;
+      }
+      await supabase.from('devices').update({ worn, worn_checked_at: new Date().toISOString() }).eq('id', device.id);
+      if (worn === false) {
         const { count } = await supabase
           .from('alerts')
           .select('id', { count: 'exact', head: true })

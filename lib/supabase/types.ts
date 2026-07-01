@@ -70,6 +70,8 @@ export interface Device {
   sync_status: SyncStatus | null;
   last_heartbeat_at: string | null;
   server_endpoint: string | null;
+  worn?: boolean | null;
+  worn_checked_at?: string | null;
 }
 
 export type GeofenceType  = 'GPS_ZONE' | 'BLE_DOMICILE';

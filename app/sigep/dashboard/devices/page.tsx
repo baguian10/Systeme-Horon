@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation';
 import {
   Wifi, WifiOff, Battery, Package, Timer,
   CheckCircle2, AlertTriangle, XCircle, MapPin, RefreshCw, Fingerprint, Tag, ClipboardList,
+  PersonStanding, ShieldOff,
 } from 'lucide-react';
 import Link from 'next/link';
 import type { SyncStatus } from '@/lib/supabase/types';
@@ -136,6 +137,17 @@ export default async function DevicesPage() {
                         <span className={`inline-flex items-center gap-1.5 text-xs font-medium ${d.is_online ? 'text-green-600' : 'text-gray-400'}`}>
                           {d.is_online ? <Wifi className="w-3.5 h-3.5" /> : <WifiOff className="w-3.5 h-3.5" />}
                           {d.is_online ? 'En ligne' : 'Hors ligne'}
+                        </span>
+                        <span
+                          data-tip="Détection de port du bracelet (capteur peau)"
+                          className={`mt-1 inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded ${
+                            d.worn === true ? 'bg-emerald-50 text-emerald-700'
+                            : d.worn === false ? 'bg-red-50 text-red-700'
+                            : 'bg-gray-100 text-gray-400'}`}
+                        >
+                          {d.worn === true ? <><PersonStanding className="w-3 h-3" /> Porté</>
+                           : d.worn === false ? <><ShieldOff className="w-3 h-3" /> Retiré</>
+                           : <><PersonStanding className="w-3 h-3" /> Port inconnu</>}
                         </span>
                       </td>
                       <td className="px-5 py-3.5">

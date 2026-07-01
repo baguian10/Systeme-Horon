@@ -270,6 +270,16 @@ export async function getTargetIdByImei(imei: string): Promise<number | null> {
   return null;
 }
 
+// Wearing status from the platform's target `wear` field:
+//   1 = worn on body, 0 = removed, -1/absent = detection not active/unknown.
+// More reliable than parsing APWR from the raw log.
+export async function getDeviceWearStatus(imei: string): Promise<boolean | null> {
+  const data = await traxbeanPost<{ list?: Array<{ imei: string; wear?: number }> }>('business/target/page', { departmentId: 0 });
+  const hit = (data?.list ?? []).find((x) => x.imei === imei);
+  if (!hit || hit.wear == null || hit.wear < 0) return null;
+  return hit.wear === 1;
+}
+
 export type TraxbeanCommand =
   | 'locate'      // force an immediate position fix
   | 'enableBle'   // continuous BLE beacon scan (every 120s)
