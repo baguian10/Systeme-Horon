@@ -4,7 +4,7 @@ import { canConfigureHardware, allow } from '@/lib/auth/permissions';
 import { isTraxbeanConfigured, getDeviceLocation, sendDeviceCommand } from '@/lib/traxbean/client';
 
 export const dynamic = 'force-dynamic';
-export const maxDuration = 30;
+export const maxDuration = 45;
 
 // POST /api/devices/test-connection  { imei }
 // Real connectivity check: forces an immediate fix on the bracelet (locate),
@@ -24,17 +24,25 @@ export async function POST(request: NextRequest) {
   const imei = body.imei?.trim();
   if (!imei) return NextResponse.json({ error: 'imei manquant' }, { status: 400 });
 
+  // 0. Baseline age before we force a fix (to detect a refresh).
+  const before = await getDeviceLocation(imei);
+  const beforeTs = before ? Date.parse(before.recordedAt) : 0;
   // 1. Ask the bracelet for an immediate position.
   const commanded = await sendDeviceCommand(imei, 'locate');
-  // 2. Give the device a moment to acquire + upload the fix.
-  await new Promise((r) => setTimeout(r, 6000));
+  // 2. Give the device time to acquire + upload the fix (it may be in a
+  //    power-saving cycle, so a few seconds isn't always enough).
+  await new Promise((r) => setTimeout(r, 12000));
   // 3. Read it back from the platform.
   const live = await getDeviceLocation(imei);
 
   const now = Date.now();
   const fixAgeMin = live ? (now - Date.parse(live.recordedAt)) / 60000 : null;
-  // Reachable if we got a fresh (<10 min) fix back.
-  const online = Boolean(live && fixAgeMin != null && fixAgeMin < 10);
+  const refreshed = Boolean(live && Date.parse(live.recordedAt) > beforeTs);
+  // Reachable if the fix just refreshed, or the last fix is recent enough.
+  // 15 min tolerates a device reporting on a slow power-saving interval; a worn,
+  // active bracelet reports far more often so it's always well under this.
+  const FRESH_MIN = 15;
+  const online = refreshed || Boolean(live && fixAgeMin != null && fixAgeMin < FRESH_MIN);
 
   // Persist the observed state.
   const { createAdminClient } = await import('@/lib/supabase/admin');
@@ -66,11 +74,17 @@ export async function POST(request: NextRequest) {
     }
   }
 
+  const ageTxt = fixAgeMin != null ? `il y a ${Math.round(fixAgeMin)} min` : null;
   return NextResponse.json({
     ok: true,
     online,
     commanded,
-    position: online && live ? { lat: live.lat, lng: live.lng, at: live.recordedAt, battery: live.battery } : null,
-    reason: online ? 'Bracelet joignable' : (commanded ? 'Aucune position fraîche reçue' : 'Commande non transmise'),
+    fixAgeMin: fixAgeMin != null ? Math.round(fixAgeMin) : null,
+    position: live ? { lat: live.lat, lng: live.lng, at: live.recordedAt, battery: live.battery } : null,
+    reason: !commanded ? 'Commande non transmise à la plateforme'
+      : !live ? 'Aucune position connue — bracelet jamais localisé'
+      : refreshed ? `Bracelet joignable — position rafraîchie à l'instant`
+      : online ? `Bracelet joignable (dernier point ${ageTxt})`
+      : `Pas de contact récent (dernier point ${ageTxt}) — bracelet en veille ou hors réseau`,
   });
 }
