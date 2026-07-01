@@ -50,6 +50,25 @@ export async function createThreadAction(
     return { success: true };
   }
 
+  const { createAdminClient } = await import('@/lib/supabase/admin');
+  const supabase = createAdminClient();
+  if (!supabase) return { error: 'Base de données indisponible' };
+  let case_id: string | null = null;
+  if (case_number) {
+    const { data: c } = await supabase.from('cases').select('id').eq('case_number', case_number).maybeSingle();
+    case_id = c?.id ?? null;
+  }
+  const { data: thread, error } = await supabase.from('message_threads').insert({
+    case_id, subject, participant_ids: [session.id],
+    last_message_at: new Date().toISOString(), last_message_preview: content.slice(0, 80),
+    created_by: session.id,
+  }).select('id').single();
+  if (error || !thread) return { error: 'Erreur lors de la création du fil' };
+  await supabase.from('messages').insert({
+    thread_id: thread.id, sender_id: session.id, content, is_read_by: [session.id],
+  });
+  await writeAudit({ userId: session.id, action: 'CREATE_THREAD', tableName: 'message_threads', recordId: thread.id, newData: { subject } });
+  revalidatePath('/sigep/dashboard/messagerie');
   return { success: true };
 }
 
@@ -88,5 +107,22 @@ export async function sendMessageAction(
     return null;
   }
 
+  const { createAdminClient } = await import('@/lib/supabase/admin');
+  const supabase = createAdminClient();
+  if (!supabase) return { error: 'Base de données indisponible' };
+  const { error } = await supabase.from('messages').insert({
+    thread_id, sender_id: session.id, content, is_read_by: [session.id],
+  });
+  if (error) return { error: "Échec de l'envoi" };
+  // Bump the thread preview/timestamp and make sure the sender is a participant.
+  const { data: t } = await supabase.from('message_threads').select('participant_ids').eq('id', thread_id).single();
+  const participants = Array.from(new Set<string>([...((t?.participant_ids as string[] | null) ?? []), session.id]));
+  await supabase.from('message_threads').update({
+    last_message_at: new Date().toISOString(),
+    last_message_preview: content.slice(0, 80),
+    participant_ids: participants,
+  }).eq('id', thread_id);
+  revalidatePath(`/sigep/dashboard/messagerie/${thread_id}`);
+  revalidatePath('/sigep/dashboard/messagerie');
   return null;
 }

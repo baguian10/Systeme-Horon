@@ -110,6 +110,17 @@ async function statsClient(role?: UserRole) {
   return createClient();
 }
 
+// Case-scoped reads: admin roles bypass RLS via the service role; JUDGE and
+// OPERATIONAL stay RLS-scoped to their own / assigned cases.
+async function caseScopedClient(role: UserRole) {
+  if (role === 'SUPER_ADMIN' || role === 'ADMIN') {
+    const { createAdminClient } = await import('@/lib/supabase/admin');
+    return createAdminClient();
+  }
+  const { createClient } = await import('@/lib/supabase/server');
+  return createClient();
+}
+
 export async function fetchOverviewStats(role?: UserRole): Promise<OverviewStats> {
   if (IS_DEMO_MODE) return MOCK_STATS;
   const supabase = await statsClient(role);
@@ -324,9 +335,26 @@ export async function fetchRevocations(role: UserRole, userId: string): Promise<
     }
     return MOCK_REVOCATIONS;
   }
-  // No revocations table in the production schema yet — return empty rather than
-  // leaking mock data into a live deployment. (Build the table + CRUD to enable.)
-  return [];
+  const supabase = await caseScopedClient(role);
+  if (!supabase) return [];
+  const { data } = await supabase
+    .from('revocations')
+    .select('*, case:cases(case_number, individual:individuals(full_name)), requester:users!requested_by_id(full_name)')
+    .order('created_at', { ascending: false });
+  type Row = RevocationRequest & {
+    case?: { case_number?: string; individual?: { full_name?: string } | null } | null;
+    requester?: { full_name?: string } | null;
+  };
+  return ((data ?? []) as unknown as Row[]).map((r) => ({
+    id: r.id, case_id: r.case_id,
+    case_number: r.case?.case_number ?? '',
+    individual_name: r.case?.individual?.full_name ?? '—',
+    requested_by_id: r.requested_by_id ?? '',
+    requested_by_name: r.requester?.full_name ?? '—',
+    reason: r.reason, violation_count: r.violation_count ?? 0,
+    status: r.status, judge_decision: r.judge_decision, decided_at: r.decided_at,
+    created_at: r.created_at,
+  }));
 }
 
 export async function fetchJournalEntries(caseId: string): Promise<JournalEntry[]> {
@@ -334,7 +362,22 @@ export async function fetchJournalEntries(caseId: string): Promise<JournalEntry[
     return MOCK_JOURNAL_ENTRIES.filter((e) => e.case_id === caseId)
       .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
   }
-  return [];
+  // Case detail already gates access to the case; read via the admin client
+  // filtered by case_id and join the author for display.
+  const { createAdminClient } = await import('@/lib/supabase/admin');
+  const supabase = createAdminClient();
+  if (!supabase) return [];
+  const { data } = await supabase
+    .from('journal_entries')
+    .select('*, author:users!author_id(full_name, role)')
+    .eq('case_id', caseId)
+    .order('created_at', { ascending: false });
+  type Row = JournalEntry & { author?: { full_name?: string; role?: UserRole } | null };
+  return ((data ?? []) as unknown as Row[]).map((e) => ({
+    id: e.id, case_id: e.case_id, author_id: e.author_id,
+    author_name: e.author?.full_name ?? '—', author_role: e.author?.role ?? 'OPERATIONAL',
+    entry_type: e.entry_type, content: e.content, created_at: e.created_at,
+  }));
 }
 
 export interface RecentDeviceEvent {
@@ -370,7 +413,24 @@ export async function fetchMaintenanceTickets(): Promise<MaintenanceTick[]> {
   if (IS_DEMO_MODE) {
     return MOCK_MAINTENANCE_TICKETS.sort((a, b) => b.priority - a.priority);
   }
-  return [];
+  // SUPER_ADMIN-only view — served through the admin client (RLS has no
+  // JUDGE/OPERATIONAL read policy for maintenance).
+  const { createAdminClient } = await import('@/lib/supabase/admin');
+  const supabase = createAdminClient();
+  if (!supabase) return [];
+  const { data } = await supabase
+    .from('maintenance_tickets')
+    .select('*, device:devices(imei)')
+    .order('priority', { ascending: false })
+    .order('created_at', { ascending: false });
+  type Row = MaintenanceTick & { device?: { imei?: string } | null };
+  return ((data ?? []) as unknown as Row[]).map((t) => ({
+    id: t.id, device_id: t.device_id, device_imei: t.device?.imei ?? '—',
+    maintenance_type: t.maintenance_type, status: t.status, priority: t.priority,
+    description: t.description, assigned_to: t.assigned_to,
+    scheduled_at: t.scheduled_at, completed_at: t.completed_at, notes: t.notes,
+    created_at: t.created_at,
+  }));
 }
 
 export async function fetchAgenda(role: UserRole, userId: string): Promise<AgendaObligation[]> {
@@ -385,7 +445,23 @@ export async function fetchAgenda(role: UserRole, userId: string): Promise<Agend
     }
     return MOCK_AGENDA;
   }
-  return [];
+  const supabase = await caseScopedClient(role);
+  if (!supabase) return [];
+  const { data } = await supabase
+    .from('obligations')
+    .select('*, case:cases(case_number, individual:individuals(full_name))')
+    .order('scheduled_date', { ascending: true });
+  type Row = AgendaObligation & {
+    case?: { case_number?: string; individual?: { full_name?: string } | null } | null;
+  };
+  return ((data ?? []) as unknown as Row[]).map((o) => ({
+    id: o.id, case_id: o.case_id,
+    case_number: o.case?.case_number ?? '',
+    individual_name: o.case?.individual?.full_name ?? '—',
+    obligation_type: o.obligation_type, title: o.title,
+    scheduled_date: o.scheduled_date, start_time: o.start_time, end_time: o.end_time,
+    location: o.location, is_confirmed: o.is_confirmed,
+  }));
 }
 
 export async function fetchThreads(userId: string): Promise<MessageThread[]> {
@@ -394,7 +470,23 @@ export async function fetchThreads(userId: string): Promise<MessageThread[]> {
       .filter((t) => t.participant_ids.includes(userId))
       .sort((a, b) => new Date(b.last_message_at).getTime() - new Date(a.last_message_at).getTime());
   }
-  return [];
+  // Participant-scoped — served through the admin client filtered to threads the
+  // user takes part in (the messaging model doesn't fit the case-RLS pattern).
+  const { createAdminClient } = await import('@/lib/supabase/admin');
+  const supabase = createAdminClient();
+  if (!supabase) return [];
+  const { data } = await supabase
+    .from('message_threads')
+    .select('*, case:cases(case_number)')
+    .contains('participant_ids', [userId])
+    .order('last_message_at', { ascending: false });
+  type Row = MessageThread & { case?: { case_number?: string } | null };
+  return ((data ?? []) as unknown as Row[]).map((t) => ({
+    id: t.id, case_id: t.case_id, case_number: t.case?.case_number ?? null,
+    subject: t.subject, participant_ids: t.participant_ids ?? [],
+    last_message_at: t.last_message_at, last_message_preview: t.last_message_preview ?? '',
+    created_by: t.created_by, created_at: t.created_at,
+  }));
 }
 
 export async function fetchMessages(threadId: string): Promise<Message[]> {
@@ -403,7 +495,20 @@ export async function fetchMessages(threadId: string): Promise<Message[]> {
       .filter((m) => m.thread_id === threadId)
       .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
   }
-  return [];
+  const { createAdminClient } = await import('@/lib/supabase/admin');
+  const supabase = createAdminClient();
+  if (!supabase) return [];
+  const { data } = await supabase
+    .from('messages')
+    .select('*, sender:users!sender_id(full_name, role)')
+    .eq('thread_id', threadId)
+    .order('created_at', { ascending: true });
+  type Row = Message & { sender?: { full_name?: string; role?: UserRole } | null };
+  return ((data ?? []) as unknown as Row[]).map((m) => ({
+    id: m.id, thread_id: m.thread_id, sender_id: m.sender_id,
+    sender_name: m.sender?.full_name ?? '—', sender_role: m.sender?.role ?? 'OPERATIONAL',
+    content: m.content, is_read_by: m.is_read_by ?? [], created_at: m.created_at,
+  }));
 }
 
 export async function fetchViolationHeatPoints(): Promise<ViolationHeatPoint[]> {

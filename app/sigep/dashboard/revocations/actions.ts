@@ -48,14 +48,23 @@ export async function decideRevocationAction(formData: FormData): Promise<void> 
   const { createAdminClient } = await import('@/lib/supabase/admin');
   const supabase = createAdminClient();
   if (!supabase) return;
+  const decided = decision === 'APPROVED' || decision === 'REJECTED';
   await supabase
     .from('revocations')
     .update({
       status: decision,
       judge_decision: decisionMap[decision] || null,
-      decided_at: (decision === 'APPROVED' || decision === 'REJECTED') ? new Date().toISOString() : null,
+      decided_by: decided ? session.id : null,
+      decided_at: decided ? new Date().toISOString() : null,
     })
     .eq('id', revocation_id);
+  await writeAudit({
+    userId: session.id,
+    action: `REVOCATION_${decision}`,
+    tableName: 'revocations',
+    recordId: revocation_id,
+    newData: { decision },
+  });
   revalidatePath('/sigep/dashboard/revocations');
 }
 
@@ -93,5 +102,14 @@ export async function createRevocationAction(
     return null;
   }
 
+  const { createAdminClient } = await import('@/lib/supabase/admin');
+  const supabase = createAdminClient();
+  if (!supabase) return { error: 'Base de données indisponible' };
+  const { data, error } = await supabase.from('revocations').insert({
+    case_id, requested_by_id: session.id, reason, status: 'PENDING',
+  }).select('id').single();
+  if (error) return { error: 'Erreur lors de la création de la demande' };
+  await writeAudit({ userId: session.id, action: 'CREATE_REVOCATION', tableName: 'revocations', recordId: data?.id, newData: { case_id } });
+  revalidatePath('/sigep/dashboard/revocations');
   return null;
 }

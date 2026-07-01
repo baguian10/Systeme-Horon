@@ -42,6 +42,13 @@ export async function updateMaintenanceStatusAction(formData: FormData): Promise
     .from('maintenance_tickets')
     .update({ status, completed_at: status === 'DONE' ? new Date().toISOString() : null })
     .eq('id', ticket_id);
+  await writeAudit({
+    userId: session.id,
+    action: 'MAINTENANCE_STATUS_UPDATE',
+    tableName: 'maintenance_tickets',
+    recordId: ticket_id,
+    newData: { status },
+  });
   revalidatePath('/sigep/dashboard/maintenance');
 }
 
@@ -82,5 +89,14 @@ export async function createMaintenanceTicketAction(
     return null;
   }
 
+  const { createAdminClient } = await import('@/lib/supabase/admin');
+  const supabase = createAdminClient();
+  if (!supabase) return { error: 'Base de données indisponible' };
+  const { data, error } = await supabase.from('maintenance_tickets').insert({
+    device_id, maintenance_type, description, priority, status: 'PENDING', assigned_to: session.id,
+  }).select('id').single();
+  if (error) return { error: 'Erreur lors de la création du ticket' };
+  await writeAudit({ userId: session.id, action: 'CREATE_MAINTENANCE_TICKET', tableName: 'maintenance_tickets', recordId: data?.id, newData: { device_id, maintenance_type } });
+  revalidatePath('/sigep/dashboard/maintenance');
   return null;
 }
