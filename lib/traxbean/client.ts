@@ -314,15 +314,15 @@ export async function sendDeviceCommand(imei: string, command: TraxbeanCommand, 
 export type BleSighting = { name: string; mac: string; rssi: number };
 export type BleScan = { at: string; sightings: BleSighting[] } | null;
 
-// Parse BLE scans from the raw log. APBL scans are intermittent — some cycles
-// come back empty even while a beacon is in range — so we AGGREGATE the scans
-// over a recent window and keep the strongest RSSI per MAC. Taking only the last
-// packet would falsely report a beacon as absent (→ false home-exit alarm).
-// Window is generous (10 min) because a low-power beacon can advertise as slowly
-// as every ~5 s while the tracker only scans in short bursts, so it's caught
-// only intermittently — seen anywhere in the window counts as present.
+// Parse BLE scans from the raw log. APBL scans are intermittent (some cycles
+// come back empty even while a beacon is in range), so we look across a recent
+// window — but keep the MOST RECENT sighting per MAC, not the strongest. Keeping
+// the strongest masked movement: an earlier close reading (-52 dBm) hid a later
+// far one (-69 dBm), so the distance never appeared to grow and the exit alarm
+// lagged. Latest-wins reflects the current distance and still tolerates empty
+// scans (the beacon's last non-empty reading in the window carries over).
 // APBL format: IWAPBL,IMEI, Name|MAC|RSSI&Name2|MAC2|RSSI2, terminalMAC, timestamp#
-const BLE_WINDOW_MS = 10 * 60000;
+const BLE_WINDOW_MS = 6 * 60000;
 export async function getLatestBleScan(imei: string): Promise<BleScan> {
   const lines = await traxbeanPost<string[]>('business/device/fetchDeviceLog', {
     imei,
@@ -332,28 +332,31 @@ export async function getLatestBleScan(imei: string): Promise<BleScan> {
   const apbl = lines.filter((l) => typeof l === 'string' && l.includes('IWAPBL,'));
   if (apbl.length === 0) return null;
 
-  // Strongest sighting per MAC across the window; track the newest packet time.
-  const best = new Map<string, BleSighting>();
-  let newestTs = 0;
+  // Collect (timestamp, sightings) per packet within the window, then sort by
+  // time so the latest reading wins per MAC.
   const nowMs = Date.now();
+  const packets: { ts: number; segs: BleSighting[] }[] = [];
   for (const line of apbl) {
     const payload = line.slice(line.indexOf('IWAPBL,') + 'IWAPBL,'.length).replace(/#.*$/, '');
     const parts = payload.split(','); // IMEI, bledata, terminalMAC, timestamp
     if (parts.length < 4) continue;
     const ts = Number(parts[parts.length - 1]);
-    if (ts && nowMs - ts > BLE_WINDOW_MS) continue; // outside the aggregation window
-    if (ts > newestTs) newestTs = ts;
+    if (ts && nowMs - ts > BLE_WINDOW_MS) continue;
+    const segs: BleSighting[] = [];
     for (const seg of parts[1].split('&')) {
       const [name, mac, rssi] = seg.split('|');
       const m = (mac ?? '').trim().toUpperCase();
       const r = Number(rssi);
-      if (!m || Number.isNaN(r)) continue;
-      const prev = best.get(m);
-      if (!prev || r > prev.rssi) best.set(m, { name: name ?? '', mac: m, rssi: r });
+      if (m && !Number.isNaN(r)) segs.push({ name: name ?? '', mac: m, rssi: r });
     }
+    packets.push({ ts, segs });
   }
-  if (best.size === 0 && newestTs === 0) return null;
-  return { at: newestTs ? new Date(newestTs).toISOString() : new Date().toISOString(), sightings: [...best.values()] };
+  if (packets.length === 0) return null;
+  packets.sort((a, b) => a.ts - b.ts);
+  const latest = new Map<string, BleSighting>();
+  let newestTs = 0;
+  for (const p of packets) { newestTs = Math.max(newestTs, p.ts); for (const s of p.segs) latest.set(s.mac, s); }
+  return { at: newestTs ? new Date(newestTs).toISOString() : new Date().toISOString(), sightings: [...latest.values()] };
 }
 
 // BP17 — factory reset (wipes SOS/whitelist/home config of a previous wearer
