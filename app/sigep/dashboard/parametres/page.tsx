@@ -3,7 +3,6 @@ import { Shield, Wifi, Database, Globe, Lock, CheckCircle2 } from 'lucide-react'
 import { getSession } from '@/lib/auth/session';
 import { canViewParametres } from '@/lib/auth/permissions';
 import { getSettings } from '@/lib/settings';
-import ParametresForm from './ParametresForm';
 import ActiveSettingsForm from '@/components/settings/ActiveSettingsForm';
 
 export const metadata = { title: 'Paramètres système — SIGEP' };
@@ -38,10 +37,9 @@ export default async function ParametresPage() {
 
       <ActiveSettingsForm settings={settings} />
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left: System info */}
-        <div className="space-y-4">
-          <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* System info */}
+        <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
             <div className="px-5 py-4 border-b border-gray-50">
               <h3 className="font-semibold text-gray-900 text-sm">Informations système</h3>
             </div>
@@ -83,12 +81,6 @@ export default async function ParametresPage() {
               ))}
             </ul>
           </div>
-        </div>
-
-        {/* Right: Config params */}
-        <div className="lg:col-span-2">
-          <ParametresForm />
-        </div>
       </div>
     </div>
   );

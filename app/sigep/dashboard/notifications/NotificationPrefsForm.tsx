@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useActionState } from 'react';
 import { Bell, Smartphone, Mail, CheckCircle2 } from 'lucide-react';
+import { saveNotificationPrefsAction } from './actions';
 
 const ALERT_TYPES = [
   { key: 'GEOFENCE_EXIT',   label: 'Sortie de zone',   severity: 'critical' },
@@ -31,25 +32,28 @@ const DEFAULT_PREFS: Prefs = {
   SIGNAL_LOST:     { push: false, sms: false, email: false },
 };
 
-export default function NotificationPrefsForm() {
-  const [prefs, setPrefs] = useState<Prefs>(DEFAULT_PREFS);
-  const [saved, setSaved] = useState(false);
+export default function NotificationPrefsForm({ initial }: { initial?: Prefs | null }) {
+  // Merge stored prefs over the defaults so a newly-added alert type still shows.
+  const [prefs, setPrefs] = useState<Prefs>(() => {
+    const merged: Prefs = {};
+    for (const at of ALERT_TYPES) {
+      merged[at.key] = { ...DEFAULT_PREFS[at.key], ...(initial?.[at.key] ?? {}) };
+    }
+    return merged;
+  });
+  const [state, formAction, pending] = useActionState(saveNotificationPrefsAction, null);
 
   function toggle(alertKey: string, channel: string) {
     setPrefs((prev) => ({
       ...prev,
       [alertKey]: { ...prev[alertKey], [channel]: !prev[alertKey][channel] },
     }));
-    setSaved(false);
-  }
-
-  function handleSave() {
-    setSaved(true);
-    setTimeout(() => setSaved(false), 3000);
   }
 
   return (
-    <div className="px-5 py-4 space-y-4">
+    <form action={formAction} className="px-5 py-4 space-y-4">
+      <input type="hidden" name="prefs" value={JSON.stringify(prefs)} />
+
       {/* Channel headers */}
       <div className="grid grid-cols-4 gap-2 text-[10px] text-gray-400 font-semibold uppercase">
         <span className="col-span-1">Type</span>
@@ -72,6 +76,7 @@ export default function NotificationPrefsForm() {
             return (
               <button
                 key={ch.key}
+                type="button"
                 onClick={() => toggle(at.key, ch.key)}
                 className={`flex items-center justify-center rounded-lg py-1.5 border transition-all ${
                   on
@@ -86,20 +91,24 @@ export default function NotificationPrefsForm() {
         </div>
       ))}
 
+      {state?.error && <p className="text-xs text-red-600">{state.error}</p>}
       <button
-        onClick={handleSave}
-        className={`w-full flex items-center justify-center gap-1.5 rounded-xl py-2.5 text-xs font-semibold transition-all ${
-          saved
+        type="submit"
+        disabled={pending}
+        className={`w-full flex items-center justify-center gap-1.5 rounded-xl py-2.5 text-xs font-semibold transition-all disabled:opacity-50 ${
+          state?.ok
             ? 'bg-emerald-100 text-emerald-700 border border-emerald-200'
             : 'bg-emerald-600 text-white hover:bg-emerald-500'
         }`}
       >
-        {saved ? (
-          <><CheckCircle2 className="w-3.5 h-3.5" /> Préférences sauvegardées</>
+        {pending ? (
+          'Enregistrement…'
+        ) : state?.ok ? (
+          <><CheckCircle2 className="w-3.5 h-3.5" /> Préférences enregistrées</>
         ) : (
           'Enregistrer les préférences'
         )}
       </button>
-    </div>
+    </form>
   );
 }

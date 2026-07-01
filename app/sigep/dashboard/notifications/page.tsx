@@ -32,6 +32,17 @@ export default async function NotificationsPage() {
   const recent = alerts.slice(0, 20);
   const unread = alerts.filter((a) => !a.is_resolved).length;
 
+  // Load the current user's saved notification preferences (if any).
+  let initialPrefs: Record<string, Record<string, boolean>> | null = null;
+  if (process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+    const { createAdminClient } = await import('@/lib/supabase/admin');
+    const sb = createAdminClient();
+    if (sb) {
+      const { data } = await sb.from('users').select('notification_prefs').eq('id', session.id).maybeSingle();
+      initialPrefs = (data?.notification_prefs as Record<string, Record<string, boolean>> | null) ?? null;
+    }
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -56,7 +67,7 @@ export default async function NotificationsPage() {
               <h3 className="font-semibold text-gray-900 text-sm">Préférences de notification</h3>
               <p className="text-xs text-gray-400 mt-0.5">Choisissez les alertes à recevoir</p>
             </div>
-            <NotificationPrefsForm />
+            <NotificationPrefsForm initial={initialPrefs} />
           </div>
 
           {/* Escalation logic */}
