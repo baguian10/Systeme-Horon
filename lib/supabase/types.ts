@@ -72,6 +72,7 @@ export interface Device {
   server_endpoint: string | null;
   worn?: boolean | null;
   worn_checked_at?: string | null;
+  ble_high_avail?: boolean | null;
 }
 
 export type GeofenceType  = 'GPS_ZONE' | 'BLE_DOMICILE';

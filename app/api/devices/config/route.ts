@@ -43,6 +43,13 @@ export async function POST(request: NextRequest) {
   }
   if (!ok) return NextResponse.json({ error: 'Commande refusée par la plateforme' }, { status: 502 });
 
+  // Persist the high-availability BLE preset state so the toggle survives a refresh.
+  if (kind === 'bleHighAvail') {
+    const { createAdminClient } = await import('@/lib/supabase/admin');
+    const sb = createAdminClient();
+    if (sb) await sb.from('devices').update({ ble_high_avail: true }).eq('imei', imei);
+  }
+
   const { writeAudit } = await import('@/lib/audit/log');
   await writeAudit({ userId: session.id, action: 'CONFIG_DEVICE', tableName: 'devices', recordId: imei, newData: { kind, value } });
   return NextResponse.json({ ok: true });

@@ -199,7 +199,7 @@ export default async function DevicesPage() {
                             )}
                             <TestConnectionButton imei={d.imei} />
                             <BleScanButton imei={d.imei} />
-                            <BleHighAvailButton imei={d.imei} />
+                            <BleHighAvailButton imei={d.imei} active={d.ble_high_avail ?? false} />
                             <ProvisionButton imei={d.imei} />
                             <Link
                               href={`/sigep/dashboard/devices/${d.id}/label`}
