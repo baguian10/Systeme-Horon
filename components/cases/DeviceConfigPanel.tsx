@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Settings2, Phone, Clock, ShieldAlert, Signal, Loader2, PersonStanding, ShieldOff, ShieldCheck, RotateCcw, Server } from 'lucide-react';
+import { Settings2, Phone, Clock, ShieldAlert, Signal, Loader2, PersonStanding, ShieldOff, ShieldCheck, RotateCcw, Server, Bluetooth } from 'lucide-react';
 
 // Hoisted to module scope so it keeps a stable identity across renders
 // (defining it inside the component would remount every button each render).
@@ -87,6 +87,12 @@ export default function DeviceConfigPanel({ imei }: { imei: string }) {
             <span className="text-xs text-gray-600 mr-1">Détection de retrait :</span>
             <ConfigBtn k="wearOn" label="Activer" icon={<ShieldCheck className="w-3.5 h-3.5" />} busy={busy} onSend={send} />
             <ConfigBtn k="wearOff" label="Désactiver" icon={<ShieldOff className="w-3.5 h-3.5" />} busy={busy} onSend={send} />
+          </div>
+          {/* High BLE availability (fights the firmware's motion sleep) */}
+          <div className="flex items-center gap-2 flex-wrap mb-2">
+            <Bluetooth className="w-4 h-4 text-gray-400" />
+            <span className="text-xs text-gray-600 mr-1">Surveillance domicile :</span>
+            <ConfigBtn k="bleHighAvail" label="Mode haute dispo BLE" icon={<Bluetooth className="w-3.5 h-3.5" />} busy={busy} onSend={send} />
           </div>
           {/* Fall detection */}
           <div className="flex items-center gap-2 flex-wrap">

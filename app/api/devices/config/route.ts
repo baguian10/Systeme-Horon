@@ -1,13 +1,13 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { getSession } from '@/lib/auth/session';
 import { canConfigureHardware, allow } from '@/lib/auth/permissions';
-import { configureDevice, setFallAlarm, setFallSensitivity, setWearingDetection, factoryReset, setServer, type DeviceConfigKind } from '@/lib/traxbean/client';
+import { configureDevice, setFallAlarm, setFallSensitivity, setWearingDetection, factoryReset, setServer, setBleHighAvailability, type DeviceConfigKind } from '@/lib/traxbean/client';
 
 export const dynamic = 'force-dynamic';
 
 const ALLOWED: DeviceConfigKind[] = ['sos', 'timezoneBF', 'strap', 'apn'];
-// Fall / wearing detection (BP40 shortcuts) + lifecycle (reset / server).
-const EXTRA = ['fallOn', 'fallOff', 'fallSensitivity', 'wearOn', 'wearOff', 'factoryReset', 'setServer'];
+// Fall / wearing detection (BP40 shortcuts) + lifecycle (reset / server) + BLE.
+const EXTRA = ['fallOn', 'fallOff', 'fallSensitivity', 'wearOn', 'wearOff', 'factoryReset', 'setServer', 'bleHighAvail'];
 
 // POST /api/devices/config — device-level protocol configuration.
 // Body: { imei, kind, value? }. SUPER_ADMIN / ADMIN with 'hardware'.
@@ -31,6 +31,7 @@ export async function POST(request: NextRequest) {
     case 'wearOn':          ok = await setWearingDetection(imei, true); break;
     case 'wearOff':         ok = await setWearingDetection(imei, false); break;
     case 'factoryReset':    ok = await factoryReset(imei); break;
+    case 'bleHighAvail':    ok = await setBleHighAvailability(imei); break;
     case 'setServer': {
       // value = "host:port" (domain by default). Falls back to the site host.
       const [host, portStr] = (value ?? '').split(':');

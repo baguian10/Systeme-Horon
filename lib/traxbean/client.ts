@@ -311,6 +311,21 @@ export async function sendDeviceCommand(imei: string, command: TraxbeanCommand, 
   return false;
 }
 
+// "High BLE availability" preset for home surveillance: keep the device
+// semi-awake (position every 60s — short enough to avoid deep sleep, long
+// enough not to starve the shared GPS/BLE radio), scan BLE every 20s, GPS on,
+// worker(eco) display mode off. Fights the firmware's motion-based BLE sleep so
+// the home beacon stays detected. IW isn't able to fully disable power saving —
+// this is the best balance the protocol allows.
+export async function setBleHighAvailability(imei: string): Promise<boolean> {
+  const targetId = await getTargetIdByImei(imei);
+  if (!targetId) return false;
+  const ok1 = await sendIW(imei, `IWBP34,${imei},${cmdSerial()},5,60,1#`);   // mode5, 60s, GPS on
+  const ok2 = await post('business/target/sendCommand', { targetId, imei, command: '>*ble@20*<' });
+  const ok3 = await post('business/target/sendCommand', { targetId, imei, command: '>*workmode@user|0*<' });
+  return ok1 && ok2 && ok3;
+}
+
 export type BleSighting = { name: string; mac: string; rssi: number };
 export type BleScan = { at: string; sightings: BleSighting[] } | null;
 
