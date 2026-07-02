@@ -120,6 +120,10 @@ export default function BeaconsManager({ devices }: { devices: DeviceOpt[] }) {
     // Async loader — setBeacons runs after an awaited fetch, not synchronously.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     load();
+    // Auto-refresh the live BLE status (distance/RSSI, present/absent) every 20s
+    // so it tracks each scan without the operator reloading the page.
+    const id = setInterval(load, 20_000);
+    return () => clearInterval(id);
   }, [load]);
 
   async function post(url: string, body: unknown) {
