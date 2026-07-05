@@ -35,8 +35,21 @@ export async function GET() {
     fetchGeofences(),
   ]);
 
-  const markers: TrackerMarker[] = positions.map((pos) => {
-    const relatedCase = cases.find((c) => c.id === pos.case_id);
+  // Only surface markers for cases that are actively monitored AND carry an
+  // assigned device. Positions linger in history after a bracelet is removed or
+  // a case is closed/suspended; without this guard those orphan fixes rendered
+  // as live "network signals" on the surveillance map for inactive/unassigned
+  // accounts. Mirrors the monitoring console filter (monitoring/page.tsx).
+  const monitoredById = new Map(
+    cases
+      .filter((c) => (c.status === 'ACTIVE' || c.status === 'VIOLATION') && c.device != null)
+      .map((c) => [c.id, c]),
+  );
+
+  const markers: TrackerMarker[] = positions
+    .filter((pos) => monitoredById.has(pos.case_id))
+    .map((pos) => {
+    const relatedCase = monitoredById.get(pos.case_id)!;
     const device = relatedCase?.device;
     return {
       id: pos.id,
