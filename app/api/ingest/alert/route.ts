@@ -52,6 +52,23 @@ export async function POST(request: NextRequest) {
     HEALTH_CRITICAL: 3, SIGNAL_LOST: 3, BATTERY_LOW: 2,
   };
 
+  // Connectivity/battery signals are re-evaluated on every poll while the
+  // condition persists. The poller (poll-traxbean) fired them without a guard,
+  // so a single outage produced hundreds of duplicate alerts (one per minute).
+  // Dedupe: keep one open alert per case+type until it is resolved.
+  const DEDUP_TYPES: AlertType[] = ['SIGNAL_LOST', 'BATTERY_LOW'];
+  if (DEDUP_TYPES.includes(type)) {
+    const { count } = await supabase
+      .from('alerts')
+      .select('id', { count: 'exact', head: true })
+      .eq('case_id', device.case_id)
+      .eq('alert_type', type)
+      .eq('is_resolved', false);
+    if (count && count > 0) {
+      return NextResponse.json({ ok: true, deduped: true });
+    }
+  }
+
   const { data: alert } = await supabase
     .from('alerts')
     .insert({
