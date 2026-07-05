@@ -4,7 +4,7 @@ import type { CookieOptions } from '@supabase/ssr';
 const IS_DEMO_MODE =
   !process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Protect /sigep/dashboard/* routes
