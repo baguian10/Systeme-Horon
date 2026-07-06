@@ -52,20 +52,35 @@ export async function POST(request: NextRequest) {
     HEALTH_CRITICAL: 3, SIGNAL_LOST: 3, BATTERY_LOW: 2,
   };
 
-  // Connectivity/battery signals are re-evaluated on every poll while the
-  // condition persists. The poller (poll-traxbean) fired them without a guard,
-  // so a single outage produced hundreds of duplicate alerts (one per minute).
-  // Dedupe: keep one open alert per case+type until it is resolved.
-  const DEDUP_TYPES: AlertType[] = ['SIGNAL_LOST', 'BATTERY_LOW'];
-  if (DEDUP_TYPES.includes(type)) {
+  // Connectivity/battery signals are re-evaluated on every poll (~1 min) while
+  // the condition persists, which without a guard produced one alert per minute.
+  //
+  // SIGNAL_LOST: keep a single OPEN alert per case until it is resolved — a lost
+  //   link is one incident, not a stream.
+  // BATTERY_LOW: the operator wants a recurring reminder while the battery stays
+  //   low, but not every minute. Throttle to at most one every 10 minutes
+  //   (regardless of resolution) so it nags at a usable cadence.
+  const BATTERY_ALERT_INTERVAL_MIN = 10;
+  if (type === 'SIGNAL_LOST') {
     const { count } = await supabase
       .from('alerts')
       .select('id', { count: 'exact', head: true })
       .eq('case_id', device.case_id)
-      .eq('alert_type', type)
+      .eq('alert_type', 'SIGNAL_LOST')
       .eq('is_resolved', false);
     if (count && count > 0) {
       return NextResponse.json({ ok: true, deduped: true });
+    }
+  } else if (type === 'BATTERY_LOW') {
+    const cutoff = new Date(Date.now() - BATTERY_ALERT_INTERVAL_MIN * 60_000).toISOString();
+    const { count } = await supabase
+      .from('alerts')
+      .select('id', { count: 'exact', head: true })
+      .eq('case_id', device.case_id)
+      .eq('alert_type', 'BATTERY_LOW')
+      .gte('triggered_at', cutoff);
+    if (count && count > 0) {
+      return NextResponse.json({ ok: true, throttled: true });
     }
   }
 
