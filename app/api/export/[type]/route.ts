@@ -57,15 +57,15 @@ export async function GET(request: NextRequest, ctx: { params: Promise<{ type: s
       .order('imei', { ascending: true })
       .limit(10000);
     const LIFECYCLE: Record<string, string> = { STOCK: 'En stock', ACTIVE: 'En service', MAINTENANCE: 'Maintenance', RETIRED: 'Réformé' };
-    const rows = (data ?? []).map((raw) => {
+    const rows: (string | number | null)[][] = (data ?? []).map((raw) => {
       const d = raw as Record<string, unknown> & { case?: { case_number?: string } };
-      const life = (d.lifecycle_status as string | null) ?? ((d.case_id) ? 'ACTIVE' : 'STOCK');
+      const life = (d.lifecycle_status as string | null) ?? (d.case_id ? 'ACTIVE' : 'STOCK');
       const worn = d.worn === true ? 'porté' : d.worn === false ? 'retiré' : 'inconnu';
       return [
-        d.imei, d.model, d.is_online ? 'en ligne' : 'hors ligne',
+        String(d.imei ?? ''), (d.model as string | null) ?? '', d.is_online ? 'en ligne' : 'hors ligne',
         LIFECYCLE[life] ?? life,
-        d.battery_pct ?? '', d.signal_strength_dbm ?? '', worn,
-        d.sim_number ?? '', d.sim_carrier ?? '', d.sim_status ?? '',
+        (d.battery_pct as number | null) ?? '', (d.signal_strength_dbm as number | null) ?? '', worn,
+        (d.sim_number as string | null) ?? '', (d.sim_carrier as string | null) ?? '', (d.sim_status as string | null) ?? '',
         fmt(d.last_seen_at as string | null), d.case?.case_number ?? '',
         fmt((d.retired_at as string | null) ?? null), (d.retired_reason as string | null) ?? '',
       ];
