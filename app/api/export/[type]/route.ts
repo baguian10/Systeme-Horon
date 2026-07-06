@@ -49,18 +49,29 @@ export async function GET(request: NextRequest, ctx: { params: Promise<{ type: s
 
   if (type === 'devices') {
     if (!allow(session, canViewDevices(session.role), 'hardware')) return NextResponse.json({ error: 'Accès refusé' }, { status: 403 });
+    // select('*') keeps the export robust whether or not the lifecycle columns
+    // are present; the case number is joined separately.
     const { data } = await supabase
       .from('devices')
-      .select('imei, model, is_online, battery_pct, sim_number, sim_carrier, sim_status, last_seen_at, case:cases(case_number)')
+      .select('*, case:cases(case_number)')
       .order('imei', { ascending: true })
       .limit(10000);
-    const rows = (data ?? []).map((d) => [
-      d.imei, d.model, d.is_online ? 'en ligne' : 'hors ligne', d.battery_pct ?? '',
-      d.sim_number ?? '', d.sim_carrier ?? '', d.sim_status ?? '',
-      fmt(d.last_seen_at as string | null), (d as { case?: { case_number?: string } }).case?.case_number ?? '',
-    ]);
+    const LIFECYCLE: Record<string, string> = { STOCK: 'En stock', ACTIVE: 'En service', MAINTENANCE: 'Maintenance', RETIRED: 'Réformé' };
+    const rows = (data ?? []).map((raw) => {
+      const d = raw as Record<string, unknown> & { case?: { case_number?: string } };
+      const life = (d.lifecycle_status as string | null) ?? ((d.case_id) ? 'ACTIVE' : 'STOCK');
+      const worn = d.worn === true ? 'porté' : d.worn === false ? 'retiré' : 'inconnu';
+      return [
+        d.imei, d.model, d.is_online ? 'en ligne' : 'hors ligne',
+        LIFECYCLE[life] ?? life,
+        d.battery_pct ?? '', d.signal_strength_dbm ?? '', worn,
+        d.sim_number ?? '', d.sim_carrier ?? '', d.sim_status ?? '',
+        fmt(d.last_seen_at as string | null), d.case?.case_number ?? '',
+        fmt((d.retired_at as string | null) ?? null), (d.retired_reason as string | null) ?? '',
+      ];
+    });
     return csvResponse(`bracelets_${today}.csv`, toCsv(
-      ['IMEI', 'Modèle', 'État', 'Batterie %', 'SIM', 'Opérateur', 'SIM statut', 'Dernier contact', 'Dossier'], rows));
+      ['IMEI', 'Modèle', 'État', 'Cycle de vie', 'Batterie %', 'Signal dBm', 'Port', 'SIM', 'Opérateur', 'SIM statut', 'Dernier contact', 'Dossier', 'Réformé le', 'Motif réforme'], rows));
   }
 
   if (type === 'positions') {
