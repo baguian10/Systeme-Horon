@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { getSession } from '@/lib/auth/session';
 import { canConfigureHardware , allow } from '@/lib/auth/permissions';
+import { isValidImei, normalizeImei } from '@/lib/devices/imei';
 
 export const dynamic = 'force-dynamic';
 
@@ -13,8 +14,9 @@ export async function POST(request: NextRequest) {
   }
   let body: { imei?: string; model?: string; simNumber?: string };
   try { body = await request.json(); } catch { return NextResponse.json({ error: 'JSON invalide' }, { status: 400 }); }
-  const imei = body.imei?.trim();
+  const imei = normalizeImei(body.imei ?? '');
   if (!imei) return NextResponse.json({ error: 'IMEI requis' }, { status: 400 });
+  if (!isValidImei(imei)) return NextResponse.json({ error: 'IMEI invalide — 15 chiffres attendus (contrôle Luhn).' }, { status: 400 });
 
   const { createAdminClient } = await import('@/lib/supabase/admin');
   const sb = createAdminClient();

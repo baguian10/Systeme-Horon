@@ -10,7 +10,15 @@ import { useRouter } from 'next/navigation';
 export default function AutoRefresh({ intervalMs = 20_000 }: { intervalMs?: number }) {
   const router = useRouter();
   useEffect(() => {
-    const tick = () => { if (document.visibilityState === 'visible') router.refresh(); };
+    const tick = () => {
+      if (document.visibilityState !== 'visible') return;
+      // Don't refresh while the operator is typing/selecting in a field — a
+      // re-render would disrupt an in-progress edit (SIM, beacon config, search).
+      const ae = document.activeElement;
+      if (ae && ['INPUT', 'TEXTAREA', 'SELECT'].includes(ae.tagName)) return;
+      if (ae instanceof HTMLElement && ae.isContentEditable) return;
+      router.refresh();
+    };
     const id = setInterval(tick, intervalMs);
     return () => clearInterval(id);
   }, [router, intervalMs]);

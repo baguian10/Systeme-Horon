@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Plus } from 'lucide-react';
+import { isValidImei, normalizeImei } from '@/lib/devices/imei';
 
 // Register a new bracelet into stock (IMEI + SIM). SUPER_ADMIN.
 export default function RegisterDeviceForm() {
@@ -15,13 +16,15 @@ export default function RegisterDeviceForm() {
   const [err, setErr] = useState<string | null>(null);
 
   async function submit() {
-    if (!imei.trim()) { setErr('IMEI requis'); return; }
+    const clean = normalizeImei(imei);
+    if (!clean) { setErr('IMEI requis'); return; }
+    if (!isValidImei(clean)) { setErr('IMEI invalide — 15 chiffres attendus (contrôle Luhn).'); return; }
     setBusy(true); setErr(null);
     try {
       const res = await fetch('/api/devices/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ imei, model, simNumber: sim }),
+        body: JSON.stringify({ imei: clean, model, simNumber: sim }),
       });
       const d = await res.json();
       if (!res.ok) { setErr(d.error ?? 'Erreur'); setBusy(false); return; }
@@ -42,7 +45,12 @@ export default function RegisterDeviceForm() {
     <div className="flex items-end gap-2 flex-wrap bg-gray-50 border border-gray-200 rounded-xl p-3">
       <div>
         <label className="block text-[11px] text-gray-500 mb-1">IMEI *</label>
-        <input value={imei} onChange={(e) => setImei(e.target.value)} placeholder="3559326…" className="border border-gray-300 rounded px-2 py-1.5 text-xs font-mono w-40" />
+        <input value={imei} onChange={(e) => setImei(e.target.value)} inputMode="numeric" placeholder="3559326…" className="border border-gray-300 rounded px-2 py-1.5 text-xs font-mono w-40" />
+        {imei.trim() !== '' && (() => {
+          const clean = normalizeImei(imei);
+          const ok = isValidImei(clean);
+          return <p className={`text-[10px] mt-0.5 ${ok ? 'text-emerald-600' : 'text-amber-600'}`}>{clean.length}/15 chiffres{ok ? ' · valide ✓' : ''}</p>;
+        })()}
       </div>
       <div>
         <label className="block text-[11px] text-gray-500 mb-1">N° SIM</label>
