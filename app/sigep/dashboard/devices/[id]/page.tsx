@@ -18,6 +18,7 @@ import ProvisionButton from '@/components/devices/ProvisionButton';
 import BleScanButton from '@/components/devices/BleScanButton';
 import BleHighAvailButton from '@/components/devices/BleHighAvailButton';
 import MiniPositionMap from '@/components/devices/MiniPositionMapLoader';
+import AutoRefresh from '@/components/common/AutoRefresh';
 
 // Tiny inline SVG sparkline (no chart lib → CSP-safe). Oldest→newest left→right.
 function Sparkline({ values, color, min, max }: { values: number[]; color: string; min?: number; max?: number }) {
@@ -118,6 +119,7 @@ export default async function DeviceDetailPage({ params }: { params: Promise<{ i
 
   return (
     <div className="space-y-5">
+      <AutoRefresh />
       {/* Header */}
       <div className="flex items-start justify-between gap-3 flex-wrap">
         <div>
@@ -230,7 +232,7 @@ export default async function DeviceDetailPage({ params }: { params: Promise<{ i
               <h3 className="text-sm font-semibold text-gray-700 mb-3">Commandes & maintenance</h3>
               <div className="flex items-center gap-4 flex-wrap">
                 <TestConnectionButton imei={d.imei} />
-                <DeviceCommandButtons imei={d.imei} />
+                {d.last_seen_at && <DeviceCommandButtons imei={d.imei} />}
                 <BleScanButton imei={d.imei} />
                 <BleHighAvailButton imei={d.imei} active={d.ble_high_avail ?? false} />
                 <ProvisionButton imei={d.imei} />

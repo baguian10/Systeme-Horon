@@ -7,6 +7,7 @@ import { fetchAllDevices, fetchCases } from '@/lib/mock/helpers';
 import RegisterDeviceForm from '@/components/devices/RegisterDeviceForm';
 import BeaconsManager from '@/components/devices/BeaconsManager';
 import DeviceInventory, { type DeviceRow } from '@/components/devices/DeviceInventory';
+import AutoRefresh from '@/components/common/AutoRefresh';
 
 export const metadata = { title: 'Bracelets & Balises BLE — SIGEP' };
 export const revalidate = 0;
@@ -118,6 +119,7 @@ export default async function DevicesPage() {
 
   return (
     <div className="space-y-6">
+      <AutoRefresh />
       <div className="flex items-start justify-between gap-3 flex-wrap">
         <div>
           <h2 className="text-xl font-bold text-gray-900">Inventaire des dispositifs</h2>

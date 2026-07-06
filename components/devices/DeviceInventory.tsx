@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState, useEffect } from 'react';
+import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { Wifi, WifiOff, Battery, Package, Search, Tag, ClipboardList, PersonStanding, ShieldOff, ArrowUpDown, AlertTriangle } from 'lucide-react';
 import SimPanel from '@/components/devices/SimPanel';
@@ -70,32 +70,12 @@ export default function DeviceInventory({ rows, isHardwareAdmin }: { rows: Devic
   const [sort, setSort] = useState<SortKey>('imei');
   const [asc, setAsc] = useState(true);
 
-  // Live telemetry: merge fresh device state (online/battery/signal/alerts/…)
-  // from /api/devices/live every 20s so the console tracks the fleet without a
-  // manual reload. Server props re-seed the list on navigation.
-  const [data, setData] = useState<DeviceRow[]>(rows);
-  // eslint-disable-next-line react-hooks/set-state-in-effect
-  useEffect(() => { setData(rows); }, [rows]);
-  useEffect(() => {
-    let active = true;
-    async function poll() {
-      try {
-        const r = await fetch('/api/devices/live', { cache: 'no-store' });
-        if (!r.ok) return;
-        const d = await r.json();
-        if (!active || !Array.isArray(d.devices)) return;
-        const m = new Map((d.devices as Partial<DeviceRow>[]).map((x) => [x.id, x]));
-        setData((prev) => prev.map((row) => { const u = m.get(row.id); return u ? { ...row, ...u } : row; }));
-      } catch { /* ignore */ }
-    }
-    const id = setInterval(poll, 20_000);
-    poll();
-    return () => { active = false; clearInterval(id); };
-  }, []);
-
+  // Telemetry stays current via the page's AutoRefresh (router.refresh re-seeds
+  // `rows` on each cycle — added/removed devices included). Filters/sort below
+  // are client state and survive those refreshes.
   const view = useMemo(() => {
     const needle = q.trim().toLowerCase();
-    let list = data.filter((d) => {
+    let list = rows.filter((d) => {
       if (status === 'online' && !d.is_online) return false;
       if (status === 'offline' && d.is_online) return false;
       if (assign === 'assigned' && !d.case_id) return false;
@@ -118,7 +98,7 @@ export default function DeviceInventory({ rows, isHardwareAdmin }: { rows: Devic
       return asc ? c : -c;
     });
     return list;
-  }, [data, q, status, assign, life, alertsOnly, lowBat, sort, asc]);
+  }, [rows, q, status, assign, life, alertsOnly, lowBat, sort, asc]);
 
   const chip = (on: boolean) => `px-2.5 py-1 rounded-full text-xs font-medium border transition-colors ${on ? 'bg-gray-900 text-white border-gray-900' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'}`;
 
@@ -127,8 +107,8 @@ export default function DeviceInventory({ rows, isHardwareAdmin }: { rows: Devic
       <div className="px-5 py-4 border-b border-gray-100 flex items-center gap-2 flex-wrap">
         <Package className="w-4 h-4 text-gray-400" />
         <h3 className="text-sm font-semibold text-gray-700">Bracelets électroniques</h3>
-        <span className="text-xs text-gray-400">· {view.length}/{data.length}</span>
-        <span data-tip="Télémétrie actualisée automatiquement" className="inline-flex items-center gap-1 text-[10px] text-emerald-600 font-medium">
+        <span className="text-xs text-gray-400">· {view.length}/{rows.length}</span>
+        <span data-tip="Page actualisée automatiquement toutes les 20 s" className="inline-flex items-center gap-1 text-[10px] text-emerald-600 font-medium">
           <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" /> live
         </span>
 
@@ -247,7 +227,7 @@ export default function DeviceInventory({ rows, isHardwareAdmin }: { rows: Devic
                         <div className="flex items-center gap-3 flex-wrap">
                           {d.case_id ? <span className="text-xs text-gray-400">Assigné</span> : <AssignDeviceControl deviceId={d.id} />}
                           <TestConnectionButton imei={d.imei} />
-                          <DeviceCommandButtons imei={d.imei} />
+                          {d.last_seen_at && <DeviceCommandButtons imei={d.imei} />}
                           <BleScanButton imei={d.imei} />
                           <BleHighAvailButton imei={d.imei} active={d.ble_high_avail} />
                           <ProvisionButton imei={d.imei} />
