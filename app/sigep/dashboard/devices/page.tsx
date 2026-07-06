@@ -10,6 +10,7 @@ import { getSession } from '@/lib/auth/session';
 import { canViewDevices, canConfigureHardware , allow } from '@/lib/auth/permissions';
 import { fetchAllDevices, fetchCases } from '@/lib/mock/helpers';
 import AssignDeviceControl from '@/components/devices/AssignDeviceControl';
+import DeleteDeviceButton from '@/components/devices/DeleteDeviceButton';
 import SimPanel from '@/components/devices/SimPanel';
 import RegisterDeviceForm from '@/components/devices/RegisterDeviceForm';
 import BeaconsManager from '@/components/devices/BeaconsManager';
@@ -216,6 +217,7 @@ export default async function DevicesPage() {
                             >
                               <ClipboardList className="w-3.5 h-3.5" /> Journal
                             </Link>
+                            {!assignedCase && <DeleteDeviceButton deviceId={d.id} imei={d.imei} />}
                           </div>
                         </td>
                       )}

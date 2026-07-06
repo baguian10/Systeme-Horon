@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback, Fragment } from 'react';
-import { Bluetooth, Plus, Link2, Unlink, AlertTriangle, CheckCircle2, Settings, Radar, Loader2 } from 'lucide-react';
+import { Bluetooth, Plus, Link2, Unlink, AlertTriangle, CheckCircle2, Settings, Radar, Loader2, Trash2 } from 'lucide-react';
 
 interface DeviceOpt { id: string; imei: string }
 interface Beacon {
@@ -232,6 +232,14 @@ export default function BeaconsManager({ devices }: { devices: DeviceOpt[] }) {
                           {testing === b.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Radar className="w-3.5 h-3.5" />}
                         </button>
                       )}
+                      <button
+                        onClick={() => { if (confirm(`Supprimer définitivement la balise ${b.uid} ?\n\nCette action est irréversible.`)) post('/api/beacons/delete', { beaconId: b.id }); }}
+                        disabled={busy}
+                        data-tip="Supprimer définitivement cette balise BLE de l'inventaire"
+                        className="p-1 text-gray-500 hover:text-red-600 disabled:opacity-50"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
                     </div>
                     {testResult[b.id] && (
                       <div className="mt-1">
