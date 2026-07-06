@@ -6,6 +6,8 @@ import { insideGeofence, withinWindow, withinCurfewSchedule, type EnforceGeofenc
 import HeatmapWrapper from '@/components/map/HeatmapWrapper';
 import MapViewToggle from '@/components/map/MapViewToggle';
 import SurveillanceView from '@/components/surveillance/SurveillanceView';
+import ItineraryExplorer from '@/components/track/ItineraryExplorer';
+import { canViewPII } from '@/lib/auth/permissions';
 import type { TrackerMarker, MapGeofence } from '@/components/map/TrackingMap';
 
 export const metadata = { title: 'Carte de surveillance — SIGEP' };
@@ -31,6 +33,8 @@ export default async function MapPage({
 
   const { view } = await searchParams;
   const showHeatmap = view === 'heatmap';
+  const showHistory = view === 'history';
+  const showPII = canViewPII(session.role);
 
   const [cases, positionsBase, heatPoints, geofences, alerts, operationals] = await Promise.all([
     fetchCases(session.role, session.id),
@@ -167,17 +171,17 @@ export default async function MapPage({
         <div>
           <h2 className="text-xl font-bold text-gray-900">Carte de surveillance</h2>
           <p className="text-sm text-gray-500 mt-0.5">
-            Ouagadougou, Burkina Faso — {showHeatmap ? 'chaleur des violations' : 'positions en temps réel'}
+            Ouagadougou, Burkina Faso — {showHeatmap ? 'chaleur des violations' : showHistory ? 'itinéraire & historique journalier' : 'positions en temps réel'}
           </p>
         </div>
         <div className="flex items-center gap-3 flex-wrap">
-          {alertCount > 0 && !showHeatmap && (
+          {alertCount > 0 && !showHeatmap && !showHistory && (
             <div className="flex items-center gap-1.5 bg-red-50 border border-red-100 rounded-lg px-3 py-2 text-xs font-semibold text-red-600">
               <AlertTriangle className="w-3.5 h-3.5" />
               {alertCount} violation{alertCount > 1 ? 's' : ''}
             </div>
           )}
-          {!showHeatmap && (
+          {!showHeatmap && !showHistory && (
             <div className="flex items-center gap-1.5 bg-green-50 border border-green-100 rounded-lg px-3 py-2 text-xs font-medium text-green-700">
               <Wifi className="w-3.5 h-3.5" />
               {onlineCount} en ligne
@@ -190,12 +194,19 @@ export default async function MapPage({
             </div>
           )}
           {/* View toggle */}
-          <MapViewToggle currentView={showHeatmap ? 'heatmap' : 'tracking'} />
+          <MapViewToggle currentView={showHeatmap ? 'heatmap' : showHistory ? 'history' : 'tracking'} />
         </div>
       </div>
 
       {/* Map */}
-      {showHeatmap ? (
+      {showHistory ? (
+        <ItineraryExplorer
+          cases={cases
+            .map((c) => ({ id: c.id, case_number: c.case_number, name: showPII ? c.individual?.full_name ?? null : null }))
+            .sort((a, b) => a.case_number.localeCompare(b.case_number))
+            .map((c) => ({ id: c.id, label: c.name ? `${c.case_number} — ${c.name}` : c.case_number }))}
+        />
+      ) : showHeatmap ? (
         <div className="h-[580px] w-full rounded-2xl overflow-hidden border border-gray-100 shadow-sm">
           <HeatmapWrapper points={heatPoints} />
         </div>

@@ -1,10 +1,11 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import {
   Wifi, WifiOff, RefreshCw, Battery,
   MapPin, Calendar, CheckCircle2, Clock, Send, Smartphone,
-  ChevronDown, ChevronUp, Shield,
+  ChevronDown, ChevronUp, Shield, Route,
 } from 'lucide-react';
 
 type CasePayload = {
@@ -306,6 +307,15 @@ export default function TerrainApp({ initialData }: { initialData: InitialData }
                         Naviguer
                       </a>
                     </div>
+
+                    {/* Itinéraire du jour (historique) */}
+                    <Link
+                      href={`/sigep/dashboard/cases/${c.id}/history`}
+                      className="flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl border border-violet-200 text-violet-700 text-xs font-semibold hover:bg-violet-50 transition-colors"
+                    >
+                      <Route className="w-3.5 h-3.5" />
+                      Itinéraire du jour
+                    </Link>
 
                     {/* Note rapide */}
                     <div>

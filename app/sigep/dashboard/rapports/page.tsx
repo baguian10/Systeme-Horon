@@ -5,8 +5,9 @@ import {
   FolderOpen, TrendingUp, Clock, CheckCircle,
 } from 'lucide-react';
 import { getSession } from '@/lib/auth/session';
-import { canViewReports , allow } from '@/lib/auth/permissions';
-import { fetchAlerts, fetchOverviewStats } from '@/lib/mock/helpers';
+import { canViewReports , allow, canViewPII } from '@/lib/auth/permissions';
+import { fetchAlerts, fetchOverviewStats, fetchCases } from '@/lib/mock/helpers';
+import DailyReportPicker from '@/components/track/DailyReportPicker';
 
 export const metadata = { title: 'Rapports — SIGEP' };
 export const revalidate = 0;
@@ -65,12 +66,19 @@ export default async function RapportsPage() {
   const session = await getSession();
   if (!session || !allow(session, canViewReports(session.role), 'reports')) redirect('/sigep/dashboard');
 
-  const [alerts, stats] = await Promise.all([
+  const [alerts, stats, cases] = await Promise.all([
     fetchAlerts(session.role),
     fetchOverviewStats(session.role),
+    fetchCases(session.role, session.id).catch(() => []),
   ]);
 
   const openAlerts = alerts.filter((a) => !a.is_resolved).length;
+
+  const showPII = canViewPII(session.role);
+  const itineraryCases = cases
+    .map((c) => ({ id: c.id, case_number: c.case_number, name: showPII ? c.individual?.full_name ?? null : null }))
+    .sort((a, b) => a.case_number.localeCompare(b.case_number))
+    .map((c) => ({ id: c.id, label: c.name ? `${c.case_number} — ${c.name}` : c.case_number }));
 
   function formatDate(iso: string) {
     return new Date(iso).toLocaleDateString('fr-FR', { timeZone: 'Africa/Ouagadougou', day: '2-digit', month: 'long', year: 'numeric' });
@@ -140,6 +148,9 @@ export default async function RapportsPage() {
           );
         })}
       </div>
+
+      {/* Daily itinerary / history — pick a case + day → replay or printable PDF */}
+      <DailyReportPicker cases={itineraryCases} />
 
       {/* Recent exports */}
       <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
