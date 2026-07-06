@@ -24,10 +24,15 @@ interface Beacon {
   ble_checked_at?: string | null;
 }
 
+// Aligned with the bracelet lifecycle vocabulary/palette so both hardware
+// inventories read the same way (En service / Défaillante / Disponible).
 const STATUS_STYLE: Record<string, string> = {
-  ACTIVE: 'text-green-700 bg-green-50',
+  ACTIVE: 'text-emerald-700 bg-emerald-50',
   FAULTY: 'text-red-700 bg-red-50',
-  SPARE:  'text-amber-700 bg-amber-50',
+  SPARE:  'text-gray-600 bg-gray-100',
+};
+const STATUS_LABEL: Record<string, string> = {
+  ACTIVE: 'En service', FAULTY: 'Défaillante', SPARE: 'Disponible',
 };
 
 const MODE_LABEL: Record<string, string> = { BLE: 'Proximité BLE', GPS: 'Rayon GPS', BOTH: 'GPS + BLE' };
@@ -196,7 +201,7 @@ export default function BeaconsManager({ devices }: { devices: DeviceOpt[] }) {
                   </td>
                   <td className="px-5 py-3 text-xs text-gray-600">{b.label ?? '—'}</td>
                   <td className="px-5 py-3">
-                    <span className={`text-xs font-medium px-2 py-0.5 rounded ${STATUS_STYLE[b.status] ?? ''}`}>{b.status}</span>
+                    <span className={`text-xs font-medium px-2 py-0.5 rounded ${STATUS_STYLE[b.status] ?? ''}`}>{STATUS_LABEL[b.status] ?? b.status}</span>
                   </td>
                   <td className="px-5 py-3 font-mono text-xs text-blue-700">{imei ?? <span className="text-gray-400">—</span>}</td>
                   <td className="px-5 py-3">
