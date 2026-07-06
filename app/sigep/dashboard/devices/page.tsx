@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation';
 import {
-  Wifi, WifiOff, Battery, Package, Timer,
-  CheckCircle2, AlertTriangle, XCircle, MapPin, RefreshCw, Fingerprint, Tag, ClipboardList,
+  Wifi, WifiOff, Battery, Package,
+  CheckCircle2, AlertTriangle, XCircle, MapPin, RefreshCw, Tag, ClipboardList,
   PersonStanding, ShieldOff,
 } from 'lucide-react';
 import Link from 'next/link';
@@ -11,6 +11,7 @@ import { canViewDevices, canConfigureHardware , allow } from '@/lib/auth/permiss
 import { fetchAllDevices, fetchCases } from '@/lib/mock/helpers';
 import AssignDeviceControl from '@/components/devices/AssignDeviceControl';
 import DeleteDeviceButton from '@/components/devices/DeleteDeviceButton';
+import DeviceCommandButtons from '@/components/devices/DeviceCommandButtons';
 import SimPanel from '@/components/devices/SimPanel';
 import RegisterDeviceForm from '@/components/devices/RegisterDeviceForm';
 import BeaconsManager from '@/components/devices/BeaconsManager';
@@ -46,6 +47,41 @@ export default async function DevicesPage() {
   }
 
   const caseMap = new Map(cases.map((c) => [c.id, c]));
+
+  // Real telemetry (real mode): replace mock-only display columns with live data.
+  // - GPS accuracy from each device's latest position fix (positions.accuracy_m).
+  // - Geofences "synced" = count of active zones on the assigned case.
+  const accuracyByDevice = new Map<string, number>();
+  const geofenceCountByCase = new Map<string, number>();
+  if (process.env.NEXT_PUBLIC_SUPABASE_URL) {
+    const { createAdminClient } = await import('@/lib/supabase/admin');
+    const sb = createAdminClient();
+    if (sb) {
+      const deviceIds = devices.map((d) => d.id);
+      if (deviceIds.length) {
+        const { data: pos } = await sb
+          .from('positions')
+          .select('device_id, accuracy_m, recorded_at')
+          .in('device_id', deviceIds)
+          .order('recorded_at', { ascending: false })
+          .limit(2000);
+        for (const p of (pos ?? []) as { device_id: string; accuracy_m: number | null }[]) {
+          if (p.device_id && !accuracyByDevice.has(p.device_id) && p.accuracy_m != null) {
+            accuracyByDevice.set(p.device_id, p.accuracy_m);
+          }
+        }
+      }
+      const caseIds = devices.map((d) => d.case_id).filter(Boolean) as string[];
+      if (caseIds.length) {
+        const { data: gz } = await sb.from('geofences').select('case_id, status').in('case_id', caseIds);
+        for (const g of (gz ?? []) as { case_id: string; status?: string }[]) {
+          if (g.status === 'REQUESTED') continue;
+          geofenceCountByCase.set(g.case_id, (geofenceCountByCase.get(g.case_id) ?? 0) + 1);
+        }
+      }
+    }
+  }
+
   const online    = devices.filter((d) => d.is_online).length;
   const unassigned = devices.filter((d) => !d.case_id).length;
   const lowBattery = devices.filter((d) => (d.battery_pct ?? 100) < 20).length;
@@ -121,7 +157,6 @@ export default async function DevicesPage() {
                   <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Statut</th>
                   <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Batterie</th>
                   <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">N° SIM</th>
-                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Firmware</th>
                   <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Dossier assigné</th>
                   <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Dernier contact</th>
                   {isHardwareAdmin && <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Action</th>}
@@ -177,7 +212,6 @@ export default async function DevicesPage() {
                           }}
                         />
                       </td>
-                      <td className="px-5 py-3.5 text-xs text-gray-400 font-mono">{d.firmware_ver ?? '—'}</td>
                       <td className="px-5 py-3.5">
                         {assignedCase ? (
                           <span className="font-mono text-xs text-blue-700 bg-blue-50 px-2 py-0.5 rounded-md">
@@ -199,6 +233,7 @@ export default async function DevicesPage() {
                               <AssignDeviceControl deviceId={d.id} />
                             )}
                             <TestConnectionButton imei={d.imei} />
+                            <DeviceCommandButtons imei={d.imei} />
                             <BleScanButton imei={d.imei} />
                             <BleHighAvailButton imei={d.imei} active={d.ble_high_avail ?? false} />
                             <ProvisionButton imei={d.imei} />
@@ -305,21 +340,6 @@ export default async function DevicesPage() {
                   )}
                 </div>
 
-                {/* Protocol & interval */}
-                <div>
-                  <p className="text-[9px] text-gray-400 uppercase tracking-wider mb-1">Protocole</p>
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-[10px] font-bold text-indigo-700 bg-indigo-50 border border-indigo-100 px-2 py-0.5 rounded font-mono">
-                      {d.network_protocol ?? '—'}
-                    </span>
-                    {d.report_interval_s && (
-                      <span className="text-[10px] text-gray-500 flex items-center gap-1">
-                        <Timer className="w-3 h-3" />{d.report_interval_s}s
-                      </span>
-                    )}
-                  </div>
-                </div>
-
                 {/* Signal strength */}
                 <div>
                   <p className="text-[9px] text-gray-400 uppercase tracking-wider mb-1">Signal GSM</p>
@@ -337,15 +357,20 @@ export default async function DevicesPage() {
                   </div>
                 </div>
 
-                {/* GPS accuracy */}
+                {/* GPS accuracy — from the device's latest real position fix */}
                 <div>
                   <p className="text-[9px] text-gray-400 uppercase tracking-wider mb-1">Précision GPS</p>
-                  <div className="flex items-center gap-1">
-                    <MapPin className="w-3 h-3 text-gray-400" />
-                    <span className="text-[10px] font-semibold text-gray-700">
-                      {d.gps_accuracy_m !== null ? `±${d.gps_accuracy_m} m` : '—'}
-                    </span>
-                  </div>
+                  {(() => {
+                    const acc = accuracyByDevice.get(d.id) ?? d.gps_accuracy_m;
+                    return (
+                      <div className="flex items-center gap-1">
+                        <MapPin className="w-3 h-3 text-gray-400" />
+                        <span className="text-[10px] font-semibold text-gray-700">
+                          {acc != null ? `±${Math.round(acc)} m` : '—'}
+                        </span>
+                      </div>
+                    );
+                  })()}
                 </div>
 
                 {/* Heartbeat */}
@@ -355,9 +380,12 @@ export default async function DevicesPage() {
                     <div className={`w-1.5 h-1.5 rounded-full ${d.last_heartbeat_at ? 'bg-emerald-400 animate-pulse' : 'bg-gray-300'}`} />
                     <span className="text-[10px] text-gray-600">{heartbeatAgo(d.last_heartbeat_at)}</span>
                   </div>
-                  {d.geofences_synced !== null && (
-                    <p className="text-[9px] text-gray-400 mt-0.5">{d.geofences_synced} géofence{d.geofences_synced !== 1 ? 's' : ''} syncée{d.geofences_synced !== 1 ? 's' : ''}</p>
-                  )}
+                  {(() => {
+                    const gz = d.case_id ? (geofenceCountByCase.get(d.case_id) ?? d.geofences_synced) : d.geofences_synced;
+                    return gz != null ? (
+                      <p className="text-[9px] text-gray-400 mt-0.5">{gz} géofence{gz !== 1 ? 's' : ''} active{gz !== 1 ? 's' : ''}</p>
+                    ) : null;
+                  })()}
                 </div>
               </div>
             );
@@ -367,17 +395,6 @@ export default async function DevicesPage() {
             <p className="text-sm text-gray-400 text-center py-4">Aucun dispositif assigné</p>
           )}
 
-          {/* Server endpoint info */}
-          {isHardwareAdmin && devices[0]?.server_endpoint && (
-            <div className="mt-2 flex items-center gap-2 bg-slate-50 border border-slate-100 rounded-xl px-4 py-3">
-              <Fingerprint className="w-4 h-4 text-slate-400 flex-shrink-0" />
-              <div>
-                <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">Endpoint d&apos;ingestion MQTT</p>
-                <p className="text-xs font-mono text-slate-700">{devices[0].server_endpoint}</p>
-              </div>
-              <span className="ml-auto text-[10px] font-bold text-emerald-600 bg-emerald-50 border border-emerald-100 px-2 py-0.5 rounded">TLS 1.3</span>
-            </div>
-          )}
         </div>
       </div>
 
