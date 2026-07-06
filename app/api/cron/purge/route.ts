@@ -22,11 +22,15 @@ export async function GET(request: NextRequest) {
 
   const pos = await sb.from('positions').delete().lt('recorded_at', posCutoff).select('id');
   const aud = await sb.from('audit_log').delete().lt('logged_at', auditCutoff).select('id');
+  // Telemetry history follows the same retention as positions (both are GPS-era
+  // time-series). Best-effort: the table may not exist before its migration.
+  const tel = await sb.from('device_telemetry').delete().lt('recorded_at', posCutoff).select('id');
 
   return NextResponse.json({
     ok: true,
     purged_positions: pos.data?.length ?? 0,
     purged_audit: aud.data?.length ?? 0,
+    purged_telemetry: tel.data?.length ?? 0,
     position_retention_days: settings.position_retention_days,
     audit_retention_days: settings.audit_retention_days,
   });
