@@ -1,24 +1,12 @@
 import { redirect } from 'next/navigation';
-import {
-  Wifi, WifiOff, Battery, Package,
-  CheckCircle2, AlertTriangle, XCircle, MapPin, RefreshCw, Tag, ClipboardList,
-  PersonStanding, ShieldOff,
-} from 'lucide-react';
-import Link from 'next/link';
+import { CheckCircle2, AlertTriangle, XCircle, MapPin, RefreshCw } from 'lucide-react';
 import type { SyncStatus } from '@/lib/supabase/types';
 import { getSession } from '@/lib/auth/session';
 import { canViewDevices, canConfigureHardware , allow } from '@/lib/auth/permissions';
 import { fetchAllDevices, fetchCases } from '@/lib/mock/helpers';
-import AssignDeviceControl from '@/components/devices/AssignDeviceControl';
-import DeleteDeviceButton from '@/components/devices/DeleteDeviceButton';
-import DeviceCommandButtons from '@/components/devices/DeviceCommandButtons';
-import SimPanel from '@/components/devices/SimPanel';
 import RegisterDeviceForm from '@/components/devices/RegisterDeviceForm';
 import BeaconsManager from '@/components/devices/BeaconsManager';
-import TestConnectionButton from '@/components/devices/TestConnectionButton';
-import ProvisionButton from '@/components/devices/ProvisionButton';
-import BleScanButton from '@/components/devices/BleScanButton';
-import BleHighAvailButton from '@/components/devices/BleHighAvailButton';
+import DeviceInventory, { type DeviceRow } from '@/components/devices/DeviceInventory';
 
 export const metadata = { title: 'Bracelets & Balises BLE — SIGEP' };
 export const revalidate = 0;
@@ -90,15 +78,19 @@ export default async function DevicesPage() {
   const staleContact = devices.filter((d) => d.last_seen_at && (Date.now() - new Date(d.last_seen_at).getTime()) > 86400000).length;
   const simSuspended = devices.filter((d) => d.sim_status === 'SUSPENDED').length;
 
-  function timeAgo(iso: string) {
-    // Server Component renders once per request — Date.now() is deterministic here.
-    // eslint-disable-next-line react-hooks/purity
-    const d = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
-    if (d < 60) return `${d}s`;
-    if (d < 3600) return `${Math.floor(d / 60)}min`;
-    if (d < 86400) return `${Math.floor(d / 3600)}h`;
-    return `${Math.floor(d / 86400)}j`;
-  }
+  // Serializable rows for the interactive inventory (search / filter / sort).
+  const deviceRows: DeviceRow[] = devices.map((d) => {
+    const c = d.case_id ? caseMap.get(d.case_id) : undefined;
+    return {
+      id: d.id, imei: d.imei, model: d.model ?? null, is_online: d.is_online,
+      worn: d.worn ?? null, battery: d.battery_pct ?? null,
+      sim_number: d.sim_number ?? null, sim_carrier: d.sim_carrier ?? null,
+      sim_activated_at: d.sim_activated_at ?? null, sim_status: d.sim_status ?? null,
+      ble_high_avail: d.ble_high_avail ?? false, last_seen_at: d.last_seen_at ?? null,
+      case_id: d.case_id ?? null, case_number: c?.case_number ?? null,
+      case_name: c?.individual?.full_name ?? null,
+    };
+  });
 
   return (
     <div className="space-y-6">
@@ -136,134 +128,8 @@ export default async function DevicesPage() {
         ))}
       </div>
 
-      {/* Device table */}
-      <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm">
-        <div className="px-5 py-4 border-b border-gray-100 flex items-center gap-2">
-          <Package className="w-4 h-4 text-gray-400" />
-          <h3 className="text-sm font-semibold text-gray-700">Bracelets électroniques</h3>
-        </div>
-        {devices.length === 0 ? (
-          <div className="flex items-center justify-center gap-2 py-10 text-gray-400">
-            <Package className="w-5 h-5" />
-            <span className="text-sm">Aucun bracelet enregistré</span>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="bg-gray-50 border-b border-gray-100">
-                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">IMEI</th>
-                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Modèle</th>
-                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Statut</th>
-                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Batterie</th>
-                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">N° SIM</th>
-                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Dossier assigné</th>
-                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Dernier contact</th>
-                  {isHardwareAdmin && <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Action</th>}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-50">
-                {devices.map((d) => {
-                  const assignedCase = d.case_id ? caseMap.get(d.case_id) : undefined;
-                  const bat = d.battery_pct ?? 0;
-                  return (
-                    <tr key={d.id} className="hover:bg-gray-50/50 transition-colors">
-                      <td className="px-5 py-3.5 font-mono text-xs text-gray-700">{d.imei}</td>
-                      <td className="px-5 py-3.5 text-xs text-gray-600">{d.model}</td>
-                      <td className="px-5 py-3.5">
-                        <span className={`inline-flex items-center gap-1.5 text-xs font-medium ${d.is_online ? 'text-green-600' : 'text-gray-400'}`}>
-                          {d.is_online ? <Wifi className="w-3.5 h-3.5" /> : <WifiOff className="w-3.5 h-3.5" />}
-                          {d.is_online ? 'En ligne' : 'Hors ligne'}
-                        </span>
-                        <span
-                          data-tip="Détection de port du bracelet (capteur peau)"
-                          className={`mt-1 inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded ${
-                            d.worn === true ? 'bg-emerald-50 text-emerald-700'
-                            : d.worn === false ? 'bg-red-50 text-red-700'
-                            : 'bg-gray-100 text-gray-400'}`}
-                        >
-                          {d.worn === true ? <><PersonStanding className="w-3 h-3" /> Porté</>
-                           : d.worn === false ? <><ShieldOff className="w-3 h-3" /> Retiré</>
-                           : <><PersonStanding className="w-3 h-3" /> Port inconnu</>}
-                        </span>
-                      </td>
-                      <td className="px-5 py-3.5">
-                        <div className="flex items-center gap-2">
-                          <div className="w-16 h-1.5 rounded-full bg-gray-100 overflow-hidden">
-                            <div
-                              className={`h-full rounded-full ${bat < 20 ? 'bg-red-400' : bat < 50 ? 'bg-amber-400' : 'bg-green-400'}`}
-                              style={{ width: `${bat}%` }}
-                            />
-                          </div>
-                          <span className={`text-xs font-medium ${bat < 20 ? 'text-red-600' : 'text-gray-600'}`}>
-                            <Battery className="inline w-3 h-3 mr-0.5" />{bat}%
-                          </span>
-                        </div>
-                      </td>
-                      <td className="px-5 py-3.5">
-                        <SimPanel
-                          deviceId={d.id}
-                          canEdit={isHardwareAdmin}
-                          sim={{
-                            sim_number: d.sim_number ?? null,
-                            sim_carrier: d.sim_carrier ?? null,
-                            sim_activated_at: d.sim_activated_at ?? null,
-                            sim_status: d.sim_status ?? null,
-                          }}
-                        />
-                      </td>
-                      <td className="px-5 py-3.5">
-                        {assignedCase ? (
-                          <span className="font-mono text-xs text-blue-700 bg-blue-50 px-2 py-0.5 rounded-md">
-                            {assignedCase.case_number}
-                          </span>
-                        ) : (
-                          <span className="text-xs text-amber-600 bg-amber-50 px-2 py-0.5 rounded-md">Disponible</span>
-                        )}
-                      </td>
-                      <td className="px-5 py-3.5 text-xs text-gray-400">
-                        {d.last_seen_at ? `il y a ${timeAgo(d.last_seen_at)}` : '—'}
-                      </td>
-                      {isHardwareAdmin && (
-                        <td className="px-5 py-3.5">
-                          <div className="flex items-center gap-3 flex-wrap">
-                            {assignedCase ? (
-                              <span className="text-xs text-gray-400">Assigné</span>
-                            ) : (
-                              <AssignDeviceControl deviceId={d.id} />
-                            )}
-                            <TestConnectionButton imei={d.imei} />
-                            <DeviceCommandButtons imei={d.imei} />
-                            <BleScanButton imei={d.imei} />
-                            <BleHighAvailButton imei={d.imei} active={d.ble_high_avail ?? false} />
-                            <ProvisionButton imei={d.imei} />
-                            <Link
-                              href={`/sigep/dashboard/devices/${d.id}/label`}
-                              target="_blank"
-                              data-tip="Ouvrir l'étiquette imprimable du bracelet (QR de l'IMEI, format 70×40 mm)"
-                              className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700"
-                            >
-                              <Tag className="w-3.5 h-3.5" /> Étiquette
-                            </Link>
-                            <Link
-                              href={`/sigep/dashboard/devices/${d.id}/events`}
-                              data-tip="Journal d'événements du bracelet : connexions, commandes, redémarrages, SIM…"
-                              className="inline-flex items-center gap-1 text-xs text-gray-500 hover:text-gray-700"
-                            >
-                              <ClipboardList className="w-3.5 h-3.5" /> Journal
-                            </Link>
-                            {!assignedCase && <DeleteDeviceButton deviceId={d.id} imei={d.imei} />}
-                          </div>
-                        </td>
-                      )}
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+      {/* Device inventory — search / filter / sort */}
+      <DeviceInventory rows={deviceRows} isHardwareAdmin={isHardwareAdmin} />
 
       {/* ══ BLE BEACONS ══════════════════════════════════════════════════════ */}
       {isHardwareAdmin && (
