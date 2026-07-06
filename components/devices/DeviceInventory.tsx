@@ -1,12 +1,13 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Wifi, WifiOff, Battery, Package, Search, Tag, ClipboardList, PersonStanding, ShieldOff, ArrowUpDown } from 'lucide-react';
+import { Wifi, WifiOff, Battery, Package, Search, Tag, ClipboardList, PersonStanding, ShieldOff, ArrowUpDown, AlertTriangle } from 'lucide-react';
 import SimPanel from '@/components/devices/SimPanel';
 import AssignDeviceControl from '@/components/devices/AssignDeviceControl';
 import DeviceCommandButtons from '@/components/devices/DeviceCommandButtons';
 import DeleteDeviceButton from '@/components/devices/DeleteDeviceButton';
+import DeviceLifecycleButton from '@/components/devices/DeviceLifecycleButton';
 import TestConnectionButton from '@/components/devices/TestConnectionButton';
 import ProvisionButton from '@/components/devices/ProvisionButton';
 import BleScanButton from '@/components/devices/BleScanButton';
@@ -28,7 +29,21 @@ export interface DeviceRow {
   case_id: string | null;
   case_number: string | null;
   case_name: string | null;
+  lifecycle: 'STOCK' | 'ACTIVE' | 'MAINTENANCE' | 'RETIRED';
+  signal_dbm: number | null;
+  open_alerts: number;
+  alert_top: string | null;
 }
+
+export const LIFECYCLE_STYLE: Record<string, string> = {
+  STOCK:       'bg-gray-100 text-gray-600',
+  ACTIVE:      'bg-emerald-50 text-emerald-700',
+  MAINTENANCE: 'bg-amber-50 text-amber-700',
+  RETIRED:     'bg-red-50 text-red-700',
+};
+export const LIFECYCLE_LABEL: Record<string, string> = {
+  STOCK: 'En stock', ACTIVE: 'En service', MAINTENANCE: 'Maintenance', RETIRED: 'Réformé',
+};
 
 type StatusFilter = 'all' | 'online' | 'offline';
 type AssignFilter = 'all' | 'assigned' | 'available';
@@ -43,21 +58,50 @@ function timeAgo(iso: string | null): string {
   return `${Math.floor(s / 86400)}j`;
 }
 
+type LifeFilter = 'all' | 'STOCK' | 'ACTIVE' | 'MAINTENANCE' | 'RETIRED';
+
 export default function DeviceInventory({ rows, isHardwareAdmin }: { rows: DeviceRow[]; isHardwareAdmin: boolean }) {
   const [q, setQ] = useState('');
   const [status, setStatus] = useState<StatusFilter>('all');
   const [assign, setAssign] = useState<AssignFilter>('all');
+  const [life, setLife] = useState<LifeFilter>('all');
   const [lowBat, setLowBat] = useState(false);
+  const [alertsOnly, setAlertsOnly] = useState(false);
   const [sort, setSort] = useState<SortKey>('imei');
   const [asc, setAsc] = useState(true);
 
+  // Live telemetry: merge fresh device state (online/battery/signal/alerts/…)
+  // from /api/devices/live every 20s so the console tracks the fleet without a
+  // manual reload. Server props re-seed the list on navigation.
+  const [data, setData] = useState<DeviceRow[]>(rows);
+  // eslint-disable-next-line react-hooks/set-state-in-effect
+  useEffect(() => { setData(rows); }, [rows]);
+  useEffect(() => {
+    let active = true;
+    async function poll() {
+      try {
+        const r = await fetch('/api/devices/live', { cache: 'no-store' });
+        if (!r.ok) return;
+        const d = await r.json();
+        if (!active || !Array.isArray(d.devices)) return;
+        const m = new Map((d.devices as Partial<DeviceRow>[]).map((x) => [x.id, x]));
+        setData((prev) => prev.map((row) => { const u = m.get(row.id); return u ? { ...row, ...u } : row; }));
+      } catch { /* ignore */ }
+    }
+    const id = setInterval(poll, 20_000);
+    poll();
+    return () => { active = false; clearInterval(id); };
+  }, []);
+
   const view = useMemo(() => {
     const needle = q.trim().toLowerCase();
-    let list = rows.filter((d) => {
+    let list = data.filter((d) => {
       if (status === 'online' && !d.is_online) return false;
       if (status === 'offline' && d.is_online) return false;
       if (assign === 'assigned' && !d.case_id) return false;
       if (assign === 'available' && d.case_id) return false;
+      if (life !== 'all' && d.lifecycle !== life) return false;
+      if (alertsOnly && d.open_alerts <= 0) return false;
       if (lowBat && (d.battery ?? 100) >= 20) return false;
       if (needle) {
         const hay = `${d.imei} ${d.model ?? ''} ${d.sim_number ?? ''} ${d.case_number ?? ''} ${d.case_name ?? ''}`.toLowerCase();
@@ -74,7 +118,7 @@ export default function DeviceInventory({ rows, isHardwareAdmin }: { rows: Devic
       return asc ? c : -c;
     });
     return list;
-  }, [rows, q, status, assign, lowBat, sort, asc]);
+  }, [data, q, status, assign, life, alertsOnly, lowBat, sort, asc]);
 
   const chip = (on: boolean) => `px-2.5 py-1 rounded-full text-xs font-medium border transition-colors ${on ? 'bg-gray-900 text-white border-gray-900' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'}`;
 
@@ -83,7 +127,10 @@ export default function DeviceInventory({ rows, isHardwareAdmin }: { rows: Devic
       <div className="px-5 py-4 border-b border-gray-100 flex items-center gap-2 flex-wrap">
         <Package className="w-4 h-4 text-gray-400" />
         <h3 className="text-sm font-semibold text-gray-700">Bracelets électroniques</h3>
-        <span className="text-xs text-gray-400">· {view.length}/{rows.length}</span>
+        <span className="text-xs text-gray-400">· {view.length}/{data.length}</span>
+        <span data-tip="Télémétrie actualisée automatiquement" className="inline-flex items-center gap-1 text-[10px] text-emerald-600 font-medium">
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" /> live
+        </span>
 
         <div className="ml-auto flex items-center gap-2 flex-wrap">
           <div className="relative">
@@ -108,7 +155,14 @@ export default function DeviceInventory({ rows, isHardwareAdmin }: { rows: Devic
         <button className={chip(assign === 'all')} onClick={() => setAssign('all')}>Tous</button>
         <button className={chip(assign === 'assigned')} onClick={() => setAssign('assigned')}>Assignés</button>
         <button className={chip(assign === 'available')} onClick={() => setAssign('available')}>Disponibles</button>
+        <span className="text-[10px] uppercase tracking-wide text-gray-400 mx-1 ml-3">Cycle de vie</span>
+        {(['all', 'STOCK', 'ACTIVE', 'MAINTENANCE', 'RETIRED'] as LifeFilter[]).map((l) => (
+          <button key={l} className={chip(life === l)} onClick={() => setLife(l)}>
+            {l === 'all' ? 'Tous' : LIFECYCLE_LABEL[l]}
+          </button>
+        ))}
         <button className={chip(lowBat)} onClick={() => setLowBat((v) => !v)}>Batterie &lt; 20%</button>
+        <button className={chip(alertsOnly)} onClick={() => setAlertsOnly((v) => !v)}>⚠ Alertes</button>
         <div className="ml-auto flex items-center gap-1.5">
           <ArrowUpDown className="w-3.5 h-3.5 text-gray-400" />
           <select value={sort} onChange={(e) => setSort(e.target.value as SortKey)} className="text-xs border border-gray-200 rounded-lg px-2 py-1">
@@ -154,6 +208,14 @@ export default function DeviceInventory({ rows, isHardwareAdmin }: { rows: Devic
                       <span className={`mt-1 inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded ${d.worn === true ? 'bg-emerald-50 text-emerald-700' : d.worn === false ? 'bg-red-50 text-red-700' : 'bg-gray-100 text-gray-400'}`}>
                         {d.worn === true ? <><PersonStanding className="w-3 h-3" /> Porté</> : d.worn === false ? <><ShieldOff className="w-3 h-3" /> Retiré</> : <><PersonStanding className="w-3 h-3" /> Port inconnu</>}
                       </span>
+                      <div className="mt-1 flex items-center gap-1 flex-wrap">
+                        <span className={`text-[10px] px-1.5 py-0.5 rounded ${LIFECYCLE_STYLE[d.lifecycle]}`}>{LIFECYCLE_LABEL[d.lifecycle]}</span>
+                        {d.open_alerts > 0 && (
+                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-red-100 text-red-700 inline-flex items-center gap-0.5">
+                            <AlertTriangle className="w-3 h-3" />{d.open_alerts}{d.alert_top ? ` · ${d.alert_top}` : ''}
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="px-5 py-3.5">
                       <div className="flex items-center gap-2">
@@ -191,6 +253,7 @@ export default function DeviceInventory({ rows, isHardwareAdmin }: { rows: Devic
                           <ProvisionButton imei={d.imei} />
                           <Link href={`/sigep/dashboard/devices/${d.id}`} className="inline-flex items-center gap-1 text-xs text-gray-500 hover:text-gray-700"><ClipboardList className="w-3.5 h-3.5" /> Détail</Link>
                           <Link href={`/sigep/dashboard/devices/${d.id}/label`} target="_blank" className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700"><Tag className="w-3.5 h-3.5" /> Étiquette</Link>
+                          <DeviceLifecycleButton deviceId={d.id} imei={d.imei} lifecycle={d.lifecycle} assigned={!!d.case_id} />
                           {!d.case_id && <DeleteDeviceButton deviceId={d.id} imei={d.imei} />}
                         </div>
                       </td>

@@ -11,6 +11,12 @@ import DeviceInventory, { type DeviceRow } from '@/components/devices/DeviceInve
 export const metadata = { title: 'Bracelets & Balises BLE — SIGEP' };
 export const revalidate = 0;
 
+const ALERT_SHORT: Record<string, string> = {
+  TAMPER_DETECTED: 'Sabotage', PANIC_BUTTON: 'Panique', GEOFENCE_EXIT: 'Sortie zone',
+  BLE_EXIT: 'Sortie domicile', CURFEW_VIOLATION: 'Couvre-feu', HEALTH_CRITICAL: 'Santé',
+  SIGNAL_LOST: 'Signal', BATTERY_LOW: 'Batterie',
+};
+
 export default async function DevicesPage() {
   const session = await getSession();
   if (!session || !allow(session, canViewDevices(session.role), 'hardware')) redirect('/sigep/dashboard');
@@ -41,6 +47,7 @@ export default async function DevicesPage() {
   // - Geofences "synced" = count of active zones on the assigned case.
   const accuracyByDevice = new Map<string, number>();
   const geofenceCountByCase = new Map<string, number>();
+  const alertsByDevice = new Map<string, { count: number; top: string | null; topSev: number }>();
   if (process.env.NEXT_PUBLIC_SUPABASE_URL) {
     const { createAdminClient } = await import('@/lib/supabase/admin');
     const sb = createAdminClient();
@@ -57,6 +64,18 @@ export default async function DevicesPage() {
           if (p.device_id && !accuracyByDevice.has(p.device_id) && p.accuracy_m != null) {
             accuracyByDevice.set(p.device_id, p.accuracy_m);
           }
+        }
+        const { data: al } = await sb
+          .from('alerts')
+          .select('device_id, alert_type, severity')
+          .eq('is_resolved', false)
+          .in('device_id', deviceIds);
+        for (const a of (al ?? []) as { device_id: string | null; alert_type: string; severity: number | null }[]) {
+          if (!a.device_id) continue;
+          const cur = alertsByDevice.get(a.device_id) ?? { count: 0, top: null, topSev: -1 };
+          cur.count += 1;
+          if ((a.severity ?? 0) > cur.topSev) { cur.topSev = a.severity ?? 0; cur.top = ALERT_SHORT[a.alert_type] ?? a.alert_type; }
+          alertsByDevice.set(a.device_id, cur);
         }
       }
       const caseIds = devices.map((d) => d.case_id).filter(Boolean) as string[];
@@ -81,6 +100,7 @@ export default async function DevicesPage() {
   // Serializable rows for the interactive inventory (search / filter / sort).
   const deviceRows: DeviceRow[] = devices.map((d) => {
     const c = d.case_id ? caseMap.get(d.case_id) : undefined;
+    const al = alertsByDevice.get(d.id);
     return {
       id: d.id, imei: d.imei, model: d.model ?? null, is_online: d.is_online,
       worn: d.worn ?? null, battery: d.battery_pct ?? null,
@@ -89,6 +109,10 @@ export default async function DevicesPage() {
       ble_high_avail: d.ble_high_avail ?? false, last_seen_at: d.last_seen_at ?? null,
       case_id: d.case_id ?? null, case_number: c?.case_number ?? null,
       case_name: c?.individual?.full_name ?? null,
+      lifecycle: (d.lifecycle_status as DeviceRow['lifecycle']) ?? (d.case_id ? 'ACTIVE' : 'STOCK'),
+      signal_dbm: d.signal_strength_dbm ?? null,
+      open_alerts: al?.count ?? 0,
+      alert_top: al?.top ?? null,
     };
   });
 

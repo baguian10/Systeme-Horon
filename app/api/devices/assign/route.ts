@@ -34,6 +34,14 @@ export async function POST(request: NextRequest) {
     .eq('id', deviceId);
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  // Reflect the assignment in the lifecycle (ACTIVE when assigned, back to STOCK
+  // when freed). Best-effort: pre-migration the column doesn't exist yet — never
+  // let that break the core assignment.
+  try {
+    await supabase.from('devices').update({ lifecycle_status: caseId ? 'ACTIVE' : 'STOCK' }).eq('id', deviceId);
+  } catch { /* lifecycle column not present yet */ }
+
   { const { writeAudit } = await import('@/lib/audit/log'); await writeAudit({ userId: session.id, action: 'ASSIGN_DEVICE', tableName: 'devices', recordId: deviceId, newData: { caseId } }); }
   return NextResponse.json({ ok: true });
 }

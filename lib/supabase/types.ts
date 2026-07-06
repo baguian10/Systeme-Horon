@@ -73,6 +73,9 @@ export interface Device {
   worn?: boolean | null;
   worn_checked_at?: string | null;
   ble_high_avail?: boolean | null;
+  lifecycle_status?: 'STOCK' | 'ACTIVE' | 'MAINTENANCE' | 'RETIRED' | null;
+  retired_at?: string | null;
+  retired_reason?: string | null;
 }
 
 export type GeofenceType  = 'GPS_ZONE' | 'BLE_DOMICILE';

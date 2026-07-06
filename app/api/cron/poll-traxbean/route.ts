@@ -153,6 +153,12 @@ export async function GET(request: NextRequest) {
       if (live.signal !== null) deviceUpdate.signal_strength_dbm = live.signal;
       await supabase.from('devices').update(deviceUpdate).eq('id', device.id);
 
+      // Telemetry history point for the battery/signal trend charts. Best-effort:
+      // the device_telemetry table is added by a migration; ignore if absent.
+      if (live.battery !== null || live.signal !== null) {
+        await supabase.from('device_telemetry').insert({ device_id: device.id, battery_pct: live.battery, signal_dbm: live.signal });
+      }
+
       // ── BLE beacon home alarm: GPS / BLE-proximity / BOTH, with grace ──
       const { data: beacon } = await supabase
         .from('beacons')

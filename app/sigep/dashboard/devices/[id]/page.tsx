@@ -8,13 +8,31 @@ import { getSession } from '@/lib/auth/session';
 import { canViewDevices, canConfigureHardware, allow } from '@/lib/auth/permissions';
 import { fetchAllDevices } from '@/lib/mock/helpers';
 import type { SyncStatus } from '@/lib/supabase/types';
+import { LIFECYCLE_STYLE, LIFECYCLE_LABEL } from '@/components/devices/DeviceInventory';
 import AssignDeviceControl from '@/components/devices/AssignDeviceControl';
 import DeleteDeviceButton from '@/components/devices/DeleteDeviceButton';
+import DeviceLifecycleButton from '@/components/devices/DeviceLifecycleButton';
 import DeviceCommandButtons from '@/components/devices/DeviceCommandButtons';
 import TestConnectionButton from '@/components/devices/TestConnectionButton';
 import ProvisionButton from '@/components/devices/ProvisionButton';
 import BleScanButton from '@/components/devices/BleScanButton';
 import BleHighAvailButton from '@/components/devices/BleHighAvailButton';
+import MiniPositionMap from '@/components/devices/MiniPositionMapLoader';
+
+// Tiny inline SVG sparkline (no chart lib → CSP-safe). Oldest→newest left→right.
+function Sparkline({ values, color, min, max }: { values: number[]; color: string; min?: number; max?: number }) {
+  if (values.length < 2) return <span className="text-xs text-gray-400">Données insuffisantes</span>;
+  const lo = min ?? Math.min(...values);
+  const hi = max ?? Math.max(...values);
+  const span = hi - lo || 1;
+  const w = 160, h = 36;
+  const pts = values.map((v, i) => `${(i / (values.length - 1)) * w},${h - ((v - lo) / span) * h}`).join(' ');
+  return (
+    <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} className="overflow-visible">
+      <polyline points={pts} fill="none" stroke={color} strokeWidth={1.5} strokeLinejoin="round" strokeLinecap="round" />
+    </svg>
+  );
+}
 
 export const metadata = { title: 'Détail bracelet — SIGEP' };
 export const dynamic = 'force-dynamic';
@@ -52,20 +70,26 @@ export default async function DeviceDetailPage({ params }: { params: Promise<{ i
   let events: Evt[] = [];
   let beacon: { uid: string; label: string | null; ble_present: boolean | null } | null = null;
   let caseInfo: { case_number: string; name: string | null } | null = null;
+  let telemetry: { battery_pct: number | null; signal_dbm: number | null }[] = [];
+  let openAlerts: { alert_type: string; severity: number | null }[] = [];
 
   if (process.env.NEXT_PUBLIC_SUPABASE_URL) {
     const { createAdminClient } = await import('@/lib/supabase/admin');
     const sb = createAdminClient();
     if (sb) {
-      const [{ data: pos }, { data: ev }, { data: bc }] = await Promise.all([
+      const [{ data: pos }, { data: ev }, { data: bc }, { data: tel }, { data: al }] = await Promise.all([
         sb.from('positions').select('latitude, longitude, accuracy_m, speed_kmh, recorded_at').eq('device_id', id).order('recorded_at', { ascending: false }).limit(10),
         sb.from('device_events').select('id, event_type, detail, created_at').eq('device_id', id).order('created_at', { ascending: false }).limit(15),
         sb.from('beacons').select('uid, label, ble_present').eq('device_id', id).maybeSingle(),
+        sb.from('device_telemetry').select('battery_pct, signal_dbm, recorded_at').eq('device_id', id).order('recorded_at', { ascending: false }).limit(60),
+        sb.from('alerts').select('alert_type, severity').eq('device_id', id).eq('is_resolved', false),
       ]);
       recentPos = (pos ?? []) as Pos[];
       latest = recentPos[0] ?? null;
       events = (ev ?? []) as Evt[];
       beacon = (bc as unknown as { uid: string; label: string | null; ble_present: boolean | null } | null) ?? null;
+      telemetry = ((tel ?? []) as typeof telemetry).slice().reverse(); // oldest → newest for the chart
+      openAlerts = (al ?? []) as typeof openAlerts;
       if (d.case_id) {
         const { data: c } = await sb.from('cases').select('case_number, individual:individuals(full_name)').eq('id', d.case_id).maybeSingle();
         const row = c as { case_number?: string; individual?: { full_name?: string } | null } | null;
@@ -77,6 +101,10 @@ export default async function DeviceDetailPage({ params }: { params: Promise<{ i
   const bat = d.battery_pct ?? 0;
   const dbm = d.signal_strength_dbm;
   const acc = latest?.accuracy_m ?? d.gps_accuracy_m ?? null;
+  const lifecycle = (d.lifecycle_status as 'STOCK' | 'ACTIVE' | 'MAINTENANCE' | 'RETIRED') ?? (d.case_id ? 'ACTIVE' : 'STOCK');
+  const batSeries = telemetry.map((t) => t.battery_pct).filter((x): x is number => x != null);
+  const sigSeries = telemetry.map((t) => t.signal_dbm).filter((x): x is number => x != null);
+  const topAlert = openAlerts.slice().sort((a, b) => (b.severity ?? 0) - (a.severity ?? 0))[0] ?? null;
 
   const syncStyle: Record<NonNullable<SyncStatus>, string> = {
     SYNCED: 'text-emerald-700 bg-emerald-50 border-emerald-100',
@@ -106,6 +134,12 @@ export default async function DeviceDetailPage({ params }: { params: Promise<{ i
           <span className={`inline-flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 rounded-lg border ${d.worn === true ? 'text-emerald-700 bg-emerald-50 border-emerald-100' : d.worn === false ? 'text-red-700 bg-red-50 border-red-100' : 'text-gray-400 bg-gray-50 border-gray-100'}`}>
             {d.worn === true ? <PersonStanding className="w-4 h-4" /> : <ShieldOff className="w-4 h-4" />} {d.worn === true ? 'Porté' : d.worn === false ? 'Retiré' : 'Port inconnu'}
           </span>
+          <span className={`inline-flex items-center text-sm font-medium px-3 py-1.5 rounded-lg ${LIFECYCLE_STYLE[lifecycle]}`}>{LIFECYCLE_LABEL[lifecycle]}</span>
+          {openAlerts.length > 0 && (
+            <span className="inline-flex items-center gap-1.5 text-sm font-semibold px-3 py-1.5 rounded-lg bg-red-100 text-red-700">
+              <AlertTriangle className="w-4 h-4" /> {openAlerts.length} alerte{openAlerts.length > 1 ? 's' : ''}{topAlert ? ` · ${topAlert.alert_type}` : ''}
+            </span>
+          )}
         </div>
       </div>
 
@@ -162,6 +196,9 @@ export default async function DeviceDetailPage({ params }: { params: Promise<{ i
             <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2"><MapPin className="w-4 h-4 text-gray-400" /> Dernière position</h3>
             {latest ? (
               <div className="space-y-2 text-sm">
+                <div className="h-40 rounded-xl overflow-hidden border border-gray-100">
+                  <MiniPositionMap lat={latest.latitude} lng={latest.longitude} label={caseInfo?.name ?? d.imei} />
+                </div>
                 <p className="font-mono text-gray-700">{latest.latitude.toFixed(5)}, {latest.longitude.toFixed(5)}</p>
                 <p className="text-xs text-gray-500">Précision ±{latest.accuracy_m != null ? Math.round(latest.accuracy_m) : '?'} m · {latest.speed_kmh != null ? `${latest.speed_kmh.toFixed(1)} km/h` : '—'} · {ago(latest.recorded_at)}</p>
                 <div className="flex gap-2 pt-1">
@@ -199,10 +236,35 @@ export default async function DeviceDetailPage({ params }: { params: Promise<{ i
                 <ProvisionButton imei={d.imei} />
                 <Link href={`/sigep/dashboard/devices/${d.id}/label`} target="_blank" className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700"><Tag className="w-3.5 h-3.5" /> Étiquette</Link>
                 <Link href={`/sigep/dashboard/devices/${d.id}/events`} className="inline-flex items-center gap-1 text-xs text-gray-500 hover:text-gray-700"><ClipboardList className="w-3.5 h-3.5" /> Journal complet</Link>
+                <DeviceLifecycleButton deviceId={d.id} imei={d.imei} lifecycle={lifecycle} assigned={!!d.case_id} />
                 {!d.case_id && <DeleteDeviceButton deviceId={d.id} imei={d.imei} />}
               </div>
             </div>
           )}
+
+          <div className={card}>
+            <h3 className="text-sm font-semibold text-gray-700 mb-3">Tendances (batterie & signal)</h3>
+            {telemetry.length < 2 ? (
+              <p className="text-sm text-gray-400">Historique insuffisant — les tendances apparaissent après quelques relevés.</p>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-xs text-gray-500 flex items-center gap-1"><Battery className="w-3.5 h-3.5" /> Batterie</span>
+                    <span className="text-xs font-semibold text-gray-700">{batSeries[batSeries.length - 1] ?? '—'}%</span>
+                  </div>
+                  <Sparkline values={batSeries} color="#10b981" min={0} max={100} />
+                </div>
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-xs text-gray-500 flex items-center gap-1"><Signal className="w-3.5 h-3.5" /> Signal GSM</span>
+                    <span className="text-xs font-semibold text-gray-700">{sigSeries[sigSeries.length - 1] ?? '—'} dBm</span>
+                  </div>
+                  <Sparkline values={sigSeries} color="#3b82f6" />
+                </div>
+              </div>
+            )}
+          </div>
 
           <div className={card}>
             <h3 className="text-sm font-semibold text-gray-700 mb-3">Événements récents</h3>

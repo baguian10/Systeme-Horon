@@ -219,7 +219,9 @@ export async function fetchUnassignedDevices(): Promise<Device[]> {
   const supabase = createAdminClient();
   if (!supabase) return [];
   const { data } = await supabase.from('devices').select('*').is('case_id', null);
-  return (data ?? []) as Device[];
+  // Retired bracelets are decommissioned — never offer them for assignment.
+  // Filtered in JS so this is safe before the lifecycle migration is applied.
+  return ((data ?? []) as Device[]).filter((d) => (d as { lifecycle_status?: string }).lifecycle_status !== 'RETIRED');
 }
 
 export async function fetchOperationalUsers(): Promise<User[]> {
