@@ -86,7 +86,7 @@ export async function GET(request: NextRequest) {
   // Only poll devices assigned to a case (positions require a case_id).
   const { data: devices } = await supabase
     .from('devices')
-    .select('id, imei, case_id, battery_pct, is_online, last_seen_at')
+    .select('id, imei, case_id, battery_pct, signal_strength_dbm, is_online, last_seen_at')
     .not('case_id', 'is', null);
 
   if (!devices || devices.length === 0) {
@@ -153,9 +153,14 @@ export async function GET(request: NextRequest) {
       if (live.signal !== null) deviceUpdate.signal_strength_dbm = live.signal;
       await supabase.from('devices').update(deviceUpdate).eq('id', device.id);
 
-      // Telemetry history point for the battery/signal trend charts. Best-effort:
-      // the device_telemetry table is added by a migration; ignore if absent.
-      if (live.battery !== null || live.signal !== null) {
+      // Telemetry history point for the battery/signal trend charts. Throttled:
+      // only record on a real change (battery %, or signal by >=5 dBm) so a flat
+      // device doesn't write an identical row every minute. Best-effort — the
+      // device_telemetry table is added by a migration; ignore if absent.
+      const battChanged = live.battery !== null && live.battery !== device.battery_pct;
+      const sigChanged = live.signal !== null &&
+        (device.signal_strength_dbm == null || Math.abs(live.signal - device.signal_strength_dbm) >= 5);
+      if (battChanged || sigChanged) {
         await supabase.from('device_telemetry').insert({ device_id: device.id, battery_pct: live.battery, signal_dbm: live.signal });
       }
 

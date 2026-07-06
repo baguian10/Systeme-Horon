@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Wifi, WifiOff, Battery, Package, Search, Tag, ClipboardList, PersonStanding, ShieldOff, ArrowUpDown, AlertTriangle } from 'lucide-react';
 import SimPanel from '@/components/devices/SimPanel';
@@ -100,6 +100,16 @@ export default function DeviceInventory({ rows, isHardwareAdmin }: { rows: Devic
     return list;
   }, [rows, q, status, assign, life, alertsOnly, lowBat, sort, asc]);
 
+  // Pagination (keeps large fleets responsive). Reset to page 1 when the filtered
+  // set changes so the operator never lands on an empty page.
+  const PAGE_SIZE = 25;
+  const [page, setPage] = useState(1);
+  // eslint-disable-next-line react-hooks/set-state-in-effect
+  useEffect(() => { setPage(1); }, [q, status, assign, life, alertsOnly, lowBat, sort, asc]);
+  const totalPages = Math.max(1, Math.ceil(view.length / PAGE_SIZE));
+  const cur = Math.min(page, totalPages);
+  const paged = view.slice((cur - 1) * PAGE_SIZE, cur * PAGE_SIZE);
+
   const chip = (on: boolean) => `px-2.5 py-1 rounded-full text-xs font-medium border transition-colors ${on ? 'bg-gray-900 text-white border-gray-900' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'}`;
 
   return (
@@ -118,6 +128,7 @@ export default function DeviceInventory({ rows, isHardwareAdmin }: { rows: Devic
             <input
               value={q}
               onChange={(e) => setQ(e.target.value)}
+              aria-label="Rechercher un bracelet"
               placeholder="IMEI, SIM, dossier, nom…"
               className="pl-8 pr-3 py-1.5 rounded-lg border border-gray-200 text-xs w-56 focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
@@ -145,13 +156,13 @@ export default function DeviceInventory({ rows, isHardwareAdmin }: { rows: Devic
         <button className={chip(alertsOnly)} onClick={() => setAlertsOnly((v) => !v)}>⚠ Alertes</button>
         <div className="ml-auto flex items-center gap-1.5">
           <ArrowUpDown className="w-3.5 h-3.5 text-gray-400" />
-          <select value={sort} onChange={(e) => setSort(e.target.value as SortKey)} className="text-xs border border-gray-200 rounded-lg px-2 py-1">
+          <select value={sort} onChange={(e) => setSort(e.target.value as SortKey)} aria-label="Trier par" className="text-xs border border-gray-200 rounded-lg px-2 py-1">
             <option value="imei">IMEI</option>
             <option value="battery">Batterie</option>
             <option value="lastSeen">Dernier contact</option>
             <option value="status">Statut</option>
           </select>
-          <button onClick={() => setAsc((v) => !v)} className="text-xs border border-gray-200 rounded-lg px-2 py-1 hover:bg-gray-50">{asc ? '↑' : '↓'}</button>
+          <button onClick={() => setAsc((v) => !v)} aria-label={asc ? 'Tri croissant (cliquer pour décroissant)' : 'Tri décroissant (cliquer pour croissant)'} className="text-xs border border-gray-200 rounded-lg px-2 py-1 hover:bg-gray-50">{asc ? '↑' : '↓'}</button>
         </div>
       </div>
 
@@ -172,7 +183,7 @@ export default function DeviceInventory({ rows, isHardwareAdmin }: { rows: Devic
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
-              {view.map((d) => {
+              {paged.map((d) => {
                 const bat = d.battery ?? 0;
                 return (
                   <tr key={d.id} className="hover:bg-gray-50/50 transition-colors">
@@ -243,6 +254,16 @@ export default function DeviceInventory({ rows, isHardwareAdmin }: { rows: Devic
               })}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between px-5 py-3 border-t border-gray-50 text-xs text-gray-500">
+          <span>{view.length} résultat{view.length > 1 ? 's' : ''} · page {cur}/{totalPages}</span>
+          <div className="flex items-center gap-1">
+            <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={cur <= 1} aria-label="Page précédente" className="px-2.5 py-1 rounded-lg border border-gray-200 hover:bg-gray-50 disabled:opacity-40">Précédent</button>
+            <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={cur >= totalPages} aria-label="Page suivante" className="px-2.5 py-1 rounded-lg border border-gray-200 hover:bg-gray-50 disabled:opacity-40">Suivant</button>
+          </div>
         </div>
       )}
     </div>

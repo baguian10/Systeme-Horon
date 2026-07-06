@@ -211,30 +211,31 @@ export default function BeaconsManager({ devices }: { devices: DeviceOpt[] }) {
                         {devices.map((d) => <option key={d.id} value={d.id}>{d.imei}</option>)}
                       </select>
                       {b.device_id && (
-                        <button onClick={() => post('/api/beacons/link', { beaconId: b.id, deviceId: null })} data-tip="Délier cette balise du bracelet" className="p-1 text-gray-500 hover:text-red-600">
+                        <button onClick={() => post('/api/beacons/link', { beaconId: b.id, deviceId: null })} aria-label="Délier la balise du bracelet" data-tip="Délier cette balise du bracelet" className="p-1 text-gray-500 hover:text-red-600">
                           <Unlink className="w-3.5 h-3.5" />
                         </button>
                       )}
                       {b.status !== 'FAULTY' ? (
-                        <button onClick={() => post('/api/beacons/status', { beaconId: b.id, status: 'FAULTY' })} data-tip="Marquer la balise comme défaillante (retirée du service)" className="p-1 text-gray-500 hover:text-red-600">
+                        <button onClick={() => post('/api/beacons/status', { beaconId: b.id, status: 'FAULTY' })} aria-label="Marquer la balise comme défaillante" data-tip="Marquer la balise comme défaillante (retirée du service)" className="p-1 text-gray-500 hover:text-red-600">
                           <AlertTriangle className="w-3.5 h-3.5" />
                         </button>
                       ) : (
-                        <button onClick={() => post('/api/beacons/status', { beaconId: b.id, status: 'SPARE' })} data-tip="Remettre la balise en service (disponible)" className="p-1 text-gray-500 hover:text-green-600">
+                        <button onClick={() => post('/api/beacons/status', { beaconId: b.id, status: 'SPARE' })} aria-label="Remettre la balise en service" data-tip="Remettre la balise en service (disponible)" className="p-1 text-gray-500 hover:text-green-600">
                           <CheckCircle2 className="w-3.5 h-3.5" />
                         </button>
                       )}
-                      <button onClick={() => setCfgOpen(cfgOpen === b.id ? null : b.id)} data-tip="Options d'alarme domicile : distance max, délai de grâce, horaires, notifications" className={`p-1 ${cfgOpen === b.id ? 'text-blue-600' : 'text-gray-500 hover:text-blue-600'}`}>
+                      <button onClick={() => setCfgOpen(cfgOpen === b.id ? null : b.id)} aria-label="Options d'alarme de la balise" data-tip="Options d'alarme domicile : distance max, délai de grâce, horaires, notifications" className={`p-1 ${cfgOpen === b.id ? 'text-blue-600' : 'text-gray-500 hover:text-blue-600'}`}>
                         <Settings className="w-3.5 h-3.5" />
                       </button>
                       {b.device_id && (
-                        <button onClick={() => testBeacon(b.id)} disabled={testing === b.id} data-tip="Demander au bracelet lié de scanner en BLE et confirmer que cette balise est réellement détectée" className="p-1 text-gray-500 hover:text-indigo-600 disabled:opacity-50">
+                        <button onClick={() => testBeacon(b.id)} disabled={testing === b.id} aria-label="Tester la détection BLE de la balise" data-tip="Demander au bracelet lié de scanner en BLE et confirmer que cette balise est réellement détectée" className="p-1 text-gray-500 hover:text-indigo-600 disabled:opacity-50">
                           {testing === b.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Radar className="w-3.5 h-3.5" />}
                         </button>
                       )}
                       <button
                         onClick={() => { if (confirm(`Supprimer définitivement la balise ${b.uid} ?\n\nCette action est irréversible.`)) post('/api/beacons/delete', { beaconId: b.id }); }}
                         disabled={busy}
+                        aria-label="Supprimer la balise"
                         data-tip="Supprimer définitivement cette balise BLE de l'inventaire"
                         className="p-1 text-gray-500 hover:text-red-600 disabled:opacity-50"
                       >
