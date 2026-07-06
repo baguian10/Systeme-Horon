@@ -176,8 +176,16 @@ export default function DeviceInventory({ rows, isHardwareAdmin }: { rows: Devic
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-gray-50 border-b border-gray-100">
-                {['IMEI', 'Modèle', 'Statut', 'Batterie', 'N° SIM', 'Dossier assigné', 'Dernier contact'].map((h) => (
-                  <th key={h} className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">{h}</th>
+                {[
+                  { h: 'IMEI', c: '' },
+                  { h: 'Modèle', c: 'hidden lg:table-cell' },
+                  { h: 'Statut', c: '' },
+                  { h: 'Batterie', c: 'hidden sm:table-cell' },
+                  { h: 'N° SIM', c: 'hidden xl:table-cell' },
+                  { h: 'Dossier assigné', c: '' },
+                  { h: 'Dernier contact', c: 'hidden md:table-cell' },
+                ].map(({ h, c }) => (
+                  <th key={h} className={`text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide ${c}`}>{h}</th>
                 ))}
                 {isHardwareAdmin && <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Action</th>}
               </tr>
@@ -190,7 +198,7 @@ export default function DeviceInventory({ rows, isHardwareAdmin }: { rows: Devic
                     <td className="px-5 py-3.5 font-mono text-xs text-gray-700">
                       <Link href={`/sigep/dashboard/devices/${d.id}`} className="text-blue-700 hover:underline">{d.imei}</Link>
                     </td>
-                    <td className="px-5 py-3.5 text-xs text-gray-600">{d.model}</td>
+                    <td className="px-5 py-3.5 text-xs text-gray-600 hidden lg:table-cell">{d.model}</td>
                     <td className="px-5 py-3.5">
                       <span className={`inline-flex items-center gap-1.5 text-xs font-medium ${d.is_online ? 'text-green-600' : 'text-gray-400'}`}>
                         {d.is_online ? <Wifi className="w-3.5 h-3.5" /> : <WifiOff className="w-3.5 h-3.5" />}
@@ -208,7 +216,7 @@ export default function DeviceInventory({ rows, isHardwareAdmin }: { rows: Devic
                         )}
                       </div>
                     </td>
-                    <td className="px-5 py-3.5">
+                    <td className="px-5 py-3.5 hidden sm:table-cell">
                       <div className="flex items-center gap-2">
                         <div className="w-16 h-1.5 rounded-full bg-gray-100 overflow-hidden">
                           <div className={`h-full rounded-full ${bat < 20 ? 'bg-red-400' : bat < 50 ? 'bg-amber-400' : 'bg-green-400'}`} style={{ width: `${bat}%` }} />
@@ -218,7 +226,7 @@ export default function DeviceInventory({ rows, isHardwareAdmin }: { rows: Devic
                         </span>
                       </div>
                     </td>
-                    <td className="px-5 py-3.5">
+                    <td className="px-5 py-3.5 hidden xl:table-cell">
                       <SimPanel
                         deviceId={d.id}
                         canEdit={isHardwareAdmin}
@@ -232,13 +240,13 @@ export default function DeviceInventory({ rows, isHardwareAdmin }: { rows: Devic
                         <span className="text-xs text-amber-600 bg-amber-50 px-2 py-0.5 rounded-md">Disponible</span>
                       )}
                     </td>
-                    <td className="px-5 py-3.5 text-xs text-gray-400">{d.last_seen_at ? `il y a ${timeAgo(d.last_seen_at)}` : '—'}</td>
+                    <td className="px-5 py-3.5 text-xs text-gray-400 hidden md:table-cell">{d.last_seen_at ? `il y a ${timeAgo(d.last_seen_at)}` : '—'}</td>
                     {isHardwareAdmin && (
                       <td className="px-5 py-3.5">
                         <div className="flex items-center gap-3 flex-wrap">
                           {d.case_id ? <span className="text-xs text-gray-400">Assigné</span> : <AssignDeviceControl deviceId={d.id} />}
                           <TestConnectionButton imei={d.imei} />
-                          {d.last_seen_at && <DeviceCommandButtons imei={d.imei} />}
+                          {(d.case_id || d.last_seen_at || d.is_online) && <DeviceCommandButtons imei={d.imei} />}
                           <BleScanButton imei={d.imei} />
                           <BleHighAvailButton imei={d.imei} active={d.ble_high_avail} />
                           <ProvisionButton imei={d.imei} />

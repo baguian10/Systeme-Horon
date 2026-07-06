@@ -66,13 +66,17 @@ export default async function DevicesPage() {
             accuracyByDevice.set(p.device_id, p.accuracy_m);
           }
         }
+        // Scope open alerts to each device's CURRENT case, so a reassigned
+        // bracelet never shows the previous wearer's unresolved alerts.
+        const deviceCaseMap = new Map(devices.map((d) => [d.id, d.case_id ?? null]));
         const { data: al } = await sb
           .from('alerts')
-          .select('device_id, alert_type, severity')
+          .select('device_id, case_id, alert_type, severity')
           .eq('is_resolved', false)
           .in('device_id', deviceIds);
-        for (const a of (al ?? []) as { device_id: string | null; alert_type: string; severity: number | null }[]) {
+        for (const a of (al ?? []) as { device_id: string | null; case_id: string | null; alert_type: string; severity: number | null }[]) {
           if (!a.device_id) continue;
+          if (deviceCaseMap.get(a.device_id) !== a.case_id) continue; // stale (previous case)
           const cur = alertsByDevice.get(a.device_id) ?? { count: 0, top: null, topSev: -1 };
           cur.count += 1;
           if ((a.severity ?? 0) > cur.topSev) { cur.topSev = a.severity ?? 0; cur.top = ALERT_SHORT[a.alert_type] ?? a.alert_type; }
@@ -97,6 +101,9 @@ export default async function DevicesPage() {
   // eslint-disable-next-line react-hooks/purity
   const staleContact = devices.filter((d) => d.last_seen_at && (Date.now() - new Date(d.last_seen_at).getTime()) > 86400000).length;
   const simSuspended = devices.filter((d) => d.sim_status === 'SUSPENDED').length;
+  const lifecycleOf = (d: (typeof devices)[number]) => d.lifecycle_status ?? (d.case_id ? 'ACTIVE' : 'STOCK');
+  const inMaintenance = devices.filter((d) => lifecycleOf(d) === 'MAINTENANCE').length;
+  const retired       = devices.filter((d) => lifecycleOf(d) === 'RETIRED').length;
 
   // Serializable rows for the interactive inventory (search / filter / sort).
   const deviceRows: DeviceRow[] = devices.map((d) => {
@@ -145,6 +152,8 @@ export default async function DevicesPage() {
           { label: 'Batterie faible', value: lowBattery,             color: 'text-red-700',    bg: 'bg-red-50 border-red-100' },
           { label: 'Sans contact >24h', value: staleContact,         color: 'text-orange-700', bg: 'bg-orange-50 border-orange-100' },
           { label: 'Non assignés',  value: unassigned,               color: 'text-amber-700',  bg: 'bg-amber-50 border-amber-100' },
+          { label: 'En maintenance', value: inMaintenance,           color: 'text-amber-700',  bg: 'bg-amber-50 border-amber-100' },
+          { label: 'Réformés',      value: retired,                  color: 'text-red-700',    bg: 'bg-red-50 border-red-100' },
           { label: 'SIM suspendues', value: simSuspended,            color: 'text-red-700',    bg: 'bg-red-50 border-red-100' },
         ].map((t) => (
           <div key={t.label} className={`${t.bg} border rounded-2xl p-4 text-center`}>

@@ -71,7 +71,7 @@ export default async function DeviceDetailPage({ params }: { params: Promise<{ i
   let events: Evt[] = [];
   let beacon: { uid: string; label: string | null; ble_present: boolean | null } | null = null;
   let caseInfo: { case_number: string; name: string | null } | null = null;
-  let telemetry: { battery_pct: number | null; signal_dbm: number | null }[] = [];
+  let telemetry: { battery_pct: number | null; signal_dbm: number | null; recorded_at: string }[] = [];
   let openAlerts: { alert_type: string; severity: number | null }[] = [];
 
   if (process.env.NEXT_PUBLIC_SUPABASE_URL) {
@@ -83,14 +83,17 @@ export default async function DeviceDetailPage({ params }: { params: Promise<{ i
         sb.from('device_events').select('id, event_type, detail, created_at').eq('device_id', id).order('created_at', { ascending: false }).limit(15),
         sb.from('beacons').select('uid, label, ble_present').eq('device_id', id).maybeSingle(),
         sb.from('device_telemetry').select('battery_pct, signal_dbm, recorded_at').eq('device_id', id).order('recorded_at', { ascending: false }).limit(60),
-        sb.from('alerts').select('alert_type, severity').eq('device_id', id).eq('is_resolved', false),
+        sb.from('alerts').select('alert_type, severity, case_id').eq('device_id', id).eq('is_resolved', false),
       ]);
       recentPos = (pos ?? []) as Pos[];
       latest = recentPos[0] ?? null;
       events = (ev ?? []) as Evt[];
       beacon = (bc as unknown as { uid: string; label: string | null; ble_present: boolean | null } | null) ?? null;
       telemetry = ((tel ?? []) as typeof telemetry).slice().reverse(); // oldest → newest for the chart
-      openAlerts = (al ?? []) as typeof openAlerts;
+      // Scope to the device's current case so a reassigned bracelet doesn't show
+      // the previous wearer's open alerts.
+      openAlerts = ((al ?? []) as (typeof openAlerts[number] & { case_id: string | null })[])
+        .filter((a) => a.case_id === (d.case_id ?? null));
       if (d.case_id) {
         const { data: c } = await sb.from('cases').select('case_number, individual:individuals(full_name)').eq('id', d.case_id).maybeSingle();
         const row = c as { case_number?: string; individual?: { full_name?: string } | null } | null;
@@ -232,7 +235,7 @@ export default async function DeviceDetailPage({ params }: { params: Promise<{ i
               <h3 className="text-sm font-semibold text-gray-700 mb-3">Commandes & maintenance</h3>
               <div className="flex items-center gap-4 flex-wrap">
                 <TestConnectionButton imei={d.imei} />
-                {d.last_seen_at && <DeviceCommandButtons imei={d.imei} />}
+                {(d.case_id || d.last_seen_at || d.is_online) && <DeviceCommandButtons imei={d.imei} />}
                 <BleScanButton imei={d.imei} />
                 <BleHighAvailButton imei={d.imei} active={d.ble_high_avail ?? false} />
                 <ProvisionButton imei={d.imei} />
@@ -249,6 +252,11 @@ export default async function DeviceDetailPage({ params }: { params: Promise<{ i
             {telemetry.length < 2 ? (
               <p className="text-sm text-gray-400">Historique insuffisant — les tendances apparaissent après quelques relevés.</p>
             ) : (
+              <>
+              <p className="text-[10px] text-gray-400 mb-2">
+                {telemetry.length} relevés · du {new Date(telemetry[0].recorded_at).toLocaleString('fr-FR', { timeZone: 'Africa/Ouagadougou', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                {' au '}{new Date(telemetry[telemetry.length - 1].recorded_at).toLocaleString('fr-FR', { timeZone: 'Africa/Ouagadougou', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+              </p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                 <div>
                   <div className="flex items-center justify-between mb-1">
@@ -265,6 +273,7 @@ export default async function DeviceDetailPage({ params }: { params: Promise<{ i
                   <Sparkline values={sigSeries} color="#3b82f6" />
                 </div>
               </div>
+              </>
             )}
           </div>
 
