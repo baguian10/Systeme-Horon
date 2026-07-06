@@ -5,6 +5,7 @@ import type { LivePosition } from '@/hooks/usePositionFeed';
 import type { CaseStatus } from '@/lib/supabase/types';
 import MonitoringConsole, { type TriageAlert, type StreamEvent } from '@/components/realtime/MonitoringConsole';
 import DemoControls from '@/components/realtime/DemoControls';
+import AutoRefresh from '@/components/common/AutoRefresh';
 
 export const metadata = { title: 'Monitoring temps réel — SIGEP' };
 export const revalidate = 0;
@@ -82,6 +83,7 @@ export default async function MonitoringPage() {
 
   return (
     <div className="space-y-3">
+      <AutoRefresh intervalMs={15000} />
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div>
           <h2 className="text-xl font-bold text-gray-900">Centre opérationnel — temps réel</h2>

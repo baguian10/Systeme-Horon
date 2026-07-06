@@ -185,6 +185,7 @@ export default function MonitoringConsole({
     { label: 'Batterie', v: metrics.battery, cls: 'text-amber-700' },
     { label: 'Sans contact', v: metrics.stale, cls: 'text-orange-700' },
     { label: 'Tps réponse', v: metrics.avgAckMin != null ? `${metrics.avgAckMin}min` : '—', cls: 'text-blue-700' },
+    { label: 'Tps résolution', v: metrics.avgResolveMin != null ? `${metrics.avgResolveMin}min` : '—', cls: 'text-violet-700' },
   ];
 
   return (

@@ -103,5 +103,22 @@ export function usePositionFeed(initialPositions: LivePosition[] = []) {
     };
   }, []);
 
+  // Fallback / resync: when the server re-seeds initialPositions (the page's
+  // periodic AutoRefresh re-runs the query), merge them in — keeping the newer
+  // fix per case. This keeps the map current even if the realtime channel is
+  // silent (dropped connection, replication not enabled), instead of freezing.
+  useEffect(() => {
+    if (initialPositions.length === 0) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setPositions((prev) => {
+      const next = new Map(prev);
+      for (const p of initialPositions) {
+        const ex = next.get(p.case_id);
+        if (!ex || Date.parse(p.recorded_at) >= Date.parse(ex.recorded_at)) next.set(p.case_id, p);
+      }
+      return next;
+    });
+  }, [initialPositions]);
+
   return Array.from(positions.values());
 }
