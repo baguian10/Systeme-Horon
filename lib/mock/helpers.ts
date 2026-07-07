@@ -174,7 +174,8 @@ async function caseScopedClient(role: UserRole) {
 export async function fetchOverviewStats(role?: UserRole): Promise<OverviewStats> {
   if (IS_DEMO_MODE) return MOCK_STATS;
   const supabase = await statsClient(role);
-  if (!supabase) return MOCK_STATS;
+  // Production DB failure → honest zeros, never mock figures dressed as real.
+  if (!supabase) return { active_cases: 0, active_alerts: 0, devices_online: 0, monitored_individuals: 0, violation_cases: 0 };
   const [
     { count: active_cases },
     { count: active_alerts },

@@ -51,11 +51,15 @@ export default async function AuditPage() {
     id: number; action: string; table_name: string | null; user_name: string;
     user_role?: string | null; record_id: string | null; logged_at: string; details: string;
   };
-  let entries: AuditRow[] = MOCK_AUDIT;
+  // Mock rows ONLY in demo mode — a production audit journal must never show
+  // fabricated entries, even on a DB error (empty + honest beats plausible + fake).
+  let entries: AuditRow[] = isDemoMode ? MOCK_AUDIT : [];
+  let loadError = false;
 
   if (!isDemoMode) {
     const { createAdminClient } = await import('@/lib/supabase/admin');
     const supabase = createAdminClient();
+    if (!supabase) loadError = true;
     if (supabase) {
       const { data } = await supabase
         .from('audit_log')
@@ -107,7 +111,11 @@ export default async function AuditPage() {
       </div>
 
       <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
-        {entries.length === 0 ? (
+        {loadError ? (
+          <p className="text-sm text-red-600 px-5 py-8 text-center">
+            Journal d&apos;audit inaccessible — erreur de connexion à la base de données.
+          </p>
+        ) : entries.length === 0 ? (
           <p className="text-sm text-gray-400 px-5 py-8 text-center">Aucune entrée d&apos;audit</p>
         ) : (
           <div className="divide-y divide-gray-50">

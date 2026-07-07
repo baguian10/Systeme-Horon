@@ -7,6 +7,7 @@ import {
   MapPin, Calendar, CheckCircle2, Clock, Send, Smartphone,
   ChevronDown, ChevronUp, Shield, Route,
 } from 'lucide-react';
+import { syncTerrainQueueAction, type TerrainQueuedAction } from './actions';
 
 type CasePayload = {
   id: string; case_number: string; status: string;
@@ -108,12 +109,35 @@ export default function TerrainApp({ initialData }: { initialData: InitialData }
     if (!isOnline || queue.length === 0) return;
     setSyncing(true);
     setSyncMsg('');
-    // Demo: just clear the queue after a short delay
-    await new Promise((r) => setTimeout(r, 1200));
+    try {
+      const payload: TerrainQueuedAction[] = queue
+        .filter((a) => a.type === 'CHECK_IN' || a.type === 'JOURNAL')
+        .map((a) => ({
+          type: a.type as 'CHECK_IN' | 'JOURNAL',
+          case_id: a.case_id,
+          case_number: a.case_number,
+          payload: {
+            content: a.payload.content,
+            location: a.payload.location ?? null,
+            timestamp: a.payload.timestamp ?? a.queued_at,
+          },
+        }));
+      const r = await syncTerrainQueueAction(payload);
+      if (r.error && r.synced === 0) {
+        setSyncMsg(`Échec de synchronisation : ${r.error}`);
+      } else if (r.failed > 0) {
+        setSyncMsg(`${r.synced} synchronisée${r.synced > 1 ? 's' : ''}, ${r.failed} en échec — réessayez.`);
+        // Keep everything on partial failure (server inserts aren't matched
+        // per-item); the next sync retries the batch.
+      } else {
+        setSyncMsg(`${r.synced} action${r.synced > 1 ? 's' : ''} synchronisée${r.synced > 1 ? 's' : ''} au journal des dossiers.`);
+        setQueue([]);
+      }
+    } catch {
+      setSyncMsg('Erreur réseau — la file est conservée, réessayez.');
+    }
     setSyncing(false);
-    setSyncMsg(`${queue.length} action${queue.length > 1 ? 's' : ''} synchronisée${queue.length > 1 ? 's' : ''}.`);
-    setQueue([]);
-    setTimeout(() => setSyncMsg(''), 4000);
+    setTimeout(() => setSyncMsg(''), 5000);
   }
 
   function logCheckin(c: CasePayload) {
