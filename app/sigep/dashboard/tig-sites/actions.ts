@@ -1,8 +1,9 @@
 'use server';
 
+import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { getSession } from '@/lib/auth/session';
-import { canManageTigSites, canSetMeasureConditions, canLogTigAttendance } from '@/lib/auth/permissions';
+import { allow, canManageTigSites, canSetMeasureConditions, canLogTigAttendance } from '@/lib/auth/permissions';
 import { writeAudit } from '@/lib/audit/log';
 import type { TigSiteCategory } from '@/lib/supabase/types';
 
@@ -18,6 +19,16 @@ async function getSupabase() {
   return createAdminClient();
 }
 
+type Session = NonNullable<Awaited<ReturnType<typeof getSession>>>;
+function canManage(session: Session) {
+  return allow(session, canManageTigSites(session.role), 'tig');
+}
+
+function parseCapacity(raw: FormDataEntryValue | null): number {
+  const n = parseInt(raw as string, 10);
+  return Number.isFinite(n) && n >= 1 ? n : 1;
+}
+
 // ── Create ───────────────────────────────────────────────────────────────────
 
 export async function createTigSiteAction(
@@ -25,7 +36,7 @@ export async function createTigSiteAction(
   formData: FormData,
 ): Promise<{ error: string } | null> {
   const session = await getSession();
-  if (!session || !canManageTigSites(session.role)) return { error: 'Accès refusé' };
+  if (!session || !canManage(session)) return { error: 'Accès refusé' };
 
   const name           = (formData.get('name') as string)?.trim();
   const category       = formData.get('category') as TigSiteCategory;
@@ -33,7 +44,7 @@ export async function createTigSiteAction(
   const arrondissement = (formData.get('arrondissement') as string)?.trim();
   const contact_name   = (formData.get('contact_name') as string)?.trim();
   const contact_phone  = (formData.get('contact_phone') as string)?.trim();
-  const capacity       = parseInt(formData.get('capacity') as string, 10) || 1;
+  const capacity       = parseCapacity(formData.get('capacity'));
   const hours          = (formData.get('hours') as string)?.trim();
   const latitude       = parseFloat(formData.get('latitude') as string);
   const longitude      = parseFloat(formData.get('longitude') as string);
@@ -52,12 +63,12 @@ export async function createTigSiteAction(
       capacity, current_count: 0,
       hours: hours || 'Lun–Ven 08h00–17h00',
       is_active: true,
-      latitude: isNaN(latitude) ? 12.3647 : latitude,
-      longitude: isNaN(longitude) ? -1.5332 : longitude,
+      latitude: isNaN(latitude) ? null : latitude,
+      longitude: isNaN(longitude) ? null : longitude,
       created_at: new Date().toISOString(),
     });
     revalidatePath('/sigep/dashboard/tig-sites');
-    return null;
+    redirect('/sigep/dashboard/tig-sites');
   }
 
   const supabase = await getSupabase();
@@ -73,14 +84,14 @@ export async function createTigSiteAction(
   if (error) return { error: 'Erreur lors de la création du site' };
   await writeAudit({ userId: session.id, action: 'CREATE_TIG_SITE', tableName: 'tig_sites', recordId: data?.id, newData: { name } });
   revalidatePath('/sigep/dashboard/tig-sites');
-  return null;
+  redirect('/sigep/dashboard/tig-sites');
 }
 
 // ── Update ───────────────────────────────────────────────────────────────────
 
 export async function updateTigSiteAction(formData: FormData): Promise<{ error: string } | void> {
   const session = await getSession();
-  if (!session || !canManageTigSites(session.role)) return { error: 'Accès refusé' };
+  if (!session || !canManage(session)) return { error: 'Accès refusé' };
 
   const id             = formData.get('id') as string;
   const name           = (formData.get('name') as string)?.trim();
@@ -89,8 +100,12 @@ export async function updateTigSiteAction(formData: FormData): Promise<{ error: 
   const arrondissement = (formData.get('arrondissement') as string)?.trim();
   const contact_name   = (formData.get('contact_name') as string)?.trim();
   const contact_phone  = (formData.get('contact_phone') as string)?.trim();
-  const capacity       = parseInt(formData.get('capacity') as string, 10) || 1;
+  const capacity       = parseCapacity(formData.get('capacity'));
   const hours          = (formData.get('hours') as string)?.trim();
+  const latRaw         = parseFloat(formData.get('latitude') as string);
+  const lngRaw         = parseFloat(formData.get('longitude') as string);
+  const latitude       = isNaN(latRaw) ? null : latRaw;
+  const longitude      = isNaN(lngRaw) ? null : lngRaw;
 
   if (!id || !name || !category || !address || !arrondissement || !contact_name) {
     return { error: 'Champs obligatoires manquants' };
@@ -98,17 +113,29 @@ export async function updateTigSiteAction(formData: FormData): Promise<{ error: 
   if (!VALID_CATEGORIES.includes(category)) return { error: 'Catégorie invalide' };
 
   if (isDemoMode()) {
-    const { MOCK_TIG_SITES } = await import('@/lib/mock/data');
+    const { MOCK_TIG_SITES, MOCK_CASES } = await import('@/lib/mock/data');
+    const occ = MOCK_CASES.filter((c) => c.tig_site_id === id && ['ACTIVE', 'VIOLATION'].includes(c.status)).length;
+    if (capacity < occ) return { error: `Capacité insuffisante : ${occ} dossier(s) actif(s) sur ce site` };
     const s = MOCK_TIG_SITES.find((x) => x.id === id);
-    if (s) Object.assign(s, { name, category, address, arrondissement, contact_name, contact_phone, capacity, hours });
+    if (s) Object.assign(s, { name, category, address, arrondissement, contact_name, contact_phone, capacity, hours, latitude, longitude });
     revalidatePath('/sigep/dashboard/tig-sites');
     return;
   }
 
   const supabase = await getSupabase();
   if (!supabase) return { error: 'Base de données indisponible' };
+
+  const { count: occ } = await supabase
+    .from('cases')
+    .select('id', { count: 'exact', head: true })
+    .eq('tig_site_id', id)
+    .in('status', ['ACTIVE', 'VIOLATION']);
+  if (capacity < (occ ?? 0)) {
+    return { error: `Capacité insuffisante : ${occ} dossier(s) actif(s) sur ce site` };
+  }
+
   const { error } = await supabase.from('tig_sites')
-    .update({ name, category, address, arrondissement, contact_name, contact_phone, capacity, hours })
+    .update({ name, category, address, arrondissement, contact_name, contact_phone, capacity, hours, latitude, longitude })
     .eq('id', id);
   if (error) return { error: 'Erreur lors de la mise à jour' };
   await writeAudit({ userId: session.id, action: 'UPDATE_TIG_SITE', tableName: 'tig_sites', recordId: id, newData: { name } });
@@ -119,7 +146,7 @@ export async function updateTigSiteAction(formData: FormData): Promise<{ error: 
 
 export async function deleteTigSiteAction(formData: FormData): Promise<{ error: string } | void> {
   const session = await getSession();
-  if (!session || !canManageTigSites(session.role)) return { error: 'Accès refusé' };
+  if (!session || !canManage(session)) return { error: 'Accès refusé' };
 
   const id = formData.get('id') as string;
   if (!id) return { error: 'ID manquant' };
@@ -135,7 +162,6 @@ export async function deleteTigSiteAction(formData: FormData): Promise<{ error: 
   const supabase = await getSupabase();
   if (!supabase) return { error: 'Base de données indisponible' };
 
-  // Guard 1: active cases
   const { count: caseCount } = await supabase
     .from('cases')
     .select('id', { count: 'exact', head: true })
@@ -145,7 +171,6 @@ export async function deleteTigSiteAction(formData: FormData): Promise<{ error: 
     return { error: `${caseCount} dossier(s) TIG actif(s) affecté(s) à ce site. Réaffectez-les avant suppression.` };
   }
 
-  // Guard 2: historical attendance records (ON DELETE RESTRICT in DB)
   const { count: attCount } = await supabase
     .from('tig_attendance')
     .select('id', { count: 'exact', head: true })
@@ -164,7 +189,7 @@ export async function deleteTigSiteAction(formData: FormData): Promise<{ error: 
 
 export async function toggleTigSiteAction(formData: FormData): Promise<void> {
   const session = await getSession();
-  if (!session || !canManageTigSites(session.role)) return;
+  if (!session || !canManage(session)) return;
 
   const site_id   = formData.get('site_id') as string;
   const is_active = formData.get('is_active') === 'true';
@@ -196,7 +221,7 @@ export async function assignCaseTigSiteAction(formData: FormData): Promise<{ err
   const session = await getSession();
   if (!session || !canSetMeasureConditions(session.role)) return { error: 'Accès refusé' };
 
-  const case_id    = formData.get('case_id') as string;
+  const case_id     = formData.get('case_id') as string;
   const tig_site_id = (formData.get('tig_site_id') as string) || null;
   if (!case_id) return { error: 'Dossier manquant' };
 
@@ -230,7 +255,7 @@ export async function updateTigHoursOrderedAction(formData: FormData): Promise<{
   const session = await getSession();
   if (!session || !canSetMeasureConditions(session.role)) return { error: 'Accès refusé' };
 
-  const case_id          = formData.get('case_id') as string;
+  const case_id           = formData.get('case_id') as string;
   const tig_hours_ordered = parseInt(formData.get('tig_hours_ordered') as string, 10);
   if (!case_id || isNaN(tig_hours_ordered) || tig_hours_ordered < 1) {
     return { error: 'Nombre d\'heures invalide' };
@@ -258,10 +283,10 @@ export async function addTigAttendanceAction(formData: FormData): Promise<{ erro
   const session = await getSession();
   if (!session || !canLogTigAttendance(session.role)) return { error: 'Accès refusé' };
 
-  const case_id        = formData.get('case_id') as string;
-  const tig_site_id    = formData.get('tig_site_id') as string;
-  const session_date   = formData.get('session_date') as string;
-  const hours_worked   = parseFloat(formData.get('hours_worked') as string);
+  const case_id          = formData.get('case_id') as string;
+  const tig_site_id      = formData.get('tig_site_id') as string;
+  const session_date     = formData.get('session_date') as string;
+  const hours_worked     = parseFloat(formData.get('hours_worked') as string);
   const supervisor_notes = (formData.get('supervisor_notes') as string)?.trim() || null;
 
   if (!case_id || !tig_site_id || !session_date || isNaN(hours_worked) || hours_worked <= 0) {
@@ -269,7 +294,6 @@ export async function addTigAttendanceAction(formData: FormData): Promise<{ erro
   }
   if (hours_worked > 24) return { error: 'Maximum 24 heures par session' };
 
-  // Reject future dates
   const today = new Date().toISOString().slice(0, 10);
   if (session_date > today) return { error: 'La date ne peut pas être dans le futur' };
 
@@ -295,17 +319,16 @@ export async function addTigAttendanceAction(formData: FormData): Promise<{ erro
     created_by: session.id,
   }).select('id').single();
 
-  if (error) return { error: 'Erreur lors de l\'enregistrement du pointage' };
+  if (error || !data?.id) return { error: 'Erreur lors de l\'enregistrement du pointage' };
 
-  // Recompute total from all attendance records (source of truth)
   const { data: allSessions } = await supabase
     .from('tig_attendance').select('hours_worked').eq('case_id', case_id);
   const total = (allSessions ?? []).reduce((acc: number, r: { hours_worked: number }) => acc + r.hours_worked, 0);
   await supabase.from('cases').update({ tig_hours_completed: total }).eq('id', case_id);
 
-  await writeAudit({ userId: session.id, action: 'ADD_TIG_ATTENDANCE', tableName: 'tig_attendance', recordId: data?.id, newData: { case_id, session_date, hours_worked } });
+  await writeAudit({ userId: session.id, action: 'ADD_TIG_ATTENDANCE', tableName: 'tig_attendance', recordId: data.id, newData: { case_id, session_date, hours_worked } });
   revalidatePath(`/sigep/dashboard/cases/${case_id}`);
-  return { id: data!.id };
+  return { id: data.id };
 }
 
 // ── Delete attendance ─────────────────────────────────────────────────────────
@@ -337,7 +360,6 @@ export async function deleteTigAttendanceAction(formData: FormData): Promise<{ e
   const { error } = await supabase.from('tig_attendance').delete().eq('id', id).eq('case_id', case_id);
   if (error) return { error: 'Erreur lors de la suppression' };
 
-  // Recompute total
   const { data: allSessions } = await supabase
     .from('tig_attendance').select('hours_worked').eq('case_id', case_id);
   const total = (allSessions ?? []).reduce((acc: number, r: { hours_worked: number }) => acc + r.hours_worked, 0);

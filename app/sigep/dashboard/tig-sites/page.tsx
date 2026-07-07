@@ -29,7 +29,7 @@ export default async function TigSitesPage() {
   const session = await getSession();
   if (!session || !allow(session, canViewTigSites(session.role), 'tig')) redirect('/sigep/dashboard');
 
-  const canManage = canManageTigSites(session.role);
+  const canManage = allow(session, canManageTigSites(session.role), 'tig');
   const sites = await fetchTigSites();
 
   // fetchTigSites already sorts alphabetically; split active/inactive

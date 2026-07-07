@@ -260,8 +260,8 @@ export interface TigSite {
   current_count: number;
   hours: string;
   is_active: boolean;
-  latitude: number;
-  longitude: number;
+  latitude: number | null;
+  longitude: number | null;
   created_at: string;
 }
 

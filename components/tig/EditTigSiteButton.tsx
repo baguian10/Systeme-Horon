@@ -14,19 +14,13 @@ const CATEGORIES = [
   { value: 'AUTRE',       label: 'Autre' },
 ];
 
-const ARRONDISSEMENTS = [
-  // Ouagadougou
-  'Baskuy', 'Bogodogo', 'Boulmiougou', 'Nongremassom', 'Sig-Nonghin',
-  // Bobo-Dioulasso
-  'Dô', 'Dafra', 'Konsa', 'Bindougousso',
-  // Koudougou
-  'Koudougou Centre', 'Koudougou Nord', 'Koudougou Sud',
-  // Ouahigouya
-  'Ouahigouya',
-  // Banfora
-  'Banfora',
-  // Autre
-  'Autre commune',
+const ARRONDISSEMENTS: { city: string; districts: string[] }[] = [
+  { city: 'Ouagadougou', districts: ['Baskuy', 'Bogodogo', 'Boulmiougou', 'Nongremassom', 'Sig-Nonghin'] },
+  { city: 'Bobo-Dioulasso', districts: ['Dô', 'Dafra', 'Konsa', 'Bindougousso'] },
+  { city: 'Koudougou', districts: ['Koudougou Centre', 'Koudougou Nord', 'Koudougou Sud'] },
+  { city: 'Ouahigouya', districts: ['Ouahigouya'] },
+  { city: 'Banfora', districts: ['Banfora'] },
+  { city: 'Autres communes', districts: ['Autre commune'] },
 ];
 
 const IN = 'w-full border border-gray-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500';
@@ -83,7 +77,7 @@ export default function EditTigSiteButton({ site }: { site: TigSite }) {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs text-gray-500 mb-1">Capacité</label>
+                  <label className="block text-xs text-gray-500 mb-1">Capacité (max 100)</label>
                   <input name="capacity" type="number" min={1} max={100} required defaultValue={site.capacity} className={IN} />
                 </div>
               </div>
@@ -96,7 +90,11 @@ export default function EditTigSiteButton({ site }: { site: TigSite }) {
               <div>
                 <label className="block text-xs text-gray-500 mb-1">Arrondissement / commune *</label>
                 <select name="arrondissement" defaultValue={site.arrondissement} className={IN}>
-                  {ARRONDISSEMENTS.map((a) => <option key={a} value={a}>{a}</option>)}
+                  {ARRONDISSEMENTS.map((g) => (
+                    <optgroup key={g.city} label={g.city}>
+                      {g.districts.map((d) => <option key={d} value={d}>{d}</option>)}
+                    </optgroup>
+                  ))}
                 </select>
               </div>
 
@@ -107,13 +105,45 @@ export default function EditTigSiteButton({ site }: { site: TigSite }) {
                 </div>
                 <div>
                   <label className="block text-xs text-gray-500 mb-1">Téléphone</label>
-                  <input name="contact_phone" defaultValue={site.contact_phone} className={IN} />
+                  <input
+                    name="contact_phone"
+                    type="tel"
+                    defaultValue={site.contact_phone}
+                    pattern="[\+\d\s\-]{7,20}"
+                    title="Format : +226 XX XX XX XX"
+                    className={IN}
+                  />
                 </div>
               </div>
 
               <div>
                 <label className="block text-xs text-gray-500 mb-1">Horaires</label>
                 <input name="hours" defaultValue={site.hours} placeholder="Lun–Ven 08h00–17h00" className={IN} />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">Latitude GPS</label>
+                  <input
+                    name="latitude"
+                    type="number"
+                    step="0.000001"
+                    defaultValue={site.latitude ?? ''}
+                    placeholder="12.364700"
+                    className={IN}
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">Longitude GPS</label>
+                  <input
+                    name="longitude"
+                    type="number"
+                    step="0.000001"
+                    defaultValue={site.longitude ?? ''}
+                    placeholder="-1.533200"
+                    className={IN}
+                  />
+                </div>
               </div>
 
               {error && <p className="text-xs text-red-600">{error}</p>}

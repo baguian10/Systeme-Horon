@@ -82,9 +82,9 @@ export default function TigTrackingPanel({
     const fd = new FormData(e.currentTarget);
     startPoint(async () => {
       const r = await addTigAttendanceAction(fd);
-      if (r?.error) { setPointMsg(r.error); return; }
+      if (r?.error || !r?.id) { setPointMsg(r?.error ?? 'Erreur inattendue'); return; }
       const newRecord: TigAttendance = {
-        id: r.id!,
+        id: r.id,
         case_id: caseId,
         tig_site_id: fd.get('tig_site_id') as string,
         session_date: fd.get('session_date') as string,
