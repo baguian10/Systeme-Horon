@@ -288,14 +288,10 @@ export async function GET(request: NextRequest) {
                 alert_type: alertType, severity: 4, description: detail,
                 position_lat: live.lat, position_lon: live.lng,
               });
-              const { data: kase } = await supabase.from('cases').select('judge_id').eq('id', device.case_id).single();
-              if (kase?.judge_id) {
-                const { data: ju } = await supabase.from('users').select('phone').eq('id', kase.judge_id).single();
-                if (ju?.phone) {
-                  const { sendSms } = await import('@/lib/sms');
-                  await sendSms(ju.phone, `SIGEP - ALERTE: sortie du domicile detectee. Verifiez la plateforme.`);
-                }
-              }
+              // Unified dispatch: SMS + push to judge and assigned agents per
+              // their preferences (opt-out default).
+              const { dispatchAlertNotifications } = await import('@/lib/notify');
+              await dispatchAlertNotifications({ caseId: device.case_id, alertType, description: detail });
             }
           }
         } else if (away === false) {
@@ -343,11 +339,8 @@ export async function GET(request: NextRequest) {
             position_lat: live.lat, position_lon: live.lng,
           });
           await supabase.from('cases').update({ status: 'VIOLATION', updated_at: new Date().toISOString() }).eq('id', device.case_id);
-          const { data: kase } = await supabase.from('cases').select('judge_id').eq('id', device.case_id).single();
-          if (kase?.judge_id) {
-            const { data: ju } = await supabase.from('users').select('phone').eq('id', kase.judge_id).single();
-            if (ju?.phone) { const { sendSms } = await import('@/lib/sms'); await sendSms(ju.phone, 'SIGEP - ALERTE: bracelet retire du corps. Verifiez la plateforme.'); }
-          }
+          const { dispatchAlertNotifications } = await import('@/lib/notify');
+          await dispatchAlertNotifications({ caseId: device.case_id, alertType: 'TAMPER_DETECTED', description: 'Bracelet retiré du corps (détection de port).' });
         }
       }
 
@@ -368,11 +361,8 @@ export async function GET(request: NextRequest) {
               alert_type: 'HEALTH_CRITICAL', severity: 4, description: critical,
               position_lat: live.lat, position_lon: live.lng,
             });
-            const { data: kase } = await supabase.from('cases').select('judge_id').eq('id', device.case_id).single();
-            if (kase?.judge_id) {
-              const { data: ju } = await supabase.from('users').select('phone').eq('id', kase.judge_id).single();
-              if (ju?.phone) { const { sendSms } = await import('@/lib/sms'); await sendSms(ju.phone, 'SIGEP - ALERTE SANTE: constante vitale critique du porteur. Verifiez la plateforme.'); }
-            }
+            const { dispatchAlertNotifications } = await import('@/lib/notify');
+            await dispatchAlertNotifications({ caseId: device.case_id, alertType: 'HEALTH_CRITICAL', description: critical });
           }
         }
       }

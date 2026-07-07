@@ -9,6 +9,7 @@ type Prefs = Record<string, Record<string, boolean>>;
 
 const LABELS: Record<string, string> = {
   GEOFENCE_EXIT:    'Sortie de zone',
+  BLE_EXIT:         'Sortie domicile (BLE)',
   CURFEW_VIOLATION: 'Couvre-feu',
   TAMPER_DETECTED:  'Anti-sabotage',
   HEALTH_CRITICAL:  'Sante critique',
@@ -50,8 +51,10 @@ export async function dispatchAlertNotifications(params: {
 
     await Promise.all(
       ((users ?? []) as { id: string; phone: string | null; notification_prefs: Prefs | null }[]).map(async (u) => {
-        const prefs = u.notification_prefs?.[alertType];
-        if (!prefs) return;
+        // Opt-out model: a user who never saved preferences still gets notified
+        // (push + SMS). `if (!prefs) return` silently dropped every alert for
+        // accounts that hadn't visited the Notifications page.
+        const prefs = u.notification_prefs?.[alertType] ?? { sms: true, push: true };
         if (prefs.sms && u.phone) await sendSms(u.phone, message);
         if (prefs.push) {
           await sendPushToUser(sb as unknown as Parameters<typeof sendPushToUser>[0], u.id, {

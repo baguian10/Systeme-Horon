@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { MessageSquare, Plus, FolderOpen, Lock } from 'lucide-react';
 import { getSession } from '@/lib/auth/session';
-import { fetchThreads } from '@/lib/mock/helpers';
+import { fetchThreads, fetchMessagingRecipients } from '@/lib/mock/helpers';
 import NewThreadForm from './NewThreadForm';
 
 export const metadata = { title: 'Messagerie sécurisée — SIGEP' };
@@ -21,7 +21,10 @@ export default async function MessageriePage() {
   const session = await getSession();
   if (!session) redirect('/sigep/dashboard');
 
-  const threads = await fetchThreads(session.id);
+  const [threads, recipients] = await Promise.all([
+    fetchThreads(session.id),
+    fetchMessagingRecipients(session.id),
+  ]);
 
   return (
     <div className="space-y-6">
@@ -100,7 +103,7 @@ export default async function MessageriePage() {
               <Plus className="w-4 h-4 text-emerald-600" />
               <h3 className="font-semibold text-gray-900 text-sm">Nouvelle conversation</h3>
             </div>
-            <NewThreadForm currentUserId={session.id} />
+            <NewThreadForm currentUserId={session.id} recipients={recipients} />
           </div>
 
           {/* Security notice */}

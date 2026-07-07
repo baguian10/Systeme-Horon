@@ -25,13 +25,20 @@ export async function decideRevocationAction(formData: FormData): Promise<void> 
   };
 
   if (isDemoMode()) {
-    const { MOCK_REVOCATIONS } = await import('@/lib/mock/data');
+    const { MOCK_REVOCATIONS, MOCK_CASES } = await import('@/lib/mock/data');
     const rev = MOCK_REVOCATIONS.find((r) => r.id === revocation_id);
     if (rev) {
       rev.status = decision;
       if (decision === 'APPROVED' || decision === 'REJECTED') {
         rev.judge_decision = decisionMap[decision];
         rev.decided_at = new Date().toISOString();
+      }
+      // Parity with prod: approval terminates the monitoring measure.
+      if (decision === 'APPROVED') {
+        const c = MOCK_CASES.find((x) => x.id === rev.case_id);
+        if (c) { c.status = 'TERMINATED'; c.end_date = new Date().toISOString(); }
+        revalidatePath(`/sigep/dashboard/cases/${rev.case_id}`);
+        revalidatePath('/sigep/dashboard/cases');
       }
     }
     await writeAudit({
@@ -49,7 +56,7 @@ export async function decideRevocationAction(formData: FormData): Promise<void> 
   const supabase = createAdminClient();
   if (!supabase) return;
   const decided = decision === 'APPROVED' || decision === 'REJECTED';
-  await supabase
+  const { data: rev } = await supabase
     .from('revocations')
     .update({
       status: decision,
@@ -57,7 +64,19 @@ export async function decideRevocationAction(formData: FormData): Promise<void> 
       decided_by: decided ? session.id : null,
       decided_at: decided ? new Date().toISOString() : null,
     })
-    .eq('id', revocation_id);
+    .eq('id', revocation_id)
+    .select('case_id')
+    .maybeSingle();
+
+  // Revocation granted = the electronic-monitoring measure ends (conversion to
+  // custody, mandat de dépôt). Close the case so surveillance stops cleanly.
+  if (decision === 'APPROVED' && rev?.case_id) {
+    await supabase.from('cases')
+      .update({ status: 'TERMINATED', end_date: new Date().toISOString(), updated_at: new Date().toISOString() })
+      .eq('id', rev.case_id);
+    revalidatePath(`/sigep/dashboard/cases/${rev.case_id}`);
+    revalidatePath('/sigep/dashboard/cases');
+  }
   await writeAudit({
     userId: session.id,
     action: `REVOCATION_${decision}`,
@@ -73,11 +92,14 @@ export async function createRevocationAction(
   formData: FormData,
 ): Promise<{ error: string } | null> {
   const session = await getSession();
-  if (!session) return { error: 'Accès refusé' };
+  // Requesting a revocation is an operational/judicial act — STRATEGIC is
+  // aggregate-only and must not open individual proceedings.
+  if (!session || session.role === 'STRATEGIC') return { error: 'Accès refusé' };
 
   const case_id = formData.get('case_id') as string;
   const reason  = (formData.get('reason') as string)?.trim();
   if (!case_id || !reason) return { error: 'Champs obligatoires manquants' };
+  if (reason.length > 2000) return { error: 'Motif trop long (max 2000)' };
 
   if (isDemoMode()) {
     const { MOCK_REVOCATIONS, MOCK_CASES, MOCK_USERS } = await import('@/lib/mock/data');
@@ -105,6 +127,15 @@ export async function createRevocationAction(
   const { createAdminClient } = await import('@/lib/supabase/admin');
   const supabase = createAdminClient();
   if (!supabase) return { error: 'Base de données indisponible' };
+  const { data: kase } = await supabase.from('cases').select('id, status').eq('id', case_id).maybeSingle();
+  if (!kase) return { error: 'Dossier introuvable' };
+  // One live request per case — a second PENDING/UNDER_REVIEW would fork the procedure.
+  const { count: liveCount } = await supabase
+    .from('revocations')
+    .select('id', { count: 'exact', head: true })
+    .eq('case_id', case_id)
+    .in('status', ['PENDING', 'UNDER_REVIEW']);
+  if (liveCount && liveCount > 0) return { error: 'Une demande de révocation est déjà en cours pour ce dossier' };
   const { data, error } = await supabase.from('revocations').insert({
     case_id, requested_by_id: session.id, reason, status: 'PENDING',
   }).select('id').single();

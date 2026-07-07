@@ -15,7 +15,8 @@ export async function updateMaintenanceStatusAction(formData: FormData): Promise
 
   const ticket_id = formData.get('ticket_id') as string;
   const status    = formData.get('status') as MaintenanceStatus;
-  if (!ticket_id || !status) return;
+  const VALID_STATUSES: MaintenanceStatus[] = ['PENDING', 'IN_PROGRESS', 'DONE', 'CANCELLED'];
+  if (!ticket_id || !VALID_STATUSES.includes(status)) return;
 
   if (isDemoMode()) {
     const { MOCK_MAINTENANCE_TICKETS } = await import('@/lib/mock/data');
@@ -62,11 +63,14 @@ export async function createMaintenanceTicketAction(
   const device_id        = formData.get('device_id') as string;
   const maintenance_type = formData.get('maintenance_type') as string;
   const description      = (formData.get('description') as string)?.trim();
-  const priority         = parseInt(formData.get('priority') as string, 10) || 2;
+  const priorityRaw      = parseInt(formData.get('priority') as string, 10);
+  const priority         = [1, 2, 3].includes(priorityRaw) ? priorityRaw : 2;
 
-  if (!device_id || !maintenance_type || !description) {
-    return { error: 'Champs obligatoires manquants' };
+  const VALID_TYPES = ['BATTERY', 'FIRMWARE', 'HARDWARE', 'CALIBRATION', 'REPLACEMENT'];
+  if (!device_id || !VALID_TYPES.includes(maintenance_type) || !description) {
+    return { error: 'Champs obligatoires manquants ou invalides' };
   }
+  if (description.length > 1000) return { error: 'Description trop longue (max 1000)' };
 
   if (isDemoMode()) {
     const { MOCK_MAINTENANCE_TICKETS, MOCK_DEVICES } = await import('@/lib/mock/data');
@@ -92,6 +96,8 @@ export async function createMaintenanceTicketAction(
   const { createAdminClient } = await import('@/lib/supabase/admin');
   const supabase = createAdminClient();
   if (!supabase) return { error: 'Base de données indisponible' };
+  const { data: dev } = await supabase.from('devices').select('id').eq('id', device_id).maybeSingle();
+  if (!dev) return { error: 'Bracelet introuvable' };
   const { data, error } = await supabase.from('maintenance_tickets').insert({
     device_id, maintenance_type, description, priority, status: 'PENDING', assigned_to: session.id,
   }).select('id').single();

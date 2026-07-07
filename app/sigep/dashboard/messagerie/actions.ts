@@ -17,8 +17,15 @@ export async function createThreadAction(
   const subject     = (formData.get('subject') as string)?.trim();
   const content     = (formData.get('content') as string)?.trim();
   const case_number = (formData.get('case_number') as string)?.trim() || null;
+  const recipientIds = (formData.getAll('recipient_ids') as string[]).filter(Boolean);
 
   if (!subject || !content) return { error: 'Sujet et message requis' };
+  if (recipientIds.length === 0) return { error: 'Sélectionnez au moins un destinataire' };
+  if (recipientIds.length > 20) return { error: 'Maximum 20 destinataires' };
+
+  // Participants = sender + recipients. Without recipients the thread was
+  // invisible to everyone but its creator (fetchThreads filters on membership).
+  const participants = Array.from(new Set([session.id, ...recipientIds]));
 
   if (isDemoMode()) {
     const { MOCK_THREADS, MOCK_MESSAGES, MOCK_CASES } = await import('@/lib/mock/data');
@@ -29,7 +36,7 @@ export async function createThreadAction(
       case_id: relatedCase?.id ?? null,
       case_number: case_number,
       subject,
-      participant_ids: [session.id],
+      participant_ids: participants,
       last_message_at: new Date().toISOString(),
       last_message_preview: content.slice(0, 80),
       created_by: session.id,
@@ -58,8 +65,15 @@ export async function createThreadAction(
     const { data: c } = await supabase.from('cases').select('id').eq('case_number', case_number).maybeSingle();
     case_id = c?.id ?? null;
   }
+  // Verify every recipient is a real active account.
+  const { data: found } = await supabase
+    .from('users').select('id').in('id', recipientIds).eq('is_active', true);
+  if ((found ?? []).length !== recipientIds.length) {
+    return { error: 'Un des destinataires est introuvable ou inactif' };
+  }
+
   const { data: thread, error } = await supabase.from('message_threads').insert({
-    case_id, subject, participant_ids: [session.id],
+    case_id, subject, participant_ids: participants,
     last_message_at: new Date().toISOString(), last_message_preview: content.slice(0, 80),
     created_by: session.id,
   }).select('id').single();
@@ -68,6 +82,19 @@ export async function createThreadAction(
     thread_id: thread.id, sender_id: session.id, sender_name: session.full_name, content, is_read_by: [session.id],
   });
   await writeAudit({ userId: session.id, action: 'CREATE_THREAD', tableName: 'message_threads', recordId: thread.id, newData: { subject } });
+
+  // Push-notify recipients (best-effort).
+  try {
+    const { sendPushToUser } = await import('@/lib/push');
+    await Promise.all(recipientIds.map((rid) =>
+      sendPushToUser(supabase as unknown as Parameters<typeof sendPushToUser>[0], rid, {
+        title: `SIGEP — Nouveau message de ${session.full_name}`,
+        body: subject,
+        url: `/sigep/dashboard/messagerie/${thread.id}`,
+        tag: `thread-${thread.id}`,
+      })));
+  } catch {}
+
   revalidatePath('/sigep/dashboard/messagerie');
   return { success: true };
 }
@@ -110,18 +137,34 @@ export async function sendMessageAction(
   const { createAdminClient } = await import('@/lib/supabase/admin');
   const supabase = createAdminClient();
   if (!supabase) return { error: 'Base de données indisponible' };
+
+  // Membership check: only participants may post (was open to any thread id).
+  const { data: t } = await supabase.from('message_threads').select('participant_ids, subject').eq('id', thread_id).maybeSingle();
+  if (!t) return { error: 'Fil introuvable' };
+  const participants = (t.participant_ids as string[] | null) ?? [];
+  if (!participants.includes(session.id)) return { error: 'Vous ne participez pas à ce fil' };
+
   const { error } = await supabase.from('messages').insert({
     thread_id, sender_id: session.id, sender_name: session.full_name, content, is_read_by: [session.id],
   });
   if (error) return { error: "Échec de l'envoi" };
-  // Bump the thread preview/timestamp and make sure the sender is a participant.
-  const { data: t } = await supabase.from('message_threads').select('participant_ids').eq('id', thread_id).single();
-  const participants = Array.from(new Set<string>([...((t?.participant_ids as string[] | null) ?? []), session.id]));
   await supabase.from('message_threads').update({
     last_message_at: new Date().toISOString(),
     last_message_preview: content.slice(0, 80),
-    participant_ids: participants,
   }).eq('id', thread_id);
+
+  // Push-notify the other participants (best-effort).
+  try {
+    const { sendPushToUser } = await import('@/lib/push');
+    await Promise.all(participants.filter((p) => p !== session.id).map((rid) =>
+      sendPushToUser(supabase as unknown as Parameters<typeof sendPushToUser>[0], rid, {
+        title: `SIGEP — ${session.full_name}`,
+        body: content.slice(0, 120),
+        url: `/sigep/dashboard/messagerie/${thread_id}`,
+        tag: `thread-${thread_id}`,
+      })));
+  } catch {}
+
   revalidatePath(`/sigep/dashboard/messagerie/${thread_id}`);
   revalidatePath('/sigep/dashboard/messagerie');
   return null;

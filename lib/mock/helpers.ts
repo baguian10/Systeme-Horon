@@ -255,6 +255,32 @@ export async function fetchOperationalUsers(): Promise<User[]> {
   return (data ?? []) as User[];
 }
 
+export interface MessagingRecipient {
+  id: string;
+  full_name: string;
+  role: UserRole;
+}
+
+// Active users addressable in the internal messaging (everyone except self).
+export async function fetchMessagingRecipients(excludeId: string): Promise<MessagingRecipient[]> {
+  if (IS_DEMO_MODE) {
+    return MOCK_USERS
+      .filter((u) => u.is_active && u.id !== excludeId)
+      .map((u) => ({ id: u.id, full_name: u.full_name, role: u.role }));
+  }
+  const { createAdminClient } = await import('@/lib/supabase/admin');
+  const supabase = createAdminClient();
+  if (!supabase) return [];
+  const { data } = await supabase
+    .from('users')
+    .select('id, full_name, role')
+    .eq('is_active', true)
+    .neq('id', excludeId)
+    .order('full_name', { ascending: true })
+    .limit(300);
+  return (data ?? []) as MessagingRecipient[];
+}
+
 export async function fetchCaseAssignments(caseId: string): Promise<Array<User & { assigned_at: string }>> {
   if (IS_DEMO_MODE) {
     return MOCK_CASE_ASSIGNMENTS
