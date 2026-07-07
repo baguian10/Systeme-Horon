@@ -452,7 +452,7 @@ export async function fetchTigSites(): Promise<TigSite[]> {
   const [{ data: sitesData }, { data: caseRows }] = await Promise.all([
     supabase.from('tig_sites').select('*').order('name', { ascending: true }).limit(500),
     supabase.from('cases').select('tig_site_id').not('tig_site_id', 'is', null)
-      .in('status', ['ACTIVE', 'VIOLATION']),
+      .in('status', ['ACTIVE', 'VIOLATION']).limit(2000),
   ]);
   const countMap = new Map<string, number>();
   for (const c of (caseRows ?? []) as { tig_site_id: string }[]) {

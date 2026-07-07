@@ -123,7 +123,7 @@ export default function TigTrackingPanel({
     });
   }
 
-  function handleDeleteRecord(id: string, hours: number) {
+  function handleDeleteRecord(id: string) {
     if (!confirm('Supprimer ce pointage ?')) return;
     const fd = new FormData();
     fd.set('id', id);
@@ -259,6 +259,9 @@ export default function TigTrackingPanel({
         {canAssign && !siteId && (
           <p className="text-xs text-amber-600">Affectez un site pour pouvoir enregistrer des pointages.</p>
         )}
+        {!canAssign && canLogAttendance && !siteId && (
+          <p className="text-xs text-gray-400 italic">Aucun site TIG affecté à ce dossier. Contactez le juge responsable.</p>
+        )}
 
         {showForm && siteId && (
           <form onSubmit={handleAddAttendance} className="border border-emerald-100 rounded-xl p-3 space-y-2 bg-emerald-50/40">
@@ -317,7 +320,7 @@ export default function TigTrackingPanel({
                       <span className="text-xs font-bold text-emerald-700 whitespace-nowrap">{a.hours_worked}h</span>
                       {canDeleteRecord(a) && (
                         <button
-                          onClick={() => handleDeleteRecord(a.id, a.hours_worked)}
+                          onClick={() => handleDeleteRecord(a.id)}
                           disabled={pointPending}
                           title="Supprimer ce pointage"
                           className="opacity-0 group-hover:opacity-100 text-gray-300 hover:text-red-500 disabled:opacity-40 transition-opacity"

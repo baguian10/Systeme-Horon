@@ -26,7 +26,8 @@ function canManage(session: Session) {
 
 function parseCapacity(raw: FormDataEntryValue | null): number {
   const n = parseInt(raw as string, 10);
-  return Number.isFinite(n) && n >= 1 ? n : 1;
+  // Server-side cap: max 500 regardless of what the client sends
+  return Number.isFinite(n) && n >= 1 && n <= 500 ? n : 1;
 }
 
 // ── Create ───────────────────────────────────────────────────────────────────
@@ -119,6 +120,7 @@ export async function updateTigSiteAction(formData: FormData): Promise<{ error: 
     const s = MOCK_TIG_SITES.find((x) => x.id === id);
     if (s) Object.assign(s, { name, category, address, arrondissement, contact_name, contact_phone, capacity, hours, latitude, longitude });
     revalidatePath('/sigep/dashboard/tig-sites');
+    revalidatePath(`/sigep/dashboard/tig-sites/${id}`);
     return;
   }
 
@@ -151,9 +153,17 @@ export async function deleteTigSiteAction(formData: FormData): Promise<{ error: 
   if (!id) return { error: 'ID manquant' };
 
   if (isDemoMode()) {
-    const { MOCK_TIG_SITES } = await import('@/lib/mock/data');
+    const { MOCK_TIG_SITES, MOCK_CASES, MOCK_TIG_ATTENDANCE } = await import('@/lib/mock/data');
+    const occ = MOCK_CASES.filter((c) =>
+      c.tig_site_id === id && ['ACTIVE', 'VIOLATION', 'SUSPENDED'].includes(c.status)
+    ).length;
+    if (occ > 0) return { error: `${occ} dossier(s) TIG actif(s) affecté(s) à ce site. Réaffectez-les avant suppression.` };
+    const attCount = MOCK_TIG_ATTENDANCE.filter((a) => a.tig_site_id === id).length;
+    if (attCount > 0) return { error: `${attCount} pointage(s) historique(s) référencent ce site.` };
     const idx = MOCK_TIG_SITES.findIndex((s) => s.id === id);
     if (idx !== -1) MOCK_TIG_SITES.splice(idx, 1);
+    // Clean dangling tig_site_id on terminated/archived cases
+    for (const c of MOCK_CASES) { if (c.tig_site_id === id) c.tig_site_id = undefined; }
     revalidatePath('/sigep/dashboard/tig-sites');
     return;
   }
@@ -180,7 +190,7 @@ export async function deleteTigSiteAction(formData: FormData): Promise<{ error: 
   revalidatePath('/sigep/dashboard/tig-sites');
 }
 
-// ── Toggle (now returns error if active occupants when deactivating) ──────────
+// ── Toggle (returns error if active occupants when deactivating) ──────────────
 
 export async function toggleTigSiteAction(formData: FormData): Promise<{ error: string } | void> {
   const session = await getSession();
@@ -201,6 +211,7 @@ export async function toggleTigSiteAction(formData: FormData): Promise<{ error: 
     const s = MOCK_TIG_SITES.find((s) => s.id === site_id);
     if (s) s.is_active = !is_active;
     revalidatePath('/sigep/dashboard/tig-sites');
+    revalidatePath(`/sigep/dashboard/tig-sites/${site_id}`);
     return;
   }
 
@@ -223,6 +234,7 @@ export async function toggleTigSiteAction(formData: FormData): Promise<{ error: 
     tableName: 'tig_sites', recordId: site_id,
   });
   revalidatePath('/sigep/dashboard/tig-sites');
+  revalidatePath(`/sigep/dashboard/tig-sites/${site_id}`);
 }
 
 // ── Case ↔ site assignment ───────────────────────────────────────────────────
@@ -236,10 +248,19 @@ export async function assignCaseTigSiteAction(formData: FormData): Promise<{ err
   if (!case_id) return { error: 'Dossier manquant' };
 
   if (isDemoMode()) {
-    const { MOCK_CASES } = await import('@/lib/mock/data');
+    const { MOCK_CASES, MOCK_TIG_SITES } = await import('@/lib/mock/data');
     const c = MOCK_CASES.find((x) => x.id === case_id);
     if (!c) return { error: 'Dossier introuvable' };
     if (c.measure_kind !== 'TIG') return { error: 'Ce dossier n\'est pas de type TIG' };
+    if (tig_site_id) {
+      const site = MOCK_TIG_SITES.find((s) => s.id === tig_site_id);
+      if (!site) return { error: 'Site introuvable' };
+      if (!site.is_active) return { error: 'Ce site est désactivé. Choisissez un site actif.' };
+      const occ = MOCK_CASES.filter((x) =>
+        x.tig_site_id === tig_site_id && ['ACTIVE', 'VIOLATION'].includes(x.status)
+      ).length;
+      if (occ >= site.capacity) return { error: `Ce site est complet (${occ}/${site.capacity} places).` };
+    }
     c.tig_site_id = tig_site_id ?? undefined;
     revalidatePath(`/sigep/dashboard/cases/${case_id}`);
     return;
@@ -247,9 +268,23 @@ export async function assignCaseTigSiteAction(formData: FormData): Promise<{ err
 
   const supabase = await getSupabase();
   if (!supabase) return { error: 'Base de données indisponible' };
+
   const { data: caseRow } = await supabase.from('cases').select('measure_kind').eq('id', case_id).single();
   if (!caseRow) return { error: 'Dossier introuvable' };
   if (caseRow.measure_kind !== 'TIG') return { error: 'Ce dossier n\'est pas de type TIG' };
+
+  if (tig_site_id) {
+    const { data: siteRow } = await supabase.from('tig_sites')
+      .select('is_active, capacity').eq('id', tig_site_id).single();
+    if (!siteRow) return { error: 'Site introuvable' };
+    if (!siteRow.is_active) return { error: 'Ce site est désactivé. Choisissez un site actif.' };
+    const { count: occ } = await supabase.from('cases')
+      .select('id', { count: 'exact', head: true })
+      .eq('tig_site_id', tig_site_id).in('status', ['ACTIVE', 'VIOLATION']);
+    if ((occ ?? 0) >= siteRow.capacity) {
+      return { error: `Ce site est complet (${occ}/${siteRow.capacity} places).` };
+    }
+  }
 
   const { error } = await supabase.from('cases').update({ tig_site_id }).eq('id', case_id);
   if (error) return { error: 'Erreur lors de l\'affectation' };
@@ -265,8 +300,8 @@ export async function updateTigHoursOrderedAction(formData: FormData): Promise<{
 
   const case_id           = formData.get('case_id') as string;
   const tig_hours_ordered = parseInt(formData.get('tig_hours_ordered') as string, 10);
-  if (!case_id || isNaN(tig_hours_ordered) || tig_hours_ordered < 1) {
-    return { error: 'Nombre d\'heures invalide' };
+  if (!case_id || isNaN(tig_hours_ordered) || tig_hours_ordered < 1 || tig_hours_ordered > 9999) {
+    return { error: 'Nombre d\'heures invalide (1–9999)' };
   }
 
   if (isDemoMode()) {
@@ -322,6 +357,7 @@ export async function addTigAttendanceAction(formData: FormData): Promise<{ erro
     });
     if (c) c.tig_hours_completed = (c.tig_hours_completed ?? 0) + hours_worked;
     revalidatePath(`/sigep/dashboard/cases/${case_id}`);
+    revalidatePath(`/sigep/dashboard/tig-sites/${tig_site_id}`);
     return { id: newId };
   }
 
@@ -358,8 +394,13 @@ export async function addTigAttendanceAction(formData: FormData): Promise<{ erro
   const total = (allSessions ?? []).reduce((acc: number, r: { hours_worked: number }) => acc + r.hours_worked, 0);
   await supabase.from('cases').update({ tig_hours_completed: total }).eq('id', case_id);
 
-  // Push notification to judge when TIG is complete
-  if (caseRow?.judge_id && caseRow.tig_hours_ordered && total >= caseRow.tig_hours_ordered) {
+  // Push only on threshold crossing (not on every session after completion)
+  if (
+    caseRow?.judge_id &&
+    caseRow.tig_hours_ordered &&
+    total >= caseRow.tig_hours_ordered &&
+    (total - hours_worked) < caseRow.tig_hours_ordered
+  ) {
     const { sendPushToUser } = await import('@/lib/push');
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await sendPushToUser(supabase as any, caseRow.judge_id, {
@@ -372,6 +413,7 @@ export async function addTigAttendanceAction(formData: FormData): Promise<{ erro
 
   await writeAudit({ userId: session.id, action: 'ADD_TIG_ATTENDANCE', tableName: 'tig_attendance', recordId: data.id, newData: { case_id, session_date, hours_worked } });
   revalidatePath(`/sigep/dashboard/cases/${case_id}`);
+  revalidatePath(`/sigep/dashboard/tig-sites/${tig_site_id}`);
   return { id: data.id };
 }
 
@@ -400,21 +442,25 @@ export async function deleteTigAttendanceAction(formData: FormData): Promise<{ e
       }
     }
     const hours = rec.hours_worked;
+    const tigSiteId = rec.tig_site_id;
     MOCK_TIG_ATTENDANCE.splice(idx, 1);
     const c = MOCK_CASES.find((x) => x.id === case_id);
     if (c) c.tig_hours_completed = Math.max(0, (c.tig_hours_completed ?? 0) - hours);
     revalidatePath(`/sigep/dashboard/cases/${case_id}`);
+    if (tigSiteId) revalidatePath(`/sigep/dashboard/tig-sites/${tigSiteId}`);
     return;
   }
 
   const supabase = await getSupabase();
   if (!supabase) return { error: 'Base de données indisponible' };
 
-  // OPERATIONAL: verify ownership before delete
+  // Always fetch first — ownership check for OPERATIONAL + tig_site_id for revalidation
+  const { data: rec } = await supabase.from('tig_attendance')
+    .select('created_by, session_date, tig_site_id')
+    .eq('id', id).eq('case_id', case_id).single();
+  if (!rec) return { error: 'Pointage introuvable' };
+
   if (!isJudicial) {
-    const { data: rec } = await supabase.from('tig_attendance')
-      .select('created_by, session_date').eq('id', id).eq('case_id', case_id).single();
-    if (!rec) return { error: 'Pointage introuvable' };
     if (rec.created_by !== session.id || (rec.session_date as string) !== today) {
       return { error: 'Vous ne pouvez supprimer que vos propres pointages du jour.' };
     }
@@ -431,4 +477,5 @@ export async function deleteTigAttendanceAction(formData: FormData): Promise<{ e
 
   await writeAudit({ userId: session.id, action: 'DELETE_TIG_ATTENDANCE', tableName: 'tig_attendance', recordId: id });
   revalidatePath(`/sigep/dashboard/cases/${case_id}`);
+  if (rec.tig_site_id) revalidatePath(`/sigep/dashboard/tig-sites/${rec.tig_site_id as string}`);
 }

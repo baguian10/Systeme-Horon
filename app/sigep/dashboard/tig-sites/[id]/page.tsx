@@ -11,6 +11,7 @@ import { fetchTigSiteDetail } from '@/lib/mock/helpers';
 import type { TigSiteCategory } from '@/lib/supabase/types';
 
 export const revalidate = 0;
+export const metadata = { title: 'Détail site TIG — SIGEP' };
 
 const CAT_META: Record<TigSiteCategory, { label: string; icon: typeof TreePine; color: string; bg: string }> = {
   MAIRIE:      { label: 'Mairie / Administration', icon: Landmark,      color: 'text-slate-600',   bg: 'bg-slate-100' },
@@ -221,6 +222,11 @@ export default async function TigSiteDetailPage({ params }: { params: Promise<{ 
             {attendance.length > 0 && <span className="font-normal text-gray-400 ml-1">({attendance.length})</span>}
           </h3>
         </div>
+        {attendance.length >= 200 && (
+          <p className="px-5 py-2 text-xs text-amber-700 bg-amber-50 border-b border-amber-100">
+            Affichage limité aux 200 dernières sessions — les plus anciennes ne sont pas visibles ici.
+          </p>
+        )}
         {attendance.length === 0 ? (
           <p className="px-5 py-8 text-sm text-gray-400 text-center">Aucun pointage enregistré pour ce site.</p>
         ) : (
