@@ -6,7 +6,7 @@ import { CheckCircle, ChevronDown, ChevronRight as ChevronRightIcon, MapPin } fr
 import { AlertTypeBadge, SeverityDot } from '@/components/ui/StatusBadge';
 import AlertActions from '@/components/alerts/AlertActions';
 import MiniPositionMapLoader from '@/components/devices/MiniPositionMapLoader';
-import { reopenAlertAction } from '@/app/sigep/dashboard/alerts/actions';
+import { reopenAlertAction, deleteAlertAction } from '@/app/sigep/dashboard/alerts/actions';
 import type { Alert, AlertStatus, AlertType } from '@/lib/supabase/types';
 
 interface UserOpt { id: string; full_name: string }
@@ -32,6 +32,7 @@ const TYPE_LABELS: Record<AlertType, string> = {
   PANIC_BUTTON:     'Bouton panique',
 };
 
+const OPEN_PER_PAGE     = 20;
 const RESOLVED_PER_PAGE = 20;
 
 function relativeAge(iso: string): string {
@@ -61,11 +62,13 @@ export default function AlertsClient({
   open,
   resolved,
   canResolve,
+  canDelete = false,
   users,
 }: {
   open: Alert[];
   resolved: Alert[];
   canResolve: boolean;
+  canDelete?: boolean;
   users: UserOpt[];
 }) {
   const nameOf = (id?: string | null) => users.find((u) => u.id === id)?.full_name ?? null;
@@ -74,12 +77,14 @@ export default function AlertsClient({
   const [filterType, setFilterType]     = useState('');
   const [filterSev, setFilterSev]       = useState('');
   const [filterStatus, setFilterStatus] = useState('');
+  const [openPage, setOpenPage]         = useState(0);
   const [resolvedPage, setResolvedPage] = useState(0);
   const [expandedId, setExpandedId]     = useState<string | null>(null);
   const [reopenPending, startReopen]    = useTransition();
+  const [deletePending, startDelete]    = useTransition();
 
   // Reset to page 0 when filters change so the user never lands on an empty page.
-  useEffect(() => { setResolvedPage(0); }, [search, filterType, filterSev]);
+  useEffect(() => { setOpenPage(0); setResolvedPage(0); }, [search, filterType, filterSev, filterStatus]);
 
   const filteredOpen = useMemo(() => {
     let list = open;
@@ -109,6 +114,9 @@ export default function AlertsClient({
     if (filterSev)  list = list.filter((a) => a.severity === Number(filterSev));
     return list;
   }, [resolved, search, filterType, filterSev]);
+
+  const openPages = Math.ceil(filteredOpen.length / OPEN_PER_PAGE);
+  const openSlice = filteredOpen.slice(openPage * OPEN_PER_PAGE, (openPage + 1) * OPEN_PER_PAGE);
 
   const resolvedPages = Math.ceil(filteredResolved.length / RESOLVED_PER_PAGE);
   const resolvedSlice = filteredResolved.slice(
@@ -171,7 +179,7 @@ export default function AlertsClient({
 
       {/* Open alerts */}
       <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
-        <div className="px-5 py-4 border-b border-gray-50">
+        <div className="px-5 py-4 border-b border-gray-50 flex items-center justify-between">
           <h3 className="font-semibold text-gray-900">
             Alertes en cours
             {filteredOpen.length !== open.length && (
@@ -180,6 +188,25 @@ export default function AlertsClient({
               </span>
             )}
           </h3>
+          {openPages > 1 && (
+            <div className="flex items-center gap-2 text-xs text-gray-500">
+              <button
+                disabled={openPage === 0}
+                onClick={() => setOpenPage((p) => p - 1)}
+                className="px-2 py-0.5 rounded border disabled:opacity-40 hover:bg-gray-50"
+              >
+                ‹
+              </button>
+              <span>{openPage + 1} / {openPages}</span>
+              <button
+                disabled={openPage >= openPages - 1}
+                onClick={() => setOpenPage((p) => p + 1)}
+                className="px-2 py-0.5 rounded border disabled:opacity-40 hover:bg-gray-50"
+              >
+                ›
+              </button>
+            </div>
+          )}
         </div>
         {filteredOpen.length === 0 ? (
           <div className="px-5 py-8 text-center text-sm text-gray-400">
@@ -199,17 +226,17 @@ export default function AlertsClient({
                   <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Dossier</th>
                   <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide hidden sm:table-cell">Bracelet</th>
                   <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Depuis</th>
-                  {canResolve && <th className="px-5 py-3" />}
+                  {(canResolve || canDelete) && <th className="px-5 py-3" />}
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
-                {filteredOpen.map((alert) => {
+                {openSlice.map((alert) => {
                   const st = (alert.status ?? 'NEW') as AlertStatus;
                   const meta = STATUS_META[st] ?? STATUS_META.NEW;
                   const assignee = nameOf(alert.assigned_to);
                   const expanded = expandedId === alert.id;
                   const hasPos = alert.position_lat != null && alert.position_lon != null;
-                  const colCount = canResolve ? 8 : 7;
+                  const colCount = (canResolve || canDelete) ? 8 : 7;
                   return (
                     <>
                       <tr
@@ -253,9 +280,24 @@ export default function AlertsClient({
                           </span>
                           <div className="text-[10px] text-gray-400">{formatDate(alert.triggered_at)}</div>
                         </td>
-                        {canResolve && (
+                        {(canResolve || canDelete) && (
                           <td className="px-5 py-3.5" onClick={(e) => e.stopPropagation()}>
-                            <AlertActions alertId={alert.id} status={st} assignedTo={alert.assigned_to ?? null} users={users} />
+                            <div className="flex flex-col items-end gap-1">
+                              {canResolve && <AlertActions alertId={alert.id} status={st} assignedTo={alert.assigned_to ?? null} users={users} />}
+                              {canDelete && (
+                                <button
+                                  disabled={deletePending}
+                                  onClick={() => {
+                                    if (!window.confirm('Supprimer définitivement cette alerte ?')) return;
+                                    const fd = new FormData(); fd.set('alertId', alert.id);
+                                    startDelete(() => { deleteAlertAction(fd); });
+                                  }}
+                                  className="text-[11px] text-red-500 hover:text-red-700 disabled:opacity-40"
+                                >
+                                  Supprimer
+                                </button>
+                              )}
+                            </div>
                           </td>
                         )}
                       </tr>
@@ -371,6 +413,19 @@ export default function AlertsClient({
                         className="text-[11px] text-amber-600 hover:text-amber-700 font-medium disabled:opacity-40"
                       >
                         Rouvrir
+                      </button>
+                    )}
+                    {canDelete && (
+                      <button
+                        disabled={deletePending}
+                        onClick={() => {
+                          if (!window.confirm('Supprimer définitivement cette alerte ?')) return;
+                          const fd = new FormData(); fd.set('alertId', alert.id);
+                          startDelete(() => { deleteAlertAction(fd); });
+                        }}
+                        className="text-[11px] text-red-500 hover:text-red-700 disabled:opacity-40"
+                      >
+                        Supprimer
                       </button>
                     )}
                   </div>

@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { getSession } from '@/lib/auth/session';
-import { canResolveAlert, canResolveAlertType } from '@/lib/auth/permissions';
+import { canResolveAlert, canResolveAlertType, canDeleteAlert } from '@/lib/auth/permissions';
 
 // Mirror the canonical IS_DEMO_MODE (lib/supabase/client.ts): demo unless BOTH
 // the URL and anon key are present.
@@ -73,6 +73,28 @@ export async function assignAlertAction(formData: FormData) {
     .eq('id', alertId).eq('is_resolved', false);
   const { writeAudit } = await import('@/lib/audit/log');
   await writeAudit({ userId: session.id, action: 'ASSIGN_ALERT', tableName: 'alerts', recordId: alertId, newData: { assigned_to: userId } });
+  revalidate();
+}
+
+// Hard-delete a spurious/incorrect alert (SUPER_ADMIN / ADMIN only).
+export async function deleteAlertAction(formData: FormData) {
+  const session = await getSession();
+  if (!session || !canDeleteAlert(session.role)) return;
+  const alertId = formData.get('alertId') as string;
+  if (!alertId) return;
+
+  if (isDemoMode()) {
+    const { MOCK_ALERTS } = await import('@/lib/mock/data');
+    const idx = (MOCK_ALERTS as { id: string }[]).findIndex((x) => x.id === alertId);
+    if (idx >= 0) MOCK_ALERTS.splice(idx, 1);
+    revalidate(); return;
+  }
+  const { createAdminClient } = await import('@/lib/supabase/admin');
+  const supabase = createAdminClient();
+  if (!supabase) return;
+  await supabase.from('alerts').delete().eq('id', alertId);
+  const { writeAudit } = await import('@/lib/audit/log');
+  await writeAudit({ userId: session.id, action: 'DELETE_ALERT', tableName: 'alerts', recordId: alertId });
   revalidate();
 }
 

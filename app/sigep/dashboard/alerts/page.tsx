@@ -1,6 +1,6 @@
 import { getSession } from '@/lib/auth/session';
 import { fetchAlerts, fetchOperationalUsers } from '@/lib/mock/helpers';
-import { canResolveAlert } from '@/lib/auth/permissions';
+import { canResolveAlert, canDeleteAlert } from '@/lib/auth/permissions';
 import AutoRefresh from '@/components/common/AutoRefresh';
 import AlertsClient from '@/components/alerts/AlertsClient';
 
@@ -16,6 +16,7 @@ export default async function AlertsPage() {
     fetchOperationalUsers().catch(() => []),
   ]);
   const canResolve = canResolveAlert(session.role);
+  const canDelete  = canDeleteAlert(session.role);
   const userOpts = (operationals ?? []).map((u) => ({ id: u.id, full_name: u.full_name }));
 
   const open     = alerts.filter((a) => !a.is_resolved);
@@ -68,7 +69,7 @@ export default async function AlertsPage() {
         ))}
       </div>
 
-      <AlertsClient open={open} resolved={resolved} canResolve={canResolve} users={userOpts} />
+      <AlertsClient open={open} resolved={resolved} canResolve={canResolve} canDelete={canDelete} users={userOpts} />
     </div>
   );
 }

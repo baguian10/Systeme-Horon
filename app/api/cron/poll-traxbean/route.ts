@@ -114,17 +114,8 @@ export async function GET(request: NextRequest) {
           const { logDeviceEvent } = await import('@/lib/devices/events');
           await logDeviceEvent(supabase, { deviceId: device.id, caseId: device.case_id, type: 'OFFLINE', detail: 'Perte de contact' });
         }
-        if (silentMin >= staleMin && device.case_id) {
-          const mins = Number.isFinite(silentMin) ? Math.round(silentMin) : null;
-          await fetch(`${origin}/api/ingest/alert`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'x-api-key': ingestKey },
-            body: JSON.stringify({
-              imei: device.imei, type: 'SIGNAL_LOST',
-              description: `Réseau : bracelet injoignable — aucune donnée reçue${mins != null ? ` depuis ${mins} min` : ''} (perte GSM/data).`,
-            }),
-          });
-        }
+        // SIGNAL_LOST alert disabled — device offline status is visible in
+        // the bracelet panel and monitoring grid without generating alert noise.
         return { imei: device.imei, ok: false, reason: 'no-fix', online: false };
       }
 
@@ -222,21 +213,7 @@ export async function GET(request: NextRequest) {
             const lostAt = beacon.ble_scan_lost_at ? new Date(beacon.ble_scan_lost_at).getTime() : null;
             if (!lostAt) {
               await supabase.from('beacons').update({ ble_scan_lost_at: new Date().toISOString() }).eq('id', beacon.id);
-            } else if ((Date.now() - lostAt) / 60000 >= 15) {
-              const { count } = await supabase.from('alerts').select('id', { count: 'exact', head: true })
-                .eq('case_id', device.case_id).eq('alert_type', 'SIGNAL_LOST').eq('is_resolved', false);
-              if (!count) {
-                await supabase.from('alerts').insert({
-                  case_id: device.case_id, device_id: device.id, alert_type: 'SIGNAL_LOST', severity: 4,
-                  description: `Surveillance BLE inactive : le bracelet ne scanne plus la balise domicile depuis ${Math.round((Date.now() - lostAt) / 60000)} min — présence non vérifiable.`,
-                  position_lat: live.lat, position_lon: live.lng,
-                });
-                const { data: kase } = await supabase.from('cases').select('judge_id').eq('id', device.case_id).single();
-                if (kase?.judge_id) {
-                  const { data: ju } = await supabase.from('users').select('phone').eq('id', kase.judge_id).single();
-                  if (ju?.phone) { const { sendSms } = await import('@/lib/sms'); await sendSms(ju.phone, 'SIGEP - ALERTE: surveillance BLE domicile inactive (bracelet ne detecte plus la balise). Verifiez.'); }
-                }
-              }
+            // SIGNAL_LOST alert for BLE scan loss disabled — visible on device panel.
             }
           }
         }
@@ -377,10 +354,7 @@ export async function GET(request: NextRequest) {
       if (live.battery !== null && live.battery <= settings.battery_alert_pct) {
         alerts.push({ type: 'BATTERY_LOW', description: `Batterie faible : ${live.battery}%.` });
       }
-      if (live.signal !== null && live.signal <= SIGNAL_LOW) {
-        // Device IS connected but the cellular signal is weak — network, not BLE.
-        alerts.push({ type: 'SIGNAL_LOST', description: `Réseau : signal cellulaire (GSM) faible — ${live.signal} dBm.` });
-      }
+      // SIGNAL_LOST for weak signal disabled — signal strength visible in device telemetry.
       for (const a of alerts) {
         await fetch(`${origin}/api/ingest/alert`, {
           method: 'POST',

@@ -29,6 +29,11 @@ export async function POST(request: NextRequest) {
   if (!imei || !type) {
     return NextResponse.json({ error: 'Missing required fields: imei, type' }, { status: 400 });
   }
+  // SIGNAL_LOST disabled — generates too many false positives (GSM gaps, polling gaps).
+  // Device offline status is visible on the bracelet panel and monitoring grid.
+  if (type === 'SIGNAL_LOST') {
+    return NextResponse.json({ ok: true, skipped: 'SIGNAL_LOST disabled' });
+  }
 
   const isDemoMode = !process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   if (isDemoMode) return NextResponse.json({ ok: true, demo: true });

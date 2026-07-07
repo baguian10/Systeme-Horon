@@ -110,6 +110,7 @@ export const canUpdateCaseStatus  = (role: UserRole) => role === 'JUDGE' || role
 export const canViewCases         = (role: UserRole) => role !== 'STRATEGIC';
 export const canViewRealtime      = (role: UserRole) => role !== 'STRATEGIC';
 export const canResolveAlert      = (role: UserRole) => role !== 'STRATEGIC';
+export const canDeleteAlert       = (role: UserRole) => role === 'SUPER_ADMIN' || role === 'ADMIN';
 export const canViewPII           = (role: UserRole) => role !== 'STRATEGIC';
 
 // ── Devices / hardware (bracelets, BLE, SIM) = technical → SUPER_ADMIN only ──
