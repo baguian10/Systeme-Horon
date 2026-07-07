@@ -31,6 +31,12 @@ export interface EnforceGeofence {
 
 const EARTH_M = 6371000;
 
+// Distance (m) → approximate BLE RSSI threshold. Same path-loss model as
+// poll-traxbean (TX −59 dBm @1m, n=2.5): 3m → −71, 4m → −74, 5m → −76 dBm.
+function distanceToMinRssi(distM: number): number {
+  return Math.round(-59 - 10 * 2.5 * Math.log10(Math.max(1, distM)));
+}
+
 function haversine(aLat: number, aLng: number, bLat: number, bLng: number): number {
   const r = (d: number) => (d * Math.PI) / 180;
   const dLat = r(bLat - aLat);
@@ -140,20 +146,24 @@ export async function enforceGeofences(
   if (hasInclusionZone) {
     const { data: beacon } = await supabase
       .from('beacons')
-      .select('uid, min_rssi')
+      .select('uid, min_rssi, max_distance_m')
       .eq('device_id', deviceId)
       .eq('alarm_enabled', true)
       .maybeSingle();
-    const bUid = (beacon as { uid?: string | null; min_rssi?: number | null } | null)?.uid;
-    if (bUid) {
+    const b = beacon as { uid?: string | null; min_rssi?: number | null; max_distance_m?: number | null } | null;
+    if (b?.uid) {
       const { data: dev } = await supabase.from('devices').select('imei').eq('id', deviceId).maybeSingle();
       const imei = (dev as { imei?: string } | null)?.imei;
       if (imei) {
         const { getLatestBleScan } = await import('@/lib/traxbean/client');
         const scan = await getLatestBleScan(imei);
         if (scan) {
-          const hit = scan.sightings.find((s) => s.mac === bUid.toUpperCase());
-          const minRssi = (beacon as { min_rssi?: number | null }).min_rssi ?? -85;
+          const hit = scan.sightings.find((s) => s.mac === b.uid!.toUpperCase());
+          // Same threshold rule as poll-traxbean: distance-derived when
+          // max_distance_m is set, manual min_rssi as fallback.
+          const minRssi = (b.max_distance_m != null)
+            ? distanceToMinRssi(b.max_distance_m)
+            : (b.min_rssi ?? -85);
           homeBeacon = hit && hit.rssi >= minRssi ? 'in' : 'out';
         }
       }
