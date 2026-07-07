@@ -58,6 +58,7 @@ export function useRealtimeStream(handlers: Handlers): { connected: boolean } {
 
   useEffect(() => {
     // Demo mode: the simulator engine drives the console — no SSE.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (IS_DEMO_MODE) { setConnected(true); return; }
 
     const es = new EventSource('/api/realtime/stream');

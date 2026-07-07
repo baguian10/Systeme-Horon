@@ -65,7 +65,7 @@ function ago(at: string, now: number) {
 }
 
 export default function MonitoringConsole({
-  initialPositions, initialAlerts, initialEvents, operationals, metrics, ingestionLastMs, canResolve, caseInfo = {},
+  initialPositions, initialAlerts, initialEvents, operationals, metrics, ingestionLastMs, canResolve, caseInfo = {}, geofences = [],
 }: {
   initialPositions: LivePosition[];
   initialAlerts: TriageAlert[];
@@ -75,6 +75,7 @@ export default function MonitoringConsole({
   ingestionLastMs: number | null;
   canResolve: boolean;
   caseInfo?: Record<string, CaseCtx>;
+  geofences?: import('./LiveTrackingMap').MapGeofenceLite[];
 }) {
   const [tab, setTab] = useState<'triage' | 'stream'>('triage');
   const [alerts, setAlerts] = useState<TriageAlert[]>(initialAlerts);
@@ -263,7 +264,7 @@ export default function MonitoringConsole({
       <div className="grid grid-cols-1 xl:grid-cols-5 gap-4 h-[calc(100vh-15rem)]">
         {/* Map */}
         <div className="xl:col-span-3 rounded-2xl overflow-hidden border border-gray-100 min-h-[360px]">
-          <LiveMapGrid initialPositions={livePos} />
+          <LiveMapGrid initialPositions={livePos} geofences={geofences} />
         </div>
 
         {/* Triage / Stream */}

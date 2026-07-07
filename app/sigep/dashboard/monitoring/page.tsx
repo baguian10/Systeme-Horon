@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation';
-import { fetchCases, fetchAlerts, fetchOperationalUsers, fetchRecentDeviceEvents, fetchLatestPositions } from '@/lib/mock/helpers';
+import { fetchCases, fetchAlerts, fetchOperationalUsers, fetchRecentDeviceEvents, fetchLatestPositions, fetchGeofences } from '@/lib/mock/helpers';
 import { getSession } from '@/lib/auth/session';
 import type { LivePosition } from '@/hooks/usePositionFeed';
 import type { CaseStatus } from '@/lib/supabase/types';
@@ -15,12 +15,13 @@ export default async function MonitoringPage() {
   if (!session) return null;
   if (session.role === 'STRATEGIC') redirect('/sigep/dashboard'); // aggregate only
 
-  const [cases, alerts, operationals, events, latestPositions] = await Promise.all([
+  const [cases, alerts, operationals, events, latestPositions, geofencesAll] = await Promise.all([
     fetchCases(session.role, session.id),
     fetchAlerts(session.role),
     fetchOperationalUsers().catch(() => []),
     fetchRecentDeviceEvents(60).catch(() => []),
     fetchLatestPositions().catch(() => []),
+    fetchGeofences().catch(() => []),
   ]);
 
   const activeCases = cases.filter((c) => c.status === 'ACTIVE' || c.status === 'VIOLATION');
@@ -102,6 +103,17 @@ export default async function MonitoringPage() {
         ingestionLastMs={ingestionLastMs}
         canResolve={true}
         caseInfo={caseInfo}
+        geofences={geofencesAll
+          .filter((g) => (g as { status?: string }).status !== 'REQUESTED')
+          .map((g) => ({
+            id: g.id, case_id: g.case_id, name: g.name,
+            is_exclusion: g.is_exclusion,
+            shape_type: (g.shape_type ?? 'POLYGON') as 'CIRCLE' | 'POLYGON',
+            center_lat: (g as { center_lat?: number | null }).center_lat ?? null,
+            center_lon: (g as { center_lon?: number | null }).center_lon ?? null,
+            radius_m: (g as { radius_m?: number | null }).radius_m ?? null,
+            area: (g as { area?: { coordinates: number[][][] } | null }).area ?? null,
+          }))}
       />
     </div>
   );
