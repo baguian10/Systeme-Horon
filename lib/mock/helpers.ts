@@ -126,13 +126,21 @@ export async function fetchUsers(role?: UserRole, userId?: string): Promise<User
   type Row = User & { creator?: { full_name?: string } | null };
   const users = ((data ?? []) as Row[]).map((u) => ({ ...u, created_by_name: u.creator?.full_name ?? null }));
 
-  // Per-judge caseload count (super admin view) — needed to gate deletion and
-  // drive the transfer UI. One aggregate read, tallied in memory.
+  // Per-judge caseload count (super admin view) — head:true fetches 0 rows,
+  // all N judge counts run in parallel.
   if (role !== 'JUDGE') {
-    const { data: caseRows } = await supabase.from('cases').select('judge_id');
+    const judgeIds = users.filter((u) => u.role === 'JUDGE').map((u) => u.id);
     const counts = new Map<string, number>();
-    for (const c of (caseRows ?? []) as { judge_id: string | null }[]) {
-      if (c.judge_id) counts.set(c.judge_id, (counts.get(c.judge_id) ?? 0) + 1);
+    if (judgeIds.length > 0) {
+      await Promise.all(
+        judgeIds.map(async (jid) => {
+          const { count } = await supabase
+            .from('cases')
+            .select('id', { count: 'exact', head: true })
+            .eq('judge_id', jid);
+          if (count) counts.set(jid, count);
+        }),
+      );
     }
     return users.map((u) => (u.role === 'JUDGE' ? { ...u, case_count: counts.get(u.id) ?? 0 } : u));
   }
