@@ -147,6 +147,9 @@ export interface Alert {
   assigned_to?: string | null;
   acknowledged_by?: string | null;
   acknowledged_at?: string | null;
+  // Violation episode ended (back in zone / beacon back in range). Alert stays
+  // open — closure remains a manual operator act; this only re-arms dedup.
+  condition_cleared_at?: string | null;
   resolution_category?: ResolutionCategory | null;
   resolution_reason?: string | null;
   case?: Case;

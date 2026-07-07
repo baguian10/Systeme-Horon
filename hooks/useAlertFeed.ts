@@ -29,6 +29,21 @@ export function useAlertFeed(onNewAlert: AlertListener) {
 
     let cleanup: (() => void) | undefined;
 
+    // Seen-id guard so realtime + polling never double-fire the same alert.
+    const seen = new Set<string>();
+    const markSeen = (id: string) => {
+      seen.add(id);
+      if (seen.size > 300) { // cap memory
+        const first = seen.values().next().value;
+        if (first) seen.delete(first);
+      }
+    };
+    const emit = (alert: Alert) => {
+      if (!alert?.id || seen.has(alert.id)) return;
+      markSeen(alert.id);
+      callbackRef.current(alert);
+    };
+
     import('@/lib/supabase/client').then(({ createClient }) => {
       const supabase = createClient();
       if (!supabase) return;
@@ -45,7 +60,7 @@ export function useAlertFeed(onNewAlert: AlertListener) {
           'postgres_changes',
           { event: 'INSERT', schema: 'public', table: 'alerts' },
           (payload) => {
-            callbackRef.current(payload.new as Alert);
+            emit(payload.new as Alert);
           }
         )
         .subscribe();
@@ -53,6 +68,24 @@ export function useAlertFeed(onNewAlert: AlertListener) {
       cleanup = () => { supabase.removeChannel(channel); };
     });
 
-    return () => { cleanup?.(); };
+    // Polling fallback — realtime postgres_changes is RLS-gated and this app
+    // authenticates with its own session (anon key carries no user), so the
+    // channel can stay silent in production. Poll the authenticated feed
+    // every 20 s; the seen-set dedupes against realtime deliveries.
+    let since = new Date().toISOString();
+    const POLL_MS = 20_000;
+    const timer = setInterval(async () => {
+      if (document.visibilityState === 'hidden') return; // don't poll in background tabs
+      try {
+        const res = await fetch(`/api/alerts/feed?since=${encodeURIComponent(since)}`, { cache: 'no-store' });
+        if (!res.ok) return;
+        const body = await res.json() as { alerts: Alert[]; now?: string };
+        for (const a of body.alerts ?? []) emit(a);
+        if (body.now) since = body.now;
+        else if (body.alerts?.length) since = body.alerts[body.alerts.length - 1].triggered_at;
+      } catch { /* transient network error — next tick retries */ }
+    }, POLL_MS);
+
+    return () => { cleanup?.(); clearInterval(timer); };
   }, []);
 }

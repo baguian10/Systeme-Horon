@@ -6,6 +6,7 @@ import {
 import { Volume2, VolumeX } from 'lucide-react';
 import type { Alert, AlertType } from '@/lib/supabase/types';
 import { useAlertFeed } from '@/hooks/useAlertFeed';
+import { playForAlertType, playSound, getAudioCtx } from '@/lib/sound/alertSounds';
 import AlertToast from './AlertToast';
 
 const SOUND_KEY = 'sigep_alert_sound';
@@ -26,68 +27,8 @@ export const useToast = () => useContext(ToastContext);
 const SEVERITY_THRESHOLD_PERSIST = 4; // severity >= 4 stays until dismissed
 const AUTO_DISMISS_MS = 7000;
 
-// Shared AudioContext — browsers block audio until the user has interacted
-// with the page, so we keep ONE context and unlock/resume it on the first
-// user gesture. Without this the alert sound silently never plays.
-let sharedCtx: AudioContext | null = null;
-function getAudioCtx(): AudioContext | null {
-  try {
-    if (!sharedCtx) sharedCtx = new (window.AudioContext || (window as never)['webkitAudioContext'])();
-    if (sharedCtx.state === 'suspended') void sharedCtx.resume();
-    return sharedCtx;
-  } catch { return null; }
-}
-if (typeof window !== 'undefined') {
-  const unlock = () => { getAudioCtx(); };
-  window.addEventListener('pointerdown', unlock);
-  window.addEventListener('keydown', unlock);
-}
-
-// Web Audio API — no external dependency.
-// Severity >= 4 → 2-second police siren (hi-lo two-tone, European style).
-// Severity 3   → single warning tone.
-function playAlertSound(severity: number) {
-  const ctx = getAudioCtx();
-  if (!ctx) return;
-  try {
-    if (severity >= 4) {
-      // Police siren: alternating hi-lo tones (660/470 Hz), 4 × 0.5 s = 2 s.
-      // Sawtooth-filtered timbre reads as "siren", not "notification beep".
-      const SIREN_MS = 2000;
-      const STEP = 0.5; // seconds per tone
-      const t0 = ctx.currentTime;
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      const filter = ctx.createBiquadFilter();
-      filter.type = 'lowpass';
-      filter.frequency.value = 2400;
-      osc.type = 'sawtooth';
-      osc.connect(filter); filter.connect(gain); gain.connect(ctx.destination);
-      // Hi-lo alternation
-      for (let i = 0; i < SIREN_MS / 1000 / STEP; i++) {
-        osc.frequency.setValueAtTime(i % 2 === 0 ? 660 : 470, t0 + i * STEP);
-      }
-      // Envelope: quick attack, sustained, release at the end
-      gain.gain.setValueAtTime(0, t0);
-      gain.gain.linearRampToValueAtTime(0.32, t0 + 0.04);
-      gain.gain.setValueAtTime(0.32, t0 + SIREN_MS / 1000 - 0.12);
-      gain.gain.linearRampToValueAtTime(0, t0 + SIREN_MS / 1000);
-      osc.start(t0);
-      osc.stop(t0 + SIREN_MS / 1000 + 0.05);
-    } else if (severity >= 3) {
-      // Warning: single tone
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.connect(gain); gain.connect(ctx.destination);
-      osc.frequency.value = 660;
-      gain.gain.setValueAtTime(0, ctx.currentTime);
-      gain.gain.linearRampToValueAtTime(0.18, ctx.currentTime + 0.03);
-      gain.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.4);
-      osc.start(ctx.currentTime);
-      osc.stop(ctx.currentTime + 0.45);
-    }
-  } catch {}
-}
+// Sound engine + per-type preferences live in lib/sound/alertSounds — the
+// Notifications section exposes the customization UI, this provider consumes it.
 
 // Browser Push Notification
 async function requestPushNotification(alert: Alert) {
@@ -135,7 +76,7 @@ export default function AlertToastProvider({ children }: { children: React.React
       const next = !prev;
       soundRef.current = next;
       try { window.localStorage.setItem(SOUND_KEY, next ? 'on' : 'off'); } catch {}
-      if (next) { getAudioCtx(); playAlertSound(4); } // unlock + confirm tone
+      if (next) { getAudioCtx(); playSound('beeps'); } // unlock + confirm tone
       return next;
     });
   }, []);
@@ -153,7 +94,7 @@ export default function AlertToastProvider({ children }: { children: React.React
     const id = `toast-${++toastCounter}`;
     setToasts((prev) => [{ id, alert, leaving: false }, ...prev].slice(0, 6));
 
-    if (soundRef.current) playAlertSound(alert.severity);
+    if (soundRef.current) playForAlertType(alert.alert_type);
     requestPushNotification(alert);
 
     if (alert.severity < SEVERITY_THRESHOLD_PERSIST) {

@@ -226,11 +226,13 @@ export async function enforceGeofences(
   if (inclusionZones.length > 0) {
     const insideAny = inclusionZones.some((g) => insideGeofence(lat, lon, g));
     if (insideAny) {
-      // Compliant → auto-resolve any open GEOFENCE_EXIT so the NEXT exit
-      // raises a fresh alert (insertDeduped would otherwise block forever).
+      // Compliant → mark the episode as ENDED on any open GEOFENCE_EXIT.
+      // The alert stays OPEN (closing it is a manual operator act); the
+      // marker only re-arms dedup so the NEXT exit raises a fresh alert.
       await supabase.from('alerts')
-        .update({ is_resolved: true, resolved_at: new Date().toISOString() })
-        .eq('case_id', caseId).eq('alert_type', 'GEOFENCE_EXIT').eq('is_resolved', false);
+        .update({ condition_cleared_at: new Date().toISOString() })
+        .eq('case_id', caseId).eq('alert_type', 'GEOFENCE_EXIT')
+        .eq('is_resolved', false).is('condition_cleared_at', null);
       const ids = inclusionZones.map((g) => g.id);
       await supabase.from('geofences').update({ out_since: null }).in('id', ids).not('out_since', 'is', null);
     } else {
@@ -288,10 +290,12 @@ async function enforceCaseCurfew(
 
   if (atHome) {
     if (curfew.curfew_out_since) await supabase.from('cases').update({ curfew_out_since: null }).eq('id', caseId);
-    // Auto-resolve any open CURFEW_VIOLATION — the condition has cleared.
+    // Episode ended — mark it (alert stays open for manual closure) so the
+    // next curfew breach can raise a fresh alert.
     await supabase.from('alerts')
-      .update({ is_resolved: true, resolved_at: new Date().toISOString() })
-      .eq('case_id', caseId).eq('alert_type', 'CURFEW_VIOLATION').eq('is_resolved', false);
+      .update({ condition_cleared_at: new Date().toISOString() })
+      .eq('case_id', caseId).eq('alert_type', 'CURFEW_VIOLATION')
+      .eq('is_resolved', false).is('condition_cleared_at', null);
     return;
   }
 
@@ -310,7 +314,12 @@ async function enforceCaseCurfew(
   }
 }
 
-/** Insert an alert unless an unresolved one of the same type already exists. */
+/**
+ * Insert an alert unless one of the same type is open with an ONGOING episode
+ * (condition_cleared_at null). A previous alert whose condition already ended
+ * does NOT block — each new violation episode gets its own alert, and closing
+ * alerts remains a manual operator act.
+ */
 async function insertDeduped(
   supabase: Supabase,
   caseId: string,
@@ -325,7 +334,8 @@ async function insertDeduped(
     .select('id', { count: 'exact', head: true })
     .eq('case_id', caseId)
     .eq('alert_type', type)
-    .eq('is_resolved', false);
+    .eq('is_resolved', false)
+    .is('condition_cleared_at', null);
   if (count && count > 0) return false;
 
   await supabase.from('alerts').insert({

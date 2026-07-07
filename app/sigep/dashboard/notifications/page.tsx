@@ -4,6 +4,7 @@ import { getSession } from '@/lib/auth/session';
 import { fetchAlerts } from '@/lib/mock/helpers';
 import NotificationPrefsForm from './NotificationPrefsForm';
 import PushToggle from '@/components/notifications/PushToggle';
+import SoundPrefsForm from '@/components/notifications/SoundPrefsForm';
 import type { AlertType } from '@/lib/supabase/types';
 
 export const metadata = { title: 'Notifications & Escalades — SIGEP' };
@@ -72,6 +73,9 @@ export default async function NotificationsPage() {
             <NotificationPrefsForm initial={initialPrefs} />
             <PushToggle />
           </div>
+
+          {/* Per-type alert sounds (stored on this browser) */}
+          <SoundPrefsForm />
 
           {/* Escalation logic */}
           <div className="bg-white rounded-2xl border border-gray-100 p-5">

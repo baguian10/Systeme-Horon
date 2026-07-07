@@ -270,12 +270,15 @@ export async function GET(request: NextRequest) {
             // BLE mode raises the distinct BLE_EXIT type so it never dedupes
             // against a GPS geofence exit; GPS/BOTH keep GEOFENCE_EXIT.
             const alertType = mode === 'BLE' ? 'BLE_EXIT' : 'GEOFENCE_EXIT';
+            // Dedup only against an OPEN alert whose episode is still running.
+            // A past alert (condition cleared) never blocks a new episode.
             const { count } = await supabase
               .from('alerts')
               .select('id', { count: 'exact', head: true })
               .eq('case_id', device.case_id)
               .eq('alert_type', alertType)
-              .eq('is_resolved', false);
+              .eq('is_resolved', false)
+              .is('condition_cleared_at', null);
             if (!count) {
               const detail = mode === 'BLE'
                 ? `Sortie du périmètre domicile (balise BLE hors de portée) depuis ${beacon.grace_minutes} min.`
@@ -297,10 +300,12 @@ export async function GET(request: NextRequest) {
           }
         } else if (away === false) {
           if (beacon.out_since) await supabase.from('beacons').update({ out_since: null }).eq('id', beacon.id);
-          // Auto-resolve open BLE_EXIT — condition cleared, next exit must trigger fresh alert.
+          // Episode ended — mark it (alert stays OPEN, closure is manual);
+          // this re-arms dedup so the next exit raises a fresh alert.
           await supabase.from('alerts')
-            .update({ is_resolved: true, resolved_at: new Date().toISOString() })
-            .eq('case_id', device.case_id).eq('alert_type', 'BLE_EXIT').eq('is_resolved', false);
+            .update({ condition_cleared_at: new Date().toISOString() })
+            .eq('case_id', device.case_id).eq('alert_type', 'BLE_EXIT')
+            .eq('is_resolved', false).is('condition_cleared_at', null);
         }
         // away === null (no BLE data yet) → leave the grace clock untouched.
       }
@@ -314,13 +319,22 @@ export async function GET(request: NextRequest) {
         worn = wr ? wr.worn : null;
       }
       await supabase.from('devices').update({ worn, worn_checked_at: new Date().toISOString() }).eq('id', device.id);
+      if (worn === true) {
+        // Bracelet back on the body — end any open TAMPER episode (alert stays
+        // open for manual review; a NEW removal will raise a fresh alert).
+        await supabase.from('alerts')
+          .update({ condition_cleared_at: new Date().toISOString() })
+          .eq('case_id', device.case_id).eq('alert_type', 'TAMPER_DETECTED')
+          .eq('is_resolved', false).is('condition_cleared_at', null);
+      }
       if (worn === false) {
         const { count } = await supabase
           .from('alerts')
           .select('id', { count: 'exact', head: true })
           .eq('case_id', device.case_id)
           .eq('alert_type', 'TAMPER_DETECTED')
-          .eq('is_resolved', false);
+          .eq('is_resolved', false)
+          .is('condition_cleared_at', null);
         if (!count) {
           await supabase.from('alerts').insert({
             case_id: device.case_id, device_id: device.id,

@@ -273,6 +273,13 @@ export default function AlertsClient({
                           <span className={`inline-block px-2 py-0.5 rounded-full text-[11px] font-medium ${meta.cls}`}>
                             {meta.label}
                           </span>
+                          {['GEOFENCE_EXIT', 'BLE_EXIT', 'CURFEW_VIOLATION', 'TAMPER_DETECTED'].includes(alert.alert_type) && (
+                            alert.condition_cleared_at ? (
+                              <div className="text-[10px] text-emerald-600 mt-0.5">↩ Condition levée {relativeAge(alert.condition_cleared_at)}</div>
+                            ) : (
+                              <div className="text-[10px] text-red-500 mt-0.5">● Épisode en cours</div>
+                            )
+                          )}
                           {assignee && <div className="text-[11px] text-gray-400 mt-0.5">→ {assignee}</div>}
                         </td>
                         <td className="px-5 py-3.5 max-w-xs">
