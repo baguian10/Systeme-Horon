@@ -83,6 +83,18 @@ export async function fetchCaseById(id: string): Promise<Case | null> {
   return caseRow;
 }
 
+export async function fetchOpenAlertCount(_role: UserRole): Promise<number> {
+  if (IS_DEMO_MODE) return (MOCK_ALERTS as Alert[]).filter((a) => !a.is_resolved).length;
+  const { createClient } = await import('@/lib/supabase/server');
+  const supabase = await createClient();
+  if (!supabase) return 0;
+  const { count } = await supabase
+    .from('alerts')
+    .select('*', { count: 'exact', head: true })
+    .eq('is_resolved', false);
+  return count ?? 0;
+}
+
 export async function fetchAlerts(_role: UserRole): Promise<Alert[]> {
   if (IS_DEMO_MODE) return MOCK_ALERTS;
   const { createClient } = await import('@/lib/supabase/server');

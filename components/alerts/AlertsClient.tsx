@@ -2,9 +2,10 @@
 
 import { useState, useMemo } from 'react';
 import Link from 'next/link';
-import { CheckCircle } from 'lucide-react';
+import { CheckCircle, ChevronDown, ChevronRight as ChevronRightIcon, MapPin } from 'lucide-react';
 import { AlertTypeBadge, SeverityDot } from '@/components/ui/StatusBadge';
 import AlertActions from '@/components/alerts/AlertActions';
+import MiniPositionMapLoader from '@/components/devices/MiniPositionMapLoader';
 import type { Alert, AlertStatus, AlertType } from '@/lib/supabase/types';
 
 interface UserOpt { id: string; full_name: string }
@@ -68,11 +69,12 @@ export default function AlertsClient({
 }) {
   const nameOf = (id?: string | null) => users.find((u) => u.id === id)?.full_name ?? null;
 
-  const [search, setSearch]           = useState('');
-  const [filterType, setFilterType]   = useState('');
-  const [filterSev, setFilterSev]     = useState('');
+  const [search, setSearch]             = useState('');
+  const [filterType, setFilterType]     = useState('');
+  const [filterSev, setFilterSev]       = useState('');
   const [filterStatus, setFilterStatus] = useState('');
   const [resolvedPage, setResolvedPage] = useState(0);
+  const [expandedId, setExpandedId]     = useState<string | null>(null);
 
   const filteredOpen = useMemo(() => {
     let list = open;
@@ -200,50 +202,86 @@ export default function AlertsClient({
                   const st = (alert.status ?? 'NEW') as AlertStatus;
                   const meta = STATUS_META[st] ?? STATUS_META.NEW;
                   const assignee = nameOf(alert.assigned_to);
+                  const expanded = expandedId === alert.id;
+                  const hasPos = alert.position_lat != null && alert.position_lon != null;
+                  const colCount = canResolve ? 8 : 7;
                   return (
-                    <tr key={alert.id} className="hover:bg-gray-50/50 transition-colors">
-                      <td className="px-5 py-3.5">
-                        <div className="flex items-center gap-2">
-                          <SeverityDot level={alert.severity} />
-                          <span className="text-xs text-gray-500">{SEVERITY_LABEL[alert.severity]}</span>
-                        </div>
-                      </td>
-                      <td className="px-5 py-3.5"><AlertTypeBadge type={alert.alert_type} /></td>
-                      <td className="px-5 py-3.5">
-                        <span className={`inline-block px-2 py-0.5 rounded-full text-[11px] font-medium ${meta.cls}`}>
-                          {meta.label}
-                        </span>
-                        {assignee && <div className="text-[11px] text-gray-400 mt-0.5">→ {assignee}</div>}
-                      </td>
-                      <td className="px-5 py-3.5 max-w-xs">
-                        <p className="text-xs text-gray-600 line-clamp-2">{alert.description ?? '—'}</p>
-                      </td>
-                      <td className="px-5 py-3.5">
-                        <Link href={`/sigep/dashboard/cases/${alert.case_id}`} className="text-xs text-blue-600 hover:underline font-mono">
-                          {alert.case?.case_number ?? alert.case_id.slice(0, 8)}
-                        </Link>
-                      </td>
-                      <td className="px-5 py-3.5 hidden sm:table-cell">
-                        {alert.device_id ? (
-                          <Link href={`/sigep/dashboard/devices/${alert.device_id}`} className="text-xs text-blue-600 hover:underline font-mono">
-                            …{alert.device?.imei?.slice(-6) ?? alert.device_id.slice(0, 6)}
-                          </Link>
-                        ) : (
-                          <span className="text-xs text-gray-400">—</span>
-                        )}
-                      </td>
-                      <td className="px-5 py-3.5 whitespace-nowrap">
-                        <span className={`text-xs ${ageColor(alert.triggered_at, alert.severity)}`}>
-                          {relativeAge(alert.triggered_at)}
-                        </span>
-                        <div className="text-[10px] text-gray-400">{formatDate(alert.triggered_at)}</div>
-                      </td>
-                      {canResolve && (
+                    <>
+                      <tr
+                        key={alert.id}
+                        onClick={() => setExpandedId(expanded ? null : alert.id)}
+                        className="hover:bg-gray-50/50 transition-colors cursor-pointer"
+                      >
                         <td className="px-5 py-3.5">
-                          <AlertActions alertId={alert.id} status={st} assignedTo={alert.assigned_to ?? null} users={users} />
+                          <div className="flex items-center gap-2">
+                            <SeverityDot level={alert.severity} />
+                            <span className="text-xs text-gray-500">{SEVERITY_LABEL[alert.severity]}</span>
+                          </div>
                         </td>
+                        <td className="px-5 py-3.5"><AlertTypeBadge type={alert.alert_type} /></td>
+                        <td className="px-5 py-3.5">
+                          <span className={`inline-block px-2 py-0.5 rounded-full text-[11px] font-medium ${meta.cls}`}>
+                            {meta.label}
+                          </span>
+                          {assignee && <div className="text-[11px] text-gray-400 mt-0.5">→ {assignee}</div>}
+                        </td>
+                        <td className="px-5 py-3.5 max-w-xs">
+                          <p className="text-xs text-gray-600 line-clamp-2">{alert.description ?? '—'}</p>
+                        </td>
+                        <td className="px-5 py-3.5">
+                          <Link href={`/sigep/dashboard/cases/${alert.case_id}`} onClick={(e) => e.stopPropagation()} className="text-xs text-blue-600 hover:underline font-mono">
+                            {alert.case?.case_number ?? alert.case_id.slice(0, 8)}
+                          </Link>
+                        </td>
+                        <td className="px-5 py-3.5 hidden sm:table-cell">
+                          {alert.device_id ? (
+                            <Link href={`/sigep/dashboard/devices/${alert.device_id}`} onClick={(e) => e.stopPropagation()} className="text-xs text-blue-600 hover:underline font-mono">
+                              …{alert.device?.imei?.slice(-6) ?? alert.device_id.slice(0, 6)}
+                            </Link>
+                          ) : (
+                            <span className="text-xs text-gray-400">—</span>
+                          )}
+                        </td>
+                        <td className="px-5 py-3.5 whitespace-nowrap">
+                          <span className={`text-xs ${ageColor(alert.triggered_at, alert.severity)}`}>
+                            {relativeAge(alert.triggered_at)}
+                          </span>
+                          <div className="text-[10px] text-gray-400">{formatDate(alert.triggered_at)}</div>
+                        </td>
+                        {canResolve && (
+                          <td className="px-5 py-3.5" onClick={(e) => e.stopPropagation()}>
+                            <AlertActions alertId={alert.id} status={st} assignedTo={alert.assigned_to ?? null} users={users} />
+                          </td>
+                        )}
+                      </tr>
+                      {expanded && (
+                        <tr key={`${alert.id}-expand`} className="bg-blue-50/40 border-b border-blue-100">
+                          <td colSpan={colCount} className="px-5 py-4">
+                            <div className="flex gap-4 flex-wrap">
+                              <div className="flex-1 min-w-0 space-y-1.5">
+                                <p className="text-xs font-medium text-gray-700">Description complète</p>
+                                <p className="text-sm text-gray-600">{alert.description ?? '—'}</p>
+                                {hasPos && (
+                                  <p className="text-[11px] text-gray-400 flex items-center gap-1">
+                                    <MapPin className="w-3 h-3" />
+                                    {alert.position_lat!.toFixed(5)}, {alert.position_lon!.toFixed(5)}
+                                  </p>
+                                )}
+                              </div>
+                              {hasPos && (
+                                <div className="w-64 h-40 rounded-lg overflow-hidden border border-gray-200 flex-shrink-0">
+                                  <MiniPositionMapLoader
+                                    lat={alert.position_lat!}
+                                    lng={alert.position_lon!}
+                                    label={alert.case?.case_number ?? ''}
+                                  />
+                                </div>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
                       )}
-                    </tr>
+                    </>
                   );
                 })}
               </tbody>

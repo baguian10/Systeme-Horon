@@ -25,9 +25,10 @@ interface NavItem {
   href:  string;
   label: string;
   icon:  React.ReactNode;
+  badge?: number;
 }
 
-type Sess = { role: UserRole; permissions?: string[] };
+type Sess = { role: UserRole; permissions?: string[]; openAlertCount?: number };
 
 function buildNav(session: Sess): NavItem[] {
   const role = session.role;
@@ -39,7 +40,7 @@ function buildNav(session: Sess): NavItem[] {
     items.push({ href: '/sigep/dashboard/cases',  label: 'Dossiers', icon: <FolderOpen className="w-4 h-4" /> });
   }
   if (allow(session, canViewCases(role), 'alerts')) {
-    items.push({ href: '/sigep/dashboard/alerts', label: 'Alertes',  icon: <Bell className="w-4 h-4" /> });
+    items.push({ href: '/sigep/dashboard/alerts', label: 'Alertes', icon: <Bell className="w-4 h-4" />, badge: session.openAlertCount });
   }
 
   if (allow(session, canViewRealtime(role), 'alerts')) {
@@ -137,9 +138,9 @@ const navItem = {
   visible: { opacity: 1, x: 0, transition: { duration: 0.25, ease: 'easeOut' as const } },
 };
 
-export default function Sidebar({ role, permissions }: { role: UserRole; permissions?: string[] }) {
+export default function Sidebar({ role, permissions, openAlertCount }: { role: UserRole; permissions?: string[]; openAlertCount?: number }) {
   const pathname = usePathname();
-  const nav = buildNav({ role, permissions });
+  const nav = buildNav({ role, permissions, openAlertCount });
 
   function isActive(href: string) {
     if (href === '/sigep/dashboard') return pathname === href;
@@ -214,6 +215,11 @@ export default function Sidebar({ role, permissions }: { role: UserRole; permiss
                   {item.icon}
                 </span>
                 <span className="flex-1">{item.label}</span>
+                {item.badge !== undefined && item.badge > 0 && (
+                  <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 text-[10px] font-bold bg-red-500 text-white rounded-full leading-none">
+                    {item.badge > 99 ? '99+' : item.badge}
+                  </span>
+                )}
                 {active && (
                   <motion.span
                     layoutId="activeIndicator"
