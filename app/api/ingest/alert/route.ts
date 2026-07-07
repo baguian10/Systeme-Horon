@@ -66,17 +66,7 @@ export async function POST(request: NextRequest) {
   //   low, but not every minute. Throttle to at most one every 10 minutes
   //   (regardless of resolution) so it nags at a usable cadence.
   const BATTERY_ALERT_INTERVAL_MIN = 10;
-  if (type === 'SIGNAL_LOST') {
-    const { count } = await supabase
-      .from('alerts')
-      .select('id', { count: 'exact', head: true })
-      .eq('case_id', device.case_id)
-      .eq('alert_type', 'SIGNAL_LOST')
-      .eq('is_resolved', false);
-    if (count && count > 0) {
-      return NextResponse.json({ ok: true, deduped: true });
-    }
-  } else if (type === 'BATTERY_LOW') {
+  if (type === 'BATTERY_LOW') {
     const cutoff = new Date(Date.now() - BATTERY_ALERT_INTERVAL_MIN * 60_000).toISOString();
     const { count } = await supabase
       .from('alerts')

@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useMemo, useEffect, useTransition } from 'react';
+import { Fragment, useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
-import { CheckCircle, ChevronDown, ChevronRight as ChevronRightIcon, MapPin } from 'lucide-react';
+import { CheckCircle, MapPin } from 'lucide-react';
 import { AlertTypeBadge, SeverityDot } from '@/components/ui/StatusBadge';
 import AlertActions from '@/components/alerts/AlertActions';
 import MiniPositionMapLoader from '@/components/devices/MiniPositionMapLoader';
@@ -80,11 +80,28 @@ export default function AlertsClient({
   const [openPage, setOpenPage]         = useState(0);
   const [resolvedPage, setResolvedPage] = useState(0);
   const [expandedId, setExpandedId]     = useState<string | null>(null);
-  const [reopenPending, startReopen]    = useTransition();
-  const [deletePending, startDelete]    = useTransition();
+  const [reopenPending, setReopenPending] = useState(false);
+  const [deletingIds, setDeletingIds]     = useState<Set<string>>(new Set());
 
   // Reset to page 0 when filters change so the user never lands on an empty page.
   useEffect(() => { setOpenPage(0); setResolvedPage(0); }, [search, filterType, filterSev, filterStatus]);
+
+  function handleDelete(alertId: string) {
+    if (!window.confirm('Supprimer définitivement cette alerte ?')) return;
+    setDeletingIds((s) => { const n = new Set(s); n.add(alertId); return n; });
+    const fd = new FormData();
+    fd.set('alertId', alertId);
+    void deleteAlertAction(fd).then(() =>
+      setDeletingIds((s) => { const n = new Set(s); n.delete(alertId); return n; })
+    );
+  }
+
+  function handleReopen(alertId: string) {
+    setReopenPending(true);
+    const fd = new FormData();
+    fd.set('alertId', alertId);
+    void reopenAlertAction(fd).then(() => setReopenPending(false));
+  }
 
   const filteredOpen = useMemo(() => {
     let list = open;
@@ -102,6 +119,8 @@ export default function AlertsClient({
   }, [open, search, filterType, filterSev, filterStatus]);
 
   const filteredResolved = useMemo(() => {
+    // Resolved alerts can never match an open-only status filter.
+    if (filterStatus) return [];
     let list = resolved;
     if (search) {
       const q = search.toLowerCase();
@@ -113,7 +132,7 @@ export default function AlertsClient({
     if (filterType) list = list.filter((a) => a.alert_type === filterType);
     if (filterSev)  list = list.filter((a) => a.severity === Number(filterSev));
     return list;
-  }, [resolved, search, filterType, filterSev]);
+  }, [resolved, search, filterType, filterSev, filterStatus]);
 
   const openPages = Math.ceil(filteredOpen.length / OPEN_PER_PAGE);
   const openSlice = filteredOpen.slice(openPage * OPEN_PER_PAGE, (openPage + 1) * OPEN_PER_PAGE);
@@ -238,9 +257,8 @@ export default function AlertsClient({
                   const hasPos = alert.position_lat != null && alert.position_lon != null;
                   const colCount = (canResolve || canDelete) ? 8 : 7;
                   return (
-                    <>
+                    <Fragment key={alert.id}>
                       <tr
-                        key={alert.id}
                         onClick={() => setExpandedId(expanded ? null : alert.id)}
                         className="hover:bg-gray-50/50 transition-colors cursor-pointer"
                       >
@@ -286,12 +304,8 @@ export default function AlertsClient({
                               {canResolve && <AlertActions alertId={alert.id} status={st} assignedTo={alert.assigned_to ?? null} users={users} />}
                               {canDelete && (
                                 <button
-                                  disabled={deletePending}
-                                  onClick={() => {
-                                    if (!window.confirm('Supprimer définitivement cette alerte ?')) return;
-                                    const fd = new FormData(); fd.set('alertId', alert.id);
-                                    startDelete(() => { deleteAlertAction(fd); });
-                                  }}
+                                  disabled={deletingIds.has(alert.id)}
+                                  onClick={() => handleDelete(alert.id)}
                                   className="text-[11px] text-red-500 hover:text-red-700 disabled:opacity-40"
                                 >
                                   Supprimer
@@ -302,7 +316,7 @@ export default function AlertsClient({
                         )}
                       </tr>
                       {expanded && (
-                        <tr key={`${alert.id}-expand`} className="bg-blue-50/40 border-b border-blue-100">
+                        <tr className="bg-blue-50/40 border-b border-blue-100">
                           <td colSpan={colCount} className="px-5 py-4">
                             <div className="flex gap-4 flex-wrap">
                               <div className="flex-1 min-w-0 space-y-1.5">
@@ -328,7 +342,7 @@ export default function AlertsClient({
                           </td>
                         </tr>
                       )}
-                    </>
+                    </Fragment>
                   );
                 })}
               </tbody>
@@ -405,11 +419,7 @@ export default function AlertsClient({
                     {canResolve && (
                       <button
                         disabled={reopenPending}
-                        onClick={() => {
-                          const fd = new FormData();
-                          fd.set('alertId', alert.id);
-                          startReopen(() => { reopenAlertAction(fd); });
-                        }}
+                        onClick={() => handleReopen(alert.id)}
                         className="text-[11px] text-amber-600 hover:text-amber-700 font-medium disabled:opacity-40"
                       >
                         Rouvrir
@@ -417,12 +427,8 @@ export default function AlertsClient({
                     )}
                     {canDelete && (
                       <button
-                        disabled={deletePending}
-                        onClick={() => {
-                          if (!window.confirm('Supprimer définitivement cette alerte ?')) return;
-                          const fd = new FormData(); fd.set('alertId', alert.id);
-                          startDelete(() => { deleteAlertAction(fd); });
-                        }}
+                        disabled={deletingIds.has(alert.id)}
+                        onClick={() => handleDelete(alert.id)}
                         className="text-[11px] text-red-500 hover:text-red-700 disabled:opacity-40"
                       >
                         Supprimer
