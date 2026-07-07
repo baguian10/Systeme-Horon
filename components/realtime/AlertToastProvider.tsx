@@ -43,31 +43,48 @@ if (typeof window !== 'undefined') {
   window.addEventListener('keydown', unlock);
 }
 
-// Web Audio API — no external dependency. Louder, repeating siren for critical.
+// Web Audio API — no external dependency.
+// Severity >= 4 → 2-second police siren (hi-lo two-tone, European style).
+// Severity 3   → single warning tone.
 function playAlertSound(severity: number) {
   const ctx = getAudioCtx();
   if (!ctx) return;
   try {
-    const beep = (freq: number, start: number, dur: number, vol: number) => {
+    if (severity >= 4) {
+      // Police siren: alternating hi-lo tones (660/470 Hz), 4 × 0.5 s = 2 s.
+      // Sawtooth-filtered timbre reads as "siren", not "notification beep".
+      const SIREN_MS = 2000;
+      const STEP = 0.5; // seconds per tone
+      const t0 = ctx.currentTime;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      const filter = ctx.createBiquadFilter();
+      filter.type = 'lowpass';
+      filter.frequency.value = 2400;
+      osc.type = 'sawtooth';
+      osc.connect(filter); filter.connect(gain); gain.connect(ctx.destination);
+      // Hi-lo alternation
+      for (let i = 0; i < SIREN_MS / 1000 / STEP; i++) {
+        osc.frequency.setValueAtTime(i % 2 === 0 ? 660 : 470, t0 + i * STEP);
+      }
+      // Envelope: quick attack, sustained, release at the end
+      gain.gain.setValueAtTime(0, t0);
+      gain.gain.linearRampToValueAtTime(0.32, t0 + 0.04);
+      gain.gain.setValueAtTime(0.32, t0 + SIREN_MS / 1000 - 0.12);
+      gain.gain.linearRampToValueAtTime(0, t0 + SIREN_MS / 1000);
+      osc.start(t0);
+      osc.stop(t0 + SIREN_MS / 1000 + 0.05);
+    } else if (severity >= 3) {
+      // Warning: single tone
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
       osc.connect(gain); gain.connect(ctx.destination);
-      osc.frequency.value = freq;
-      gain.gain.setValueAtTime(0, ctx.currentTime + start);
-      gain.gain.linearRampToValueAtTime(vol, ctx.currentTime + start + 0.03);
-      gain.gain.linearRampToValueAtTime(0, ctx.currentTime + start + dur);
-      osc.start(ctx.currentTime + start);
-      osc.stop(ctx.currentTime + start + dur + 0.02);
-    };
-    if (severity >= 5) {
-      // Critical: rising/falling siren, 4 sweeps
-      for (let i = 0; i < 4; i++) { beep(740, i * 0.42, 0.18, 0.35); beep(990, i * 0.42 + 0.2, 0.18, 0.35); }
-    } else if (severity >= 4) {
-      // High: triple pulse 880 Hz
-      for (let i = 0; i < 3; i++) beep(880, i * 0.26, 0.16, 0.3);
-    } else if (severity >= 3) {
-      // Warning: single tone
-      beep(660, 0, 0.4, 0.18);
+      osc.frequency.value = 660;
+      gain.gain.setValueAtTime(0, ctx.currentTime);
+      gain.gain.linearRampToValueAtTime(0.18, ctx.currentTime + 0.03);
+      gain.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.4);
+      osc.start(ctx.currentTime);
+      osc.stop(ctx.currentTime + 0.45);
     }
   } catch {}
 }
