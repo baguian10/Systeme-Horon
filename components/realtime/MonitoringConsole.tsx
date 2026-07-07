@@ -39,6 +39,7 @@ function beep(severity: number, muted: boolean) {
 export interface TriageAlert {
   id: string; case_id: string; case_number: string; alert_type: string;
   severity: number; status: string; assigned_to: string | null; triggered_at: string; description: string | null;
+  escalated_at?: string | null; escalated_l2_at?: string | null;
 }
 export interface StreamEvent {
   id: string; kind: 'event' | 'alert'; type: string; detail: string | null; at: string; caseRef: string;
@@ -66,6 +67,7 @@ function ago(at: string, now: number) {
 
 export default function MonitoringConsole({
   initialPositions, initialAlerts, initialEvents, operationals, metrics, ingestionLastMs, canResolve, caseInfo = {}, geofences = [],
+  escalateMinutes = 30, meId = '', meName = '',
 }: {
   initialPositions: LivePosition[];
   initialAlerts: TriageAlert[];
@@ -76,6 +78,9 @@ export default function MonitoringConsole({
   canResolve: boolean;
   caseInfo?: Record<string, CaseCtx>;
   geofences?: import('./LiveTrackingMap').MapGeofenceLite[];
+  escalateMinutes?: number;
+  meId?: string;
+  meName?: string;
 }) {
   const [tab, setTab] = useState<'triage' | 'stream'>('triage');
   const [alerts, setAlerts] = useState<TriageAlert[]>(initialAlerts);
@@ -122,7 +127,8 @@ export default function MonitoringConsole({
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setNow(Date.now());
-    const id = setInterval(() => setNow(Date.now()), 5_000);
+    // 1 s tick — drives the live SLA countdowns.
+    const id = setInterval(() => setNow(Date.now()), 1_000);
     return () => clearInterval(id);
   }, []);
 
@@ -162,6 +168,7 @@ export default function MonitoringConsole({
         alert_type: a.alert_type, severity: a.severity,
         status: a.status ?? 'NEW', assigned_to: a.assigned_to ?? null,
         triggered_at: a.triggered_at, description: a.description,
+        escalated_at: a.escalated_at ?? null, escalated_l2_at: a.escalated_l2_at ?? null,
       };
       setAlerts((prev) => prev.some((x) => x.id === a.id) ? prev : [ta, ...prev]);
       setEvents((prev) => [{ id: `a-${a.id}`, kind: 'alert' as const, type: a.alert_type, detail: a.description, at: a.triggered_at, caseRef: ta.case_number }, ...prev].slice(0, 200));
@@ -172,7 +179,13 @@ export default function MonitoringConsole({
       setAlerts((prev) => {
         if (a.is_resolved) return prev.filter((x) => x.id !== a.id);
         return prev.map((x) => x.id === a.id
-          ? { ...x, status: a.status ?? x.status, assigned_to: a.assigned_to ?? x.assigned_to }
+          ? {
+              ...x,
+              status: a.status ?? x.status,
+              assigned_to: a.assigned_to ?? x.assigned_to,
+              escalated_at: a.escalated_at ?? x.escalated_at,
+              escalated_l2_at: a.escalated_l2_at ?? x.escalated_l2_at,
+            }
           : x);
       });
     }, []),
@@ -203,16 +216,81 @@ export default function MonitoringConsole({
 
   const openAlerts = useMemo(() => alerts.slice().sort((a, b) => b.severity - a.severity || Date.parse(a.triggered_at) - Date.parse(b.triggered_at)), [alerts]);
 
+  // Claim ("je prends") — assigns to self + IN_PROGRESS via the existing action.
+  const claim = useCallback((alertId: string) => {
+    const fd = new FormData();
+    fd.set('alertId', alertId);
+    fd.set('userId', meId);
+    import('@/app/sigep/dashboard/alerts/actions').then(({ assignAlertAction }) => {
+      assignAlertAction(fd);
+      // Optimistic — the stream's alert_update confirms shortly after.
+      setAlerts((prev) => prev.map((x) => x.id === alertId ? { ...x, assigned_to: meId, status: 'IN_PROGRESS' } : x));
+    });
+  }, [meId]);
+
+  const ack = useCallback((alertId: string) => {
+    const fd = new FormData();
+    fd.set('alertId', alertId);
+    import('@/app/sigep/dashboard/alerts/actions').then(({ acknowledgeAlertAction }) => {
+      acknowledgeAlertAction(fd);
+      setAlerts((prev) => prev.map((x) => x.id === alertId ? { ...x, status: 'ACKNOWLEDGED' } : x));
+    });
+  }, []);
+
+  // Keyboard triage: ↑/↓ navigate, A acquitter, P prendre, I incident, Échap désélection.
+  const [selIdx, setSelIdx] = useState<number>(-1);
+  const selRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      const t = e.target as HTMLElement;
+      if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable)) return;
+      if (incident) return; // incident modal open — leave keys to it
+      if (e.key === 'ArrowDown') { e.preventDefault(); setTab('triage'); setSelIdx((i) => Math.min(openAlerts.length - 1, i + 1)); }
+      else if (e.key === 'ArrowUp') { e.preventDefault(); setTab('triage'); setSelIdx((i) => Math.max(0, i - 1)); }
+      else if (e.key === 'Escape') setSelIdx(-1);
+      else if (selIdx >= 0 && selIdx < openAlerts.length) {
+        const a = openAlerts[selIdx];
+        if (e.key === 'a' || e.key === 'A') { e.preventDefault(); if (canResolve) ack(a.id); }
+        else if (e.key === 'p' || e.key === 'P') { e.preventDefault(); if (canResolve && meId) claim(a.id); }
+        else if (e.key === 'i' || e.key === 'I') { e.preventDefault(); openIncident(a.case_id, a.triggered_at); }
+      }
+    }
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [openAlerts, selIdx, incident, canResolve, meId, ack, claim, openIncident]);
+  useEffect(() => { selRef.current?.scrollIntoView({ block: 'nearest' }); }, [selIdx]);
+
   // P — major-incident detection: many simultaneous active violations.
   const violationCount = useMemo(() => openAlerts.filter((a) => ['GEOFENCE_EXIT', 'BLE_EXIT', 'CURFEW_VIOLATION', 'TAMPER_DETECTED', 'PANIC_BUTTON'].includes(a.alert_type)).length, [openAlerts]);
   const major = violationCount >= 3;
   const incidentCtx = incident ? caseInfo[incident] : null;
 
-  function sla(at: string) {
-    const min = (now - Date.parse(at)) / 60_000;
-    if (min < 5) return { cls: 'text-emerald-600', label: `${ago(at, now)}`, escalate: false };
-    if (min < 15) return { cls: 'text-amber-600', label: `${ago(at, now)}`, escalate: false };
-    return { cls: 'text-red-600', label: `${ago(at, now)}`, escalate: true };
+  // SLA tied to the REAL escalation engine: an unacknowledged alert escalates
+  // to the judge after `escalateMinutes` (SMS N1), then to SUPER_ADMIN at 2 h
+  // (N2, severity >= 4). Shows a live countdown until N1 fires.
+  function sla(a: TriageAlert) {
+    const elapsedMs = now - Date.parse(a.triggered_at);
+    if (a.escalated_l2_at) return { cls: 'text-red-700', label: `${ago(a.triggered_at, now)}`, badge: 'ESCALADE N2', badgeCls: 'bg-red-700 text-white', escalate: true };
+    if (a.escalated_at) return { cls: 'text-red-600', label: `${ago(a.triggered_at, now)}`, badge: 'Escaladée juge', badgeCls: 'bg-red-100 text-red-700', escalate: true };
+    if (a.status === 'NEW') {
+      const remainMs = escalateMinutes * 60_000 - elapsedMs;
+      if (remainMs > 0) {
+        const mm = Math.floor(remainMs / 60_000);
+        const ss = Math.floor((remainMs % 60_000) / 1000);
+        const urgent = remainMs < 5 * 60_000;
+        return {
+          cls: urgent ? 'text-red-600' : 'text-amber-600',
+          label: `${ago(a.triggered_at, now)}`,
+          badge: `Escalade ${mm}:${String(ss).padStart(2, '0')}`,
+          badgeCls: urgent ? 'bg-red-50 text-red-600 border border-red-200' : 'bg-amber-50 text-amber-700 border border-amber-200',
+          escalate: urgent,
+        };
+      }
+      return { cls: 'text-red-600', label: `${ago(a.triggered_at, now)}`, badge: 'Escalade imminente', badgeCls: 'bg-red-100 text-red-700', escalate: true };
+    }
+    // Acknowledged / in progress — countdown stopped.
+    const min = elapsedMs / 60_000;
+    return { cls: min < 15 ? 'text-emerald-600' : 'text-amber-600', label: `${ago(a.triggered_at, now)}`, badge: null, badgeCls: '', escalate: false };
   }
 
   const streamView = useMemo(() => events.filter((e) => {
@@ -282,25 +360,59 @@ export default function MonitoringConsole({
             <div className="flex-1 overflow-y-auto divide-y divide-gray-50">
               {openAlerts.length === 0 ? (
                 <div className="py-12 text-center text-sm text-gray-400">Aucune alerte en cours ✓</div>
-              ) : openAlerts.map((a) => {
-                const s = sla(a.triggered_at);
-                return (
-                  <div key={a.id} className={`px-3 py-2.5 ${s.escalate && a.status === 'NEW' ? 'bg-red-50/60' : ''}`}>
-                    <div className="flex items-center justify-between gap-2">
-                      <AlertTypeBadge type={a.alert_type as never} />
-                      <span data-tip="Temps écoulé depuis le déclenchement (SLA)" className={`flex items-center gap-1 text-[11px] font-semibold ${s.cls} ${s.escalate && a.status === 'NEW' ? 'animate-pulse' : ''}`}><Clock className="w-3 h-3" />{s.label}</span>
-                    </div>
-                    {a.description && <p className="text-xs text-gray-500 mt-1 line-clamp-2">{a.description}</p>}
-                    <div className="flex items-center justify-between gap-2 mt-1.5">
-                      <div className="flex items-center gap-2">
-                        <button onClick={() => openIncident(a.case_id, a.triggered_at)} data-tip="Ouvrir la fiche incident (carte + rejeu + commandes)" className="inline-flex items-center gap-1 text-[11px] text-gray-600 hover:text-gray-900"><Crosshair className="w-3.5 h-3.5" /> Incident</button>
-                        <Link href={`/sigep/dashboard/cases/${a.case_id}`} className="text-[11px] text-blue-600 hover:underline font-mono">{a.case_number}</Link>
-                      </div>
-                      {canResolve && <AlertActions alertId={a.id} status={a.status} assignedTo={a.assigned_to} users={operationals} />}
-                    </div>
+              ) : (
+                <>
+                  <div className="px-3 py-1 text-[10px] text-gray-300 border-b border-gray-50 select-none">
+                    Clavier : ↑↓ naviguer · A acquitter · P prendre · I incident
                   </div>
-                );
-              })}
+                  {openAlerts.map((a, idx) => {
+                    const s = sla(a);
+                    const mine = a.assigned_to === meId && meId !== '';
+                    const claimedBy = a.assigned_to
+                      ? (a.assigned_to === meId ? meName || 'vous' : operationals.find((u) => u.id === a.assigned_to)?.full_name ?? null)
+                      : null;
+                    const selected = idx === selIdx;
+                    return (
+                      <div
+                        key={a.id}
+                        ref={selected ? selRef : undefined}
+                        onClick={() => setSelIdx(idx)}
+                        className={`px-3 py-2.5 cursor-default ${selected ? 'ring-2 ring-inset ring-blue-400 bg-blue-50/40' : s.escalate && a.status === 'NEW' ? 'bg-red-50/60' : ''}`}
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            <AlertTypeBadge type={a.alert_type as never} />
+                            {s.badge && (
+                              <span data-tip="Chaîne d'escalade réelle (SMS juge puis SUPER_ADMIN)" className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full whitespace-nowrap ${s.badgeCls} ${s.escalate ? 'animate-pulse' : ''}`}>
+                                {s.badge}
+                              </span>
+                            )}
+                          </div>
+                          <span data-tip="Temps écoulé depuis le déclenchement" className={`flex items-center gap-1 text-[11px] font-semibold flex-shrink-0 ${s.cls}`}><Clock className="w-3 h-3" />{s.label}</span>
+                        </div>
+                        {a.description && <p className="text-xs text-gray-500 mt-1 line-clamp-2">{a.description}</p>}
+                        {claimedBy && (
+                          <p className={`text-[11px] mt-0.5 font-medium ${mine ? 'text-blue-700' : 'text-gray-500'}`}>
+                            ⛨ {mine ? 'Vous traitez cette alerte' : `${claimedBy} traite cette alerte`}
+                          </p>
+                        )}
+                        <div className="flex items-center justify-between gap-2 mt-1.5">
+                          <div className="flex items-center gap-2">
+                            <button onClick={() => openIncident(a.case_id, a.triggered_at)} data-tip="Ouvrir la fiche incident (carte + rejeu + commandes)" className="inline-flex items-center gap-1 text-[11px] text-gray-600 hover:text-gray-900"><Crosshair className="w-3.5 h-3.5" /> Incident</button>
+                            <Link href={`/sigep/dashboard/cases/${a.case_id}`} className="text-[11px] text-blue-600 hover:underline font-mono">{a.case_number}</Link>
+                            {canResolve && meId && !a.assigned_to && (
+                              <button onClick={() => claim(a.id)} data-tip="Prendre en charge (assignation + verrou visible par tous)" className="inline-flex items-center gap-1 text-[11px] font-semibold text-blue-600 hover:text-blue-800">
+                                ⛨ Prendre
+                              </button>
+                            )}
+                          </div>
+                          {canResolve && <AlertActions alertId={a.id} status={a.status} assignedTo={a.assigned_to} users={operationals} />}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </>
+              )}
             </div>
           ) : (
             <>

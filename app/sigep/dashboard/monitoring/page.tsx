@@ -46,7 +46,13 @@ export default async function MonitoringPage() {
     id: a.id, case_id: a.case_id, case_number: caseNum.get(a.case_id) ?? a.case_id.slice(0, 8),
     alert_type: a.alert_type, severity: a.severity, status: a.status ?? 'NEW',
     assigned_to: a.assigned_to ?? null, triggered_at: a.triggered_at, description: a.description,
+    escalated_at: (a as { escalated_at?: string | null }).escalated_at ?? null,
+    escalated_l2_at: (a as { escalated_l2_at?: string | null }).escalated_l2_at ?? null,
   }));
+
+  // Real N1 escalation delay — drives the live SLA countdowns in the triage.
+  const { getSettings } = await import('@/lib/settings');
+  const escalateMinutes = (await getSettings()).escalate_minutes ?? 30;
 
   const initialEvents: StreamEvent[] = events.map((e) => ({
     id: e.id, kind: 'event', type: e.event_type, detail: e.detail, at: e.created_at,
@@ -103,6 +109,9 @@ export default async function MonitoringPage() {
         ingestionLastMs={ingestionLastMs}
         canResolve={true}
         caseInfo={caseInfo}
+        escalateMinutes={escalateMinutes}
+        meId={session.id}
+        meName={session.full_name}
         geofences={geofencesAll
           .filter((g) => (g as { status?: string }).status !== 'REQUESTED')
           .map((g) => ({

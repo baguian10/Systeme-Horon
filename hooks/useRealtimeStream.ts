@@ -32,6 +32,8 @@ export interface StreamAlert {
   acknowledged_at?: string | null;
   resolved_at?: string | null;
   condition_cleared_at?: string | null;
+  escalated_at?: string | null;
+  escalated_l2_at?: string | null;
   case_number: string | null;
 }
 

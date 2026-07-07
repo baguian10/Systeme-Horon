@@ -72,13 +72,13 @@ export async function GET(request: NextRequest) {
               .order('recorded_at', { ascending: true })
               .limit(200),
             supabase.from('alerts')
-              .select('id, case_id, device_id, alert_type, severity, description, position_lat, position_lon, is_resolved, triggered_at, status, assigned_to, acknowledged_at, resolved_at, condition_cleared_at, case:cases(case_number)')
+              .select('id, case_id, device_id, alert_type, severity, description, position_lat, position_lon, is_resolved, triggered_at, status, assigned_to, acknowledged_at, resolved_at, condition_cleared_at, escalated_at, escalated_l2_at, case:cases(case_number)')
               .gt('triggered_at', alertCur)
               .order('triggered_at', { ascending: true })
               .limit(50),
             supabase.from('alerts')
-              .select('id, case_id, alert_type, severity, description, is_resolved, triggered_at, status, assigned_to, acknowledged_at, resolved_at, condition_cleared_at, case:cases(case_number)')
-              .or(`acknowledged_at.gt.${updCur},resolved_at.gt.${updCur},condition_cleared_at.gt.${updCur}`)
+              .select('id, case_id, alert_type, severity, description, is_resolved, triggered_at, status, assigned_to, acknowledged_at, resolved_at, condition_cleared_at, escalated_at, escalated_l2_at, case:cases(case_number)')
+              .or(`acknowledged_at.gt.${updCur},resolved_at.gt.${updCur},condition_cleared_at.gt.${updCur},escalated_at.gt.${updCur},escalated_l2_at.gt.${updCur}`)
               .limit(50),
             supabase.from('device_events')
               .select('id, event_type, detail, created_at, case_id, case:cases(case_number)')
