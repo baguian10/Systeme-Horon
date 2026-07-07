@@ -126,6 +126,8 @@ export const canViewViolations    = (role: UserRole) => role !== 'STRATEGIC';
 // (a judge assigns a person to an existing site, but doesn't manage the registry)
 export const canViewTigSites      = (role: UserRole) => role !== 'STRATEGIC';
 export const canManageTigSites    = (role: UserRole) => role === 'SUPER_ADMIN';
+// Logging attendance (pointages) = terrain operators + judiciary oversight
+export const canLogTigAttendance  = (role: UserRole) => role === 'SUPER_ADMIN' || role === 'JUDGE' || role === 'OPERATIONAL';
 
 // ── Revocations: all non-STRATEGIC ───────────────────────────────────────────
 export const canViewRevocations   = (role: UserRole) => role !== 'STRATEGIC';

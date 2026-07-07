@@ -362,7 +362,7 @@ export async function fetchTigSites(): Promise<TigSite[]> {
   const supabase = createAdminClient();
   if (!supabase) return [];
   const [{ data: sitesData }, { data: caseRows }] = await Promise.all([
-    supabase.from('tig_sites').select('*').order('created_at', { ascending: false }),
+    supabase.from('tig_sites').select('*').order('name', { ascending: true }).limit(500),
     supabase.from('cases').select('tig_site_id').not('tig_site_id', 'is', null)
       .in('status', ['ACTIVE', 'VIOLATION', 'SUSPENDED']),
   ]);

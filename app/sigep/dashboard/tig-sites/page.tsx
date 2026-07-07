@@ -2,16 +2,16 @@ import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import {
   TreePine, MapPin, Phone, Users, Clock,
-  Plus, CheckCircle, XCircle, Building2,
+  Plus, Building2,
   Heart, GraduationCap, Landmark,
 } from 'lucide-react';
 import { getSession } from '@/lib/auth/session';
-import { canViewTigSites, canManageTigSites , allow } from '@/lib/auth/permissions';
+import { canViewTigSites, canManageTigSites, allow } from '@/lib/auth/permissions';
 import { fetchTigSites } from '@/lib/mock/helpers';
-import { toggleTigSiteAction } from './actions';
 import type { TigSiteCategory } from '@/lib/supabase/types';
 import EditTigSiteButton from '@/components/tig/EditTigSiteButton';
 import DeleteTigSiteButton from '@/components/tig/DeleteTigSiteButton';
+import ToggleTigSiteButton from '@/components/tig/ToggleTigSiteButton';
 
 export const metadata = { title: 'Sites TIG agréés — SIGEP' };
 export const revalidate = 0;
@@ -32,6 +32,7 @@ export default async function TigSitesPage() {
   const canManage = canManageTigSites(session.role);
   const sites = await fetchTigSites();
 
+  // fetchTigSites already sorts alphabetically; split active/inactive
   const active   = sites.filter((s) => s.is_active);
   const inactive = sites.filter((s) => !s.is_active);
   const totalCap = active.reduce((acc, s) => acc + s.capacity, 0);
@@ -86,15 +87,16 @@ export default async function TigSitesPage() {
         {active.length === 0 ? (
           <p className="px-5 py-10 text-sm text-gray-400 text-center">Aucun site actif</p>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-0 divide-y md:divide-y-0 md:divide-x md:grid-rows-[auto]">
+          <div className="divide-y divide-gray-50">
             {active.map((site) => {
               const cat  = CAT_META[site.category];
               const Icon = cat.icon;
               const occ  = site.capacity > 0 ? Math.round((site.current_count / site.capacity) * 100) : 0;
               const occColor = occ >= 90 ? 'bg-red-400' : occ >= 60 ? 'bg-amber-400' : 'bg-emerald-400';
+              const hasCoords = site.latitude != null && site.longitude != null;
 
               return (
-                <div key={site.id} className="p-5 flex flex-col gap-3 border-b border-gray-50 last:border-b-0">
+                <div key={site.id} className="p-5 flex flex-col gap-3">
                   {/* Card header */}
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex items-start gap-3">
@@ -107,16 +109,10 @@ export default async function TigSitesPage() {
                       </div>
                     </div>
                     {canManage && (
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 ml-auto flex-shrink-0">
                         <EditTigSiteButton site={site} />
                         <DeleteTigSiteButton id={site.id} name={site.name} />
-                        <form action={toggleTigSiteAction}>
-                          <input type="hidden" name="site_id" value={site.id} />
-                          <input type="hidden" name="is_active" value={String(site.is_active)} />
-                          <button type="submit" title="Désactiver" className="text-gray-300 hover:text-red-400 transition-colors">
-                            <XCircle className="w-4 h-4" />
-                          </button>
-                        </form>
+                        <ToggleTigSiteButton siteId={site.id} siteName={site.name} isActive={site.is_active} />
                       </div>
                     )}
                   </div>
@@ -148,18 +144,19 @@ export default async function TigSitesPage() {
                       </span>
                     </div>
                     <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                      <div className={`h-full rounded-full transition-all ${occColor}`} style={{ width: `${occ}%` }} />
+                      <div className={`h-full rounded-full transition-all ${occColor}`} style={{ width: `${Math.min(100, occ)}%` }} />
                     </div>
                   </div>
 
-                  {/* Create geofence link */}
-                  <Link
-                    href={`/sigep/dashboard/geofences/new?lat=${site.latitude}&lng=${site.longitude}&name=${encodeURIComponent(site.name)}`}
-                    className="text-[10px] text-emerald-600 hover:underline font-medium inline-flex items-center gap-1"
-                  >
-                    <MapPin className="w-3 h-3" />
-                    Créer la géofence pour ce site
-                  </Link>
+                  {hasCoords && (
+                    <Link
+                      href={`/sigep/dashboard/geofences/new?lat=${site.latitude}&lng=${site.longitude}&name=${encodeURIComponent(site.name)}`}
+                      className="text-[10px] text-emerald-600 hover:underline font-medium inline-flex items-center gap-1 w-fit"
+                    >
+                      <MapPin className="w-3 h-3" />
+                      Créer la géofence pour ce site
+                    </Link>
+                  )}
                 </div>
               );
             })}
@@ -178,23 +175,20 @@ export default async function TigSitesPage() {
               const cat  = CAT_META[site.category];
               const Icon = cat.icon;
               return (
-                <li key={site.id} className="px-5 py-3 flex items-center gap-3 opacity-60">
-                  <div className={`w-7 h-7 rounded-lg flex items-center justify-center ${cat.bg}`}>
+                <li key={site.id} className="px-5 py-3 flex items-center gap-3">
+                  <div className={`w-7 h-7 rounded-lg flex items-center justify-center opacity-50 ${cat.bg}`}>
                     <Icon className={`w-3.5 h-3.5 ${cat.color}`} />
                   </div>
-                  <div className="flex-1 min-w-0">
+                  <div className="flex-1 min-w-0 opacity-60">
                     <p className="text-sm text-gray-700 truncate">{site.name}</p>
                     <p className="text-xs text-gray-400">{site.address}</p>
                   </div>
                   {canManage && (
-                    <form action={toggleTigSiteAction}>
-                      <input type="hidden" name="site_id" value={site.id} />
-                      <input type="hidden" name="is_active" value={String(site.is_active)} />
-                      <button type="submit" className="inline-flex items-center gap-1 text-xs text-emerald-600 hover:underline">
-                        <CheckCircle className="w-3.5 h-3.5" />
-                        Réactiver
-                      </button>
-                    </form>
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <EditTigSiteButton site={site} />
+                      <DeleteTigSiteButton id={site.id} name={site.name} />
+                      <ToggleTigSiteButton siteId={site.id} siteName={site.name} isActive={site.is_active} />
+                    </div>
                   )}
                 </li>
               );
