@@ -188,9 +188,12 @@ export async function GET(request: NextRequest) {
         }
       }
 
-      // If the case also has a GPS inclusion zone, the geofence enforcer
-      // (ingest/position) already cross-checks this beacon and raises the exit —
-      // skip the standalone beacon alarm to avoid a duplicate.
+      // GPS/BOTH modes: if the case also has a GPS inclusion zone, the geofence
+      // enforcer (ingest/position) already cross-checks this beacon and raises
+      // GEOFENCE_EXIT — skip the standalone alarm to avoid a duplicate.
+      // BLE mode: ALWAYS runs. It raises the distinct BLE_EXIT type (no dedup
+      // conflict) and is the ONLY path that checks BLE distance — skipping it
+      // when geofences exist would silence the operator's explicit BLE config.
       const { count: inclusionZones } = await supabase
         .from('geofences')
         .select('id', { count: 'exact', head: true })
@@ -198,8 +201,11 @@ export async function GET(request: NextRequest) {
         .eq('is_exclusion', false)
         .is('active_start', null);
 
-      if (beacon && beacon.alarm_enabled && !inclusionZones && withinActiveWindow(beacon.active_start, beacon.active_end)) {
-        const mode = (beacon.alarm_mode as 'GPS' | 'BLE' | 'BOTH') ?? 'BOTH';
+      const beaconMode = (beacon?.alarm_mode as 'GPS' | 'BLE' | 'BOTH' | undefined) ?? 'BOTH';
+      const skipForGeofence = !!inclusionZones && beaconMode !== 'BLE';
+
+      if (beacon && beacon.alarm_enabled && !skipForGeofence && withinActiveWindow(beacon.active_start, beacon.active_end)) {
+        const mode = beaconMode;
         // RSSI threshold: if max_distance_m is set, derive from path-loss model so the
         // "distance" parameter the operator configures actually works in BLE mode.
         // Falls back to the manual min_rssi field if max_distance_m is absent.

@@ -205,36 +205,44 @@ export async function enforceGeofences(
       continue;
     }
 
-    // ── Standard zones (immediate) ──
-    const exclusionActive = !hasWindow || withinWindow(g.active_start!, g.active_end!, nowMs);
-    const violated = g.is_exclusion ? inside && exclusionActive : !inside;
-    if (violated) {
-      // Inclusion (home) zone: if the home beacon is still in range, this is GPS
-      // drift, not a real exit → suppress. Alarm only when both GPS and beacon
-      // agree (beacon out / no beacon). Exclusion zones don't use the beacon.
-      if (!g.is_exclusion && homeBeacon === 'in') continue;
-      const desc = g.is_exclusion
-        ? `Entrée dans la zone interdite "${g.name}".`
-        : `Sortie de la zone "${g.name}"${homeBeacon === 'out' ? ' (confirmée par la balise BLE)' : ''}.`;
-      if (await insertDeduped(supabase, caseId, deviceId, 'GEOFENCE_EXIT', lat, lon, desc)) {
-        raised.push({ alert_type: 'GEOFENCE_EXIT', geofenceName: g.name });
+    // ── Exclusion zones (immediate, per-zone) ──
+    if (g.is_exclusion) {
+      const exclusionActive = !hasWindow || withinWindow(g.active_start!, g.active_end!, nowMs);
+      if (inside && exclusionActive) {
+        if (await insertDeduped(supabase, caseId, deviceId, 'GEOFENCE_EXIT', lat, lon,
+          `Entrée dans la zone interdite "${g.name}".`)) {
+          raised.push({ alert_type: 'GEOFENCE_EXIT', geofenceName: g.name });
+        }
       }
     }
+    // Standard inclusion zones are handled below as a UNION (inside any = OK).
   }
 
-  // Auto-resolve GEOFENCE_EXIT when device is back inside all inclusion zones.
-  // Without this, insertDeduped blocks every subsequent exit because the old
-  // unresolved alert is never cleared when the condition ends.
+  // ── Standard inclusion zones: UNION semantics ──
+  // Multiple authorized zones mean the subject may be in ANY of them (home,
+  // workplace, TIG site…). A violation exists only when OUTSIDE ALL of them.
+  // Per-zone logic would false-alarm permanently with 2+ disjoint zones.
   const inclusionZones = zones.filter((g) => !g.is_exclusion && g.status !== 'REQUESTED' && !(g.active_start && g.active_end));
   if (inclusionZones.length > 0) {
-    const allInside = inclusionZones.every((g) => insideGeofence(lat, lon, g));
-    if (allInside) {
+    const insideAny = inclusionZones.some((g) => insideGeofence(lat, lon, g));
+    if (insideAny) {
+      // Compliant → auto-resolve any open GEOFENCE_EXIT so the NEXT exit
+      // raises a fresh alert (insertDeduped would otherwise block forever).
       await supabase.from('alerts')
         .update({ is_resolved: true, resolved_at: new Date().toISOString() })
         .eq('case_id', caseId).eq('alert_type', 'GEOFENCE_EXIT').eq('is_resolved', false);
-      // Clear any lingering out_since on these zones.
       const ids = inclusionZones.map((g) => g.id);
       await supabase.from('geofences').update({ out_since: null }).in('id', ids).not('out_since', 'is', null);
+    } else {
+      // Outside every authorized zone. If the home beacon still sees the
+      // bracelet, treat as GPS drift and suppress; otherwise raise ONE exit.
+      if (homeBeacon !== 'in') {
+        const names = inclusionZones.map((g) => `"${g.name}"`).join(', ');
+        const desc = `Sortie de ${inclusionZones.length > 1 ? `toutes les zones autorisées (${names})` : `la zone ${names}`}${homeBeacon === 'out' ? ' — confirmée par la balise BLE' : ''}.`;
+        if (await insertDeduped(supabase, caseId, deviceId, 'GEOFENCE_EXIT', lat, lon, desc)) {
+          raised.push({ alert_type: 'GEOFENCE_EXIT', geofenceName: inclusionZones[0].name });
+        }
+      }
     }
   }
 
