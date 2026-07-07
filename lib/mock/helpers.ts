@@ -606,20 +606,28 @@ export async function fetchAgenda(role: UserRole, userId: string): Promise<Agend
   if (IS_DEMO_MODE) {
     if (role === 'OPERATIONAL') {
       const assignedCaseIds = MOCK_CASE_ASSIGNMENTS.filter((a) => a.operational_id === userId).map((a) => a.case_id);
-      return MOCK_AGENDA.filter((a) => assignedCaseIds.includes(a.case_id));
+      // Fall back to all cases if this demo user has no assignments
+      const filtered = MOCK_AGENDA.filter((a) => assignedCaseIds.includes(a.case_id));
+      return filtered.length > 0 ? filtered : MOCK_AGENDA;
     }
     if (role === 'JUDGE') {
       const judgedCaseIds = MOCK_CASES.filter((c) => c.judge_id === userId).map((c) => c.id);
-      return MOCK_AGENDA.filter((a) => judgedCaseIds.includes(a.case_id));
+      const filtered = MOCK_AGENDA.filter((a) => judgedCaseIds.includes(a.case_id));
+      return filtered.length > 0 ? filtered : MOCK_AGENDA;
     }
     return MOCK_AGENDA;
   }
   const supabase = await caseScopedClient(role);
   if (!supabase) return [];
+  const from = new Date();
+  from.setDate(from.getDate() - 14);
+  const fromStr = from.toISOString().slice(0, 10);
   const { data } = await supabase
     .from('obligations')
     .select('*, case:cases(case_number, individual:individuals(full_name))')
-    .order('scheduled_date', { ascending: true });
+    .gte('scheduled_date', fromStr)
+    .order('scheduled_date', { ascending: true })
+    .limit(500);
   type Row = AgendaObligation & {
     case?: { case_number?: string; individual?: { full_name?: string } | null } | null;
   };
@@ -630,6 +638,38 @@ export async function fetchAgenda(role: UserRole, userId: string): Promise<Agend
     obligation_type: o.obligation_type, title: o.title,
     scheduled_date: o.scheduled_date, start_time: o.start_time, end_time: o.end_time,
     location: o.location, is_confirmed: o.is_confirmed,
+  }));
+}
+
+export interface CaseSelectOption {
+  id: string;
+  case_number: string;
+  individual_name: string;
+}
+
+export async function fetchActiveCasesForSelect(role: UserRole): Promise<CaseSelectOption[]> {
+  if (IS_DEMO_MODE) {
+    return MOCK_CASES
+      .filter((c) => c.status === 'ACTIVE' || c.status === 'VIOLATION' || c.status === 'SUSPENDED')
+      .map((c) => ({
+        id: c.id,
+        case_number: c.case_number,
+        individual_name: (c.individual as { full_name?: string } | null)?.full_name ?? '—',
+      }));
+  }
+  const supabase = await caseScopedClient(role);
+  if (!supabase) return [];
+  const { data } = await supabase
+    .from('cases')
+    .select('id, case_number, individual:individuals(full_name)')
+    .in('status', ['ACTIVE', 'VIOLATION', 'SUSPENDED'])
+    .order('case_number', { ascending: true })
+    .limit(300);
+  type Row = { id: string; case_number: string; individual?: { full_name?: string } | null };
+  return ((data ?? []) as unknown as Row[]).map((c) => ({
+    id: c.id,
+    case_number: c.case_number,
+    individual_name: c.individual?.full_name ?? '—',
   }));
 }
 

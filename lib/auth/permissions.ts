@@ -35,6 +35,7 @@ export const PERMISSIONS = {
   'tig':             'Sites TIG',
   'revocations':     'Révocations',
   'maintenance':     'Maintenance',
+  'agenda':          'Agenda des obligations',
 } as const;
 
 export type Permission = keyof typeof PERMISSIONS;
@@ -147,8 +148,9 @@ export const canResolveAlertType = (role: UserRole, alertType: string): boolean 
   return true; // SUPER_ADMIN / ADMIN / OPERATIONAL handle technical + all
 };
 
-// ── Agenda: all non-STRATEGIC ────────────────────────────────────────────────
+// ── Agenda: all non-STRATEGIC; manage = judicial actors ─────────────────────
 export const canViewAgenda        = (role: UserRole) => role !== 'STRATEGIC';
+export const canManageAgenda      = (role: UserRole) => role === 'SUPER_ADMIN' || role === 'JUDGE';
 
 // ── Notifications: everyone ──────────────────────────────────────────────────
 export const canViewNotifications = (_role: UserRole) => true;
