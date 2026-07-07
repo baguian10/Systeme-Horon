@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useTransition } from 'react';
-import { Briefcase, CheckCircle2, Clock, Plus, CalendarDays, Trash2 } from 'lucide-react';
+import { Briefcase, CheckCircle2, Clock, Plus, CalendarDays, Trash2, Download } from 'lucide-react';
 import {
   assignCaseTigSiteAction,
   updateTigHoursOrderedAction,
@@ -19,7 +19,9 @@ interface Props {
   tigHoursCompleted: number;
   tigSites: TigSite[];
   attendance: TigAttendance[];
-  canEdit: boolean;
+  canAssign: boolean;       // JUDGE / SUPER_ADMIN: site selection + hours ordered
+  canLogAttendance: boolean; // + OPERATIONAL: add/delete own attendance
+  userId: string;
 }
 
 export default function TigTrackingPanel({
@@ -29,29 +31,50 @@ export default function TigTrackingPanel({
   tigHoursCompleted,
   tigSites,
   attendance: initialAttendance,
-  canEdit,
+  canAssign,
+  canLogAttendance,
+  userId,
 }: Props) {
-  // Controlled local state — updates immediately on action success, no page refresh needed
   const [siteId,       setSiteId]       = useState<string | null>(tigSiteId);
   const [hoursOrdered, setHoursOrdered] = useState<number | null>(tigHoursOrdered);
   const [records,      setRecords]      = useState<TigAttendance[]>(initialAttendance);
+  const [assignErr,    setAssignErr]    = useState<string | null>(null);
+  const [hoursErr,     setHoursErr]     = useState<string | null>(null);
+  const [pointMsg,     setPointMsg]     = useState<string | null>(null);
+  const [showForm,     setShowForm]     = useState(false);
 
-  const [assignErr, setAssignErr] = useState<string | null>(null);
-  const [hoursErr,  setHoursErr]  = useState<string | null>(null);
-  const [pointMsg,  setPointMsg]  = useState<string | null>(null);
-  const [showForm,  setShowForm]  = useState(false);
-
-  // Three independent transitions — no cross-blocking
   const [assignPending, startAssign] = useTransition();
   const [hoursPending,  startHours]  = useTransition();
   const [pointPending,  startPoint]  = useTransition();
 
-  const hoursCompleted = records.reduce((acc, r) => acc + r.hours_worked, 0);
-  const pct = hoursOrdered
-    ? Math.min(100, Math.round((hoursCompleted / hoursOrdered) * 100))
-    : 0;
-  const barColor = pct >= 100 ? 'bg-emerald-500' : pct >= 60 ? 'bg-amber-400' : 'bg-blue-500';
   const today = new Date().toISOString().slice(0, 10);
+  const hoursCompleted = records.reduce((acc, r) => acc + r.hours_worked, 0);
+  const pct = hoursOrdered ? Math.min(100, Math.round((hoursCompleted / hoursOrdered) * 100)) : 0;
+  const barColor = pct >= 100 ? 'bg-emerald-500' : pct >= 60 ? 'bg-amber-400' : 'bg-blue-500';
+
+  const activeSites = tigSites.filter((s) => s.is_active);
+  const sessionTotal = records.reduce((acc, r) => acc + r.hours_worked, 0);
+
+  function canDeleteRecord(rec: TigAttendance): boolean {
+    if (canAssign) return true;
+    return canLogAttendance && rec.created_by === userId && rec.session_date === today;
+  }
+
+  function exportCSV() {
+    const lines = ['Date,Heures,Notes'];
+    for (const r of records) {
+      lines.push(`${r.session_date},${r.hours_worked},"${(r.supervisor_notes ?? '').replace(/"/g, '""')}"`);
+    }
+    const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `tig-pointages-${caseId}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
 
   function handleAssign(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -90,8 +113,8 @@ export default function TigTrackingPanel({
         session_date: fd.get('session_date') as string,
         hours_worked: parseFloat(fd.get('hours_worked') as string),
         supervisor_notes: (fd.get('supervisor_notes') as string) || null,
-        signed_by_id: null,
-        created_by: null,
+        signed_by_id: userId,
+        created_by: userId,
         created_at: new Date().toISOString(),
       };
       setRecords((prev) => [newRecord, ...prev]);
@@ -112,10 +135,6 @@ export default function TigTrackingPanel({
     });
   }
 
-  const activeSites = tigSites.filter((s) => s.is_active);
-  const totalSessions = records.length;
-  const sessionTotal = records.reduce((acc, r) => acc + r.hours_worked, 0);
-
   return (
     <div className="bg-white rounded-2xl border border-gray-100 p-5 space-y-5">
       <h3 className="text-sm font-bold text-gray-700 flex items-center gap-2">
@@ -126,7 +145,7 @@ export default function TigTrackingPanel({
       {/* Site assignment */}
       <div className="space-y-2">
         <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Site d&apos;exécution</p>
-        {canEdit ? (
+        {canAssign ? (
           <form onSubmit={handleAssign} className="flex gap-2 items-start">
             <input type="hidden" name="case_id" value={caseId} />
             <select
@@ -150,7 +169,7 @@ export default function TigTrackingPanel({
           </form>
         ) : (
           <p className="text-sm text-gray-700">
-            {tigSites.find((s) => s.id === siteId)?.name ?? <span className="text-gray-400">Aucun site affecté</span>}
+            {tigSites.find((s) => s.id === siteId)?.name ?? <span className="text-gray-400 italic">Aucun site affecté</span>}
           </p>
         )}
         {assignErr && <p className="text-xs text-red-600">{assignErr}</p>}
@@ -160,15 +179,12 @@ export default function TigTrackingPanel({
       <div className="space-y-2">
         <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Heures</p>
 
-        {canEdit && (
+        {canAssign && (
           <form onSubmit={handleHours} className="flex gap-2 items-center">
             <input type="hidden" name="case_id" value={caseId} />
             <input
               name="tig_hours_ordered"
-              type="number"
-              min={1}
-              max={2000}
-              required
+              type="number" min={1} max={2000} required
               value={hoursOrdered ?? ''}
               onChange={(e) => setHoursOrdered(parseInt(e.target.value, 10) || null)}
               placeholder="Heures ordonnées"
@@ -176,8 +192,7 @@ export default function TigTrackingPanel({
             />
             <span className="text-xs text-gray-400 whitespace-nowrap">h ordonnées</span>
             <button
-              type="submit"
-              disabled={hoursPending}
+              type="submit" disabled={hoursPending}
               className="px-3 py-2 rounded-lg bg-gray-100 text-gray-700 text-sm font-semibold disabled:opacity-40"
             >
               {hoursPending ? '…' : 'Enregistrer'}
@@ -203,7 +218,7 @@ export default function TigTrackingPanel({
           )}
           {pct >= 100 && (
             <p className="text-xs text-emerald-600 flex items-center gap-1">
-              <CheckCircle2 className="w-3.5 h-3.5" /> TIG accompli
+              <CheckCircle2 className="w-3.5 h-3.5" /> TIG accompli — informez le juge pour clôturer le dossier
             </p>
           )}
         </div>
@@ -214,23 +229,34 @@ export default function TigTrackingPanel({
         <div className="flex items-center justify-between">
           <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
             Pointages
-            {totalSessions > 0 && (
+            {records.length > 0 && (
               <span className="font-normal ml-1">
-                — {totalSessions} session{totalSessions > 1 ? 's' : ''} · {sessionTotal}h total
+                — {records.length} session{records.length > 1 ? 's' : ''} · {sessionTotal}h total
               </span>
             )}
           </p>
-          {canEdit && siteId && (
-            <button
-              onClick={() => setShowForm((v) => !v)}
-              className="inline-flex items-center gap-1 text-xs text-emerald-600 hover:underline font-semibold"
-            >
-              <Plus className="w-3 h-3" /> Nouveau pointage
-            </button>
-          )}
+          <div className="flex items-center gap-3">
+            {records.length > 0 && (
+              <button
+                onClick={exportCSV}
+                title="Exporter en CSV"
+                className="text-gray-400 hover:text-emerald-600 transition-colors"
+              >
+                <Download className="w-3.5 h-3.5" />
+              </button>
+            )}
+            {canLogAttendance && siteId && (
+              <button
+                onClick={() => setShowForm((v) => !v)}
+                className="inline-flex items-center gap-1 text-xs text-emerald-600 hover:underline font-semibold"
+              >
+                <Plus className="w-3 h-3" /> Nouveau pointage
+              </button>
+            )}
+          </div>
         </div>
 
-        {canEdit && !siteId && (
+        {canAssign && !siteId && (
           <p className="text-xs text-amber-600">Affectez un site pour pouvoir enregistrer des pointages.</p>
         )}
 
@@ -241,48 +267,28 @@ export default function TigTrackingPanel({
             <div className="grid grid-cols-2 gap-2">
               <div>
                 <label className="block text-[10px] text-gray-500 mb-1">Date *</label>
-                <input
-                  name="session_date"
-                  type="date"
-                  required
-                  max={today}
-                  defaultValue={today}
-                  className={IN}
-                />
+                <input name="session_date" type="date" required max={today} defaultValue={today} className={IN} />
               </div>
               <div>
                 <label className="block text-[10px] text-gray-500 mb-1">Heures effectuées *</label>
-                <input
-                  name="hours_worked"
-                  type="number"
-                  min={0.5}
-                  max={24}
-                  step={0.5}
-                  required
-                  placeholder="Ex : 4"
-                  className={IN}
-                />
+                <input name="hours_worked" type="number" min={0.5} max={24} step={0.5} required placeholder="Ex : 4" className={IN} />
               </div>
             </div>
             <div>
               <label className="block text-[10px] text-gray-500 mb-1">Notes superviseur</label>
               <textarea
-                name="supervisor_notes"
-                rows={2}
+                name="supervisor_notes" rows={2}
                 placeholder="Tâches effectuées, comportement, incidents…"
                 className={`${IN} resize-none`}
               />
             </div>
-            {pointMsg && (
-              <p className="text-xs text-red-600">{pointMsg}</p>
-            )}
+            {pointMsg && <p className="text-xs text-red-600">{pointMsg}</p>}
             <div className="flex justify-end gap-2">
               <button type="button" onClick={() => setShowForm(false)} className="text-xs text-gray-400 hover:text-gray-700">
                 Annuler
               </button>
               <button
-                type="submit"
-                disabled={pointPending}
+                type="submit" disabled={pointPending}
                 className="px-3 py-1.5 rounded-lg bg-emerald-600 text-white text-xs font-semibold disabled:opacity-40"
               >
                 {pointPending ? '…' : 'Enregistrer'}
@@ -304,18 +310,12 @@ export default function TigTrackingPanel({
                   <div className="flex items-center justify-between gap-2">
                     <span className="text-xs font-semibold text-gray-800">
                       {new Date(a.session_date).toLocaleDateString('fr-FR', {
-                        timeZone: 'UTC',
-                        weekday: 'short',
-                        day: '2-digit',
-                        month: 'short',
-                        year: 'numeric',
+                        timeZone: 'UTC', weekday: 'short', day: '2-digit', month: 'short', year: 'numeric',
                       })}
                     </span>
                     <div className="flex items-center gap-2">
-                      <span className="text-xs font-bold text-emerald-700 whitespace-nowrap">
-                        {a.hours_worked}h
-                      </span>
-                      {canEdit && (
+                      <span className="text-xs font-bold text-emerald-700 whitespace-nowrap">{a.hours_worked}h</span>
+                      {canDeleteRecord(a) && (
                         <button
                           onClick={() => handleDeleteRecord(a.id, a.hours_worked)}
                           disabled={pointPending}

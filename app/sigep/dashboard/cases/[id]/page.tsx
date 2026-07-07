@@ -10,7 +10,7 @@ import AutoRefresh from '@/components/common/AutoRefresh';
 import MiniPositionMapLoader from '@/components/devices/MiniPositionMapLoader';
 import { CaseStatusBadge, AlertTypeBadge, SeverityDot, RiskBadge } from '@/components/ui/StatusBadge';
 import RiskControl from '@/components/cases/RiskControl';
-import { canViewPII, canManageGeofences, canUpdateCaseStatus, canManageAssignments, canWriteJournal, canConfigureHardware, canSetMeasureConditions, allow } from '@/lib/auth/permissions';
+import { canViewPII, canManageGeofences, canUpdateCaseStatus, canManageAssignments, canWriteJournal, canConfigureHardware, canSetMeasureConditions, canLogTigAttendance, allow } from '@/lib/auth/permissions';
 import StatusControls from '@/components/cases/StatusControls';
 import MeasureConditionsForm from '@/components/cases/MeasureConditionsForm';
 import CaseActionsPanel from '@/components/cases/CaseActionsPanel';
@@ -330,7 +330,9 @@ export default async function CaseDetailPage({ params }: { params: Promise<{ id:
               tigHoursCompleted={caseData.tig_hours_completed ?? 0}
               tigSites={tigSites}
               attendance={tigAttendance}
-              canEdit={canSetMeasureConditions(session.role) && caseData.status !== 'TERMINATED' && caseData.status !== 'ARCHIVED'}
+              canAssign={canSetMeasureConditions(session.role) && caseData.status !== 'TERMINATED' && caseData.status !== 'ARCHIVED'}
+              canLogAttendance={canLogTigAttendance(session.role) && caseData.status !== 'TERMINATED' && caseData.status !== 'ARCHIVED'}
+              userId={session.id}
             />
           )}
 

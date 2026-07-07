@@ -356,8 +356,96 @@ export async function fetchGeofences(caseId?: string): Promise<Geofence[]> {
   return (data ?? []) as Geofence[];
 }
 
+export interface SiteCaseRow {
+  id: string;
+  case_number: string;
+  status: string;
+  individual_name: string;
+  tig_hours_ordered: number | null;
+  tig_hours_completed: number;
+}
+
+export interface SiteAttendanceRow {
+  id: string;
+  case_id: string;
+  case_number: string;
+  individual_name: string;
+  session_date: string;
+  hours_worked: number;
+  supervisor_notes: string | null;
+  created_at: string;
+}
+
+export async function fetchTigSiteDetail(siteId: string): Promise<{
+  site: TigSite | null;
+  cases: SiteCaseRow[];
+  attendance: SiteAttendanceRow[];
+}> {
+  if (IS_DEMO_MODE) {
+    const site = MOCK_TIG_SITES.find((s) => s.id === siteId) ?? null;
+    const cases: SiteCaseRow[] = MOCK_CASES
+      .filter((c) => c.tig_site_id === siteId)
+      .map((c) => ({
+        id: c.id, case_number: c.case_number, status: c.status,
+        individual_name: c.individual?.full_name ?? '—',
+        tig_hours_ordered: c.tig_hours_ordered ?? null,
+        tig_hours_completed: c.tig_hours_completed ?? 0,
+      }));
+    const attendance: SiteAttendanceRow[] = MOCK_TIG_ATTENDANCE
+      .filter((a) => a.tig_site_id === siteId)
+      .sort((a, b) => b.session_date.localeCompare(a.session_date))
+      .map((a) => {
+        const c = MOCK_CASES.find((x) => x.id === a.case_id);
+        return {
+          id: a.id, case_id: a.case_id,
+          case_number: c?.case_number ?? '—',
+          individual_name: c?.individual?.full_name ?? '—',
+          session_date: a.session_date, hours_worked: a.hours_worked,
+          supervisor_notes: a.supervisor_notes, created_at: a.created_at,
+        };
+      });
+    return { site, cases, attendance };
+  }
+  const { createAdminClient } = await import('@/lib/supabase/admin');
+  const supabase = createAdminClient();
+  if (!supabase) return { site: null, cases: [], attendance: [] };
+  const [siteRes, casesRes, attRes] = await Promise.all([
+    supabase.from('tig_sites').select('*').eq('id', siteId).single(),
+    supabase.from('cases')
+      .select('id, case_number, status, tig_hours_ordered, tig_hours_completed, individual:individuals(full_name)')
+      .eq('tig_site_id', siteId).order('created_at', { ascending: false }).limit(200),
+    supabase.from('tig_attendance')
+      .select('id, case_id, session_date, hours_worked, supervisor_notes, created_at, case:cases(case_number, individual:individuals(full_name))')
+      .eq('tig_site_id', siteId).order('session_date', { ascending: false }).limit(200),
+  ]);
+  type CRow = { id: string; case_number: string; status: string; tig_hours_ordered?: number | null; tig_hours_completed?: number; individual?: { full_name?: string } | null };
+  type ARow = { id: string; case_id: string; session_date: string; hours_worked: number; supervisor_notes: string | null; created_at: string; case?: { case_number?: string; individual?: { full_name?: string } | null } | null };
+  const cases = ((casesRes.data ?? []) as unknown as CRow[]).map((c) => ({
+    id: c.id, case_number: c.case_number, status: c.status,
+    individual_name: c.individual?.full_name ?? '—',
+    tig_hours_ordered: c.tig_hours_ordered ?? null,
+    tig_hours_completed: c.tig_hours_completed ?? 0,
+  }));
+  const attendance = ((attRes.data ?? []) as unknown as ARow[]).map((a) => ({
+    id: a.id, case_id: a.case_id,
+    case_number: a.case?.case_number ?? '—',
+    individual_name: a.case?.individual?.full_name ?? '—',
+    session_date: a.session_date, hours_worked: a.hours_worked,
+    supervisor_notes: a.supervisor_notes, created_at: a.created_at,
+  }));
+  return { site: (siteRes.data as TigSite | null), cases, attendance };
+}
+
 export async function fetchTigSites(): Promise<TigSite[]> {
-  if (IS_DEMO_MODE) return MOCK_TIG_SITES;
+  if (IS_DEMO_MODE) {
+    const countMap = new Map<string, number>();
+    for (const c of MOCK_CASES) {
+      if (c.tig_site_id && ['ACTIVE', 'VIOLATION'].includes(c.status)) {
+        countMap.set(c.tig_site_id, (countMap.get(c.tig_site_id) ?? 0) + 1);
+      }
+    }
+    return MOCK_TIG_SITES.map((s) => ({ ...s, current_count: countMap.get(s.id) ?? 0 }));
+  }
   const { createAdminClient } = await import('@/lib/supabase/admin');
   const supabase = createAdminClient();
   if (!supabase) return [];
