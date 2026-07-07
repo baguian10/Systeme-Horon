@@ -1,11 +1,12 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useTransition } from 'react';
 import Link from 'next/link';
 import { CheckCircle, ChevronDown, ChevronRight as ChevronRightIcon, MapPin } from 'lucide-react';
 import { AlertTypeBadge, SeverityDot } from '@/components/ui/StatusBadge';
 import AlertActions from '@/components/alerts/AlertActions';
 import MiniPositionMapLoader from '@/components/devices/MiniPositionMapLoader';
+import { reopenAlertAction } from '@/app/sigep/dashboard/alerts/actions';
 import type { Alert, AlertStatus, AlertType } from '@/lib/supabase/types';
 
 interface UserOpt { id: string; full_name: string }
@@ -75,6 +76,10 @@ export default function AlertsClient({
   const [filterStatus, setFilterStatus] = useState('');
   const [resolvedPage, setResolvedPage] = useState(0);
   const [expandedId, setExpandedId]     = useState<string | null>(null);
+  const [reopenPending, startReopen]    = useTransition();
+
+  // Reset to page 0 when filters change so the user never lands on an empty page.
+  useEffect(() => { setResolvedPage(0); }, [search, filterType, filterSev]);
 
   const filteredOpen = useMemo(() => {
     let list = open;
@@ -351,9 +356,24 @@ export default function AlertsClient({
                       </p>
                     )}
                   </div>
-                  <span className="text-xs text-gray-400 whitespace-nowrap">
-                    {formatDate(alert.resolved_at ?? alert.triggered_at)}
-                  </span>
+                  <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                    <span className="text-xs text-gray-400 whitespace-nowrap">
+                      {formatDate(alert.resolved_at ?? alert.triggered_at)}
+                    </span>
+                    {canResolve && (
+                      <button
+                        disabled={reopenPending}
+                        onClick={() => {
+                          const fd = new FormData();
+                          fd.set('alertId', alert.id);
+                          startReopen(() => { reopenAlertAction(fd); });
+                        }}
+                        className="text-[11px] text-amber-600 hover:text-amber-700 font-medium disabled:opacity-40"
+                      >
+                        Rouvrir
+                      </button>
+                    )}
+                  </div>
                 </li>
               );
             })}

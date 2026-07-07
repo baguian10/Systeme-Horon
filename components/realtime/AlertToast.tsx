@@ -26,7 +26,10 @@ const SEVERITY_BG: Record<number, string> = {
 
 export default function AlertToast({ alert, onDismiss }: { alert: Alert; onDismiss: () => void }) {
   const cfg = TYPE_CONFIG[alert.alert_type];
-  const caseNum = (alert.case as { case_number?: string } | undefined)?.case_number;
+  // Realtime INSERT payload does not include JOIN data — case_number is absent.
+  // Fall back to a truncated case_id so the link always renders.
+  const caseNum = (alert.case as { case_number?: string } | undefined)?.case_number
+    ?? (alert.case_id ? `#${alert.case_id.slice(0, 8)}` : null);
 
   return (
     <div

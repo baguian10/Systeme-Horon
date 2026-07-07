@@ -76,6 +76,33 @@ export async function assignAlertAction(formData: FormData) {
   revalidate();
 }
 
+// Reopen an erroneously resolved alert — only available to resolvers.
+export async function reopenAlertAction(formData: FormData) {
+  const session = await getSession();
+  if (!session || !canResolveAlert(session.role)) return;
+  const alertId = formData.get('alertId') as string;
+  if (!alertId) return;
+
+  if (isDemoMode()) {
+    const { MOCK_ALERTS } = await import('@/lib/mock/data');
+    const a = MOCK_ALERTS.find((x) => x.id === alertId);
+    if (a) {
+      a.is_resolved = false; a.resolved_by = null; a.resolved_at = null;
+      (a as never as { status: string }).status = 'NEW';
+      (a as never as { resolution_reason: null }).resolution_reason = null;
+    }
+    revalidate(); return;
+  }
+  const ctx = await getClientFor(alertId);
+  if (!ctx) return;
+  await ctx.supabase.from('alerts')
+    .update({ is_resolved: false, resolved_by: null, resolved_at: null, status: 'NEW', resolution_category: null, resolution_reason: null })
+    .eq('id', alertId).eq('is_resolved', true);
+  const { writeAudit } = await import('@/lib/audit/log');
+  await writeAudit({ userId: session.id, action: 'REOPEN_ALERT', tableName: 'alerts', recordId: alertId });
+  revalidate();
+}
+
 // Resolve with a mandatory category + reason (defensible audit trail).
 export async function resolveAlertAction(formData: FormData) {
   const session = await getSession();
