@@ -6,6 +6,8 @@ import {
 } from 'lucide-react';
 import { fetchCaseById, fetchCaseAssignments, fetchOperationalUsers, fetchJournalEntries } from '@/lib/mock/helpers';
 import { getSession } from '@/lib/auth/session';
+import AutoRefresh from '@/components/common/AutoRefresh';
+import MiniPositionMapLoader from '@/components/devices/MiniPositionMapLoader';
 import { CaseStatusBadge, AlertTypeBadge, SeverityDot, RiskBadge } from '@/components/ui/StatusBadge';
 import RiskControl from '@/components/cases/RiskControl';
 import { canViewPII, canManageGeofences, canUpdateCaseStatus, canManageAssignments, canWriteJournal, canConfigureHardware, canSetMeasureConditions, allow } from '@/lib/auth/permissions';
@@ -22,6 +24,8 @@ import DeviceConfigPanel from '@/components/cases/DeviceConfigPanel';
 import CommsPanel from '@/components/cases/CommsPanel';
 import AssignmentManager from '@/components/cases/AssignmentManager';
 import JournalPanel from '@/components/cases/JournalPanel';
+
+export const revalidate = 0;
 
 export default async function CaseDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -92,6 +96,7 @@ export default async function CaseDetailPage({ params }: { params: Promise<{ id:
 
   return (
     <div className="space-y-5 max-w-5xl">
+      <AutoRefresh intervalMs={20000} />
       {/* Back + Header */}
       <div>
         <Link
@@ -188,16 +193,14 @@ export default async function CaseDetailPage({ params }: { params: Promise<{ id:
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-gray-500">IMEI</span>
-                  <span className="font-mono text-xs text-gray-600">{device.imei}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-gray-500">Firmware</span>
-                  <span className="text-xs text-gray-600">{device.firmware_ver}</span>
+                  <Link href={`/sigep/dashboard/devices/${device.id}`} className="font-mono text-xs text-blue-600 hover:underline">
+                    {device.imei}
+                  </Link>
                 </div>
                 {device.last_seen_at && (
                   <div className="flex items-center justify-between">
                     <span className="text-gray-500">Dernier contact</span>
-                    <span className="text-xs text-gray-400">{timeAgo(device.last_seen_at)} ago</span>
+                    <span className="text-xs text-gray-400">il y a {timeAgo(device.last_seen_at)}</span>
                   </div>
                 )}
               </div>
@@ -218,42 +221,51 @@ export default async function CaseDetailPage({ params }: { params: Promise<{ id:
         {/* Right column */}
         <div className="lg:col-span-2 space-y-4">
           {/* Last position */}
-          <div className="bg-slate-900 rounded-2xl p-5">
-            <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Dernière position connue</h3>
+          <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+            <div className="px-5 py-4 border-b border-gray-50 flex items-center justify-between">
+              <h3 className="font-semibold text-gray-900">Dernière position connue</h3>
+              <Link
+                href={`/sigep/dashboard/cases/${id}/history`}
+                data-tip="Voir l'itinéraire d'un jour donné : rejeu animé, arrêts, événements, conformité couvre-feu, rapport PDF"
+                className="text-xs text-violet-600 hover:underline font-medium"
+              >
+                🛣️ Itinéraire →
+              </Link>
+            </div>
             {caseData.last_position ? (
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-mono text-lg text-white">
-                    {caseData.last_position.latitude.toFixed(5)}, {caseData.last_position.longitude.toFixed(5)}
-                  </p>
-                  <div className="flex items-center gap-3 mt-1 text-slate-400 text-xs">
-                    <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> il y a {timeAgo(caseData.last_position.recorded_at)}</span>
-                    {caseData.last_position.accuracy_m && (
-                      <span>Précision ±{caseData.last_position.accuracy_m}m</span>
-                    )}
-                    {caseData.last_position.speed_kmh !== null && caseData.last_position.speed_kmh !== undefined && (
-                      <span>{caseData.last_position.speed_kmh} km/h</span>
-                    )}
-                  </div>
+              <>
+                <div className="h-48">
+                  <MiniPositionMapLoader
+                    lat={caseData.last_position.latitude}
+                    lng={caseData.last_position.longitude}
+                    label={caseData.case_number}
+                  />
                 </div>
-                <MapPin className="w-8 h-8 text-blue-400 opacity-60" />
-              </div>
+                <div className="px-5 py-2.5 bg-gray-50/50 flex items-center gap-4 text-xs text-gray-500 flex-wrap">
+                  <span className="flex items-center gap-1">
+                    <Clock className="w-3 h-3" /> il y a {timeAgo(caseData.last_position.recorded_at)}
+                  </span>
+                  <span className="font-mono text-gray-400">
+                    {caseData.last_position.latitude.toFixed(5)}, {caseData.last_position.longitude.toFixed(5)}
+                  </span>
+                  {caseData.last_position.accuracy_m && <span>±{caseData.last_position.accuracy_m}m</span>}
+                  {caseData.last_position.speed_kmh != null && <span>{caseData.last_position.speed_kmh} km/h</span>}
+                </div>
+              </>
             ) : (
-              <p className="text-sm text-slate-500">Aucune position disponible</p>
+              <div className="px-5 py-8 text-center text-sm text-gray-400">Aucune position disponible</div>
             )}
-            <Link
-              href={`/sigep/dashboard/cases/${id}/history`}
-              data-tip="Voir l'itinéraire d'un jour donné : rejeu animé, arrêts, événements, conformité couvre-feu, rapport PDF"
-              className="mt-4 flex items-center justify-center gap-2 w-full bg-violet-600 hover:bg-violet-700 text-white rounded-xl py-2.5 text-sm font-semibold transition"
-            >
-              🛣️ Itinéraire & historique journalier
-            </Link>
           </div>
 
           {/* Active Alerts */}
           <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
-            <div className="px-5 py-4 border-b border-gray-50">
+            <div className="px-5 py-4 border-b border-gray-50 flex items-center justify-between">
               <h3 className="font-semibold text-gray-900">Alertes actives</h3>
+              {openAlerts.length > 0 && (
+                <Link href="/sigep/dashboard/alerts" className="text-xs text-blue-600 hover:underline font-medium">
+                  Gérer dans le centre d&apos;alertes →
+                </Link>
+              )}
             </div>
             {openAlerts.length === 0 ? (
               <div className="flex items-center gap-2 px-5 py-4 text-sm text-emerald-600">
