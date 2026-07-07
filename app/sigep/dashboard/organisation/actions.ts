@@ -17,6 +17,7 @@ export async function createDepartmentAction(formData: FormData): Promise<void> 
   const type = ((formData.get('type') as string) || 'COURT').toUpperCase();
   const parent_id = (formData.get('parent_id') as string) || null;
   if (!name) return;
+  if (!['COURT', 'JURISDICTION', 'UNIT'].includes(type)) return;
   if (isDemoMode()) { revalidatePath('/sigep/dashboard/organisation'); return; }
 
   const { createAdminClient } = await import('@/lib/supabase/admin');

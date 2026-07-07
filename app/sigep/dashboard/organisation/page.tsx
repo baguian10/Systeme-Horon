@@ -1,10 +1,11 @@
 import { redirect } from 'next/navigation';
-import { Building2, Trash2 } from 'lucide-react';
+import { Building2 } from 'lucide-react';
 import { getSession } from '@/lib/auth/session';
 import { allow } from '@/lib/auth/permissions';
 import type { Department, User } from '@/lib/supabase/types';
 import DeptAssignSelect from '@/components/org/DeptAssignSelect';
-import { createDepartmentAction, deleteDepartmentAction } from './actions';
+import DeleteDeptButton from '@/components/org/DeleteDeptButton';
+import { createDepartmentAction } from './actions';
 
 export const dynamic = 'force-dynamic';
 export const metadata = { title: 'Organisation — SIGEP' };
@@ -44,10 +45,7 @@ export default async function OrganisationPage() {
               <span className="font-medium text-gray-900 text-sm">{d.name}</span>
               <span className="text-[11px] text-gray-400">{TYPE_LABEL[d.type] ?? d.type}</span>
               <span className="text-[11px] text-gray-400">· {membersOf(d.id).length} agent(s)</span>
-              <form action={deleteDepartmentAction} className="ml-auto">
-                <input type="hidden" name="id" value={d.id} />
-                <button type="submit" data-tip="Supprimer cette entité. Les sous-entités et agents rattachés sont détachés (non supprimés)." className="text-gray-300 hover:text-red-500"><Trash2 className="w-3.5 h-3.5" /></button>
-              </form>
+              <DeleteDeptButton id={d.id} name={d.name} />
             </div>
             {renderTree(d.id, depth + 1)}
           </li>
