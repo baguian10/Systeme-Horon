@@ -91,7 +91,8 @@ export async function fetchAlerts(_role: UserRole): Promise<Alert[]> {
   const { data } = await supabase
     .from('alerts')
     .select('*, case:cases(case_number, status), device:devices(imei)')
-    .order('triggered_at', { ascending: false });
+    .order('triggered_at', { ascending: false })
+    .limit(500);
   return (data ?? []) as Alert[];
 }
 

@@ -11,6 +11,7 @@ const isDemoMode = () =>
 
 function revalidate() {
   revalidatePath('/sigep/dashboard/alerts');
+  revalidatePath('/sigep/dashboard/monitoring');
   revalidatePath('/sigep/dashboard');
 }
 

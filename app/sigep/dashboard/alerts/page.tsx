@@ -1,22 +1,11 @@
-import { Bell, CheckCircle } from 'lucide-react';
 import { getSession } from '@/lib/auth/session';
 import { fetchAlerts, fetchOperationalUsers } from '@/lib/mock/helpers';
-import { AlertTypeBadge, SeverityDot } from '@/components/ui/StatusBadge';
 import { canResolveAlert } from '@/lib/auth/permissions';
-import EmptyState from '@/components/ui/EmptyState';
-import Link from 'next/link';
-import AlertActions from '@/components/alerts/AlertActions';
-import type { AlertStatus } from '@/lib/supabase/types';
+import AutoRefresh from '@/components/common/AutoRefresh';
+import AlertsClient from '@/components/alerts/AlertsClient';
 
 export const metadata = { title: 'Alertes — SIGEP' };
-
-const STATUS_META: Record<AlertStatus, { label: string; cls: string }> = {
-  NEW:          { label: 'Nouvelle',    cls: 'bg-red-100 text-red-700' },
-  ACKNOWLEDGED: { label: 'Vue',         cls: 'bg-amber-100 text-amber-700' },
-  IN_PROGRESS:  { label: 'En cours',    cls: 'bg-blue-100 text-blue-700' },
-  RESOLVED:     { label: 'Traitée',     cls: 'bg-emerald-100 text-emerald-700' },
-  FALSE_ALARM:  { label: 'Fausse',      cls: 'bg-gray-100 text-gray-600' },
-};
+export const revalidate = 0;
 
 export default async function AlertsPage() {
   const session = await getSession();
@@ -28,20 +17,31 @@ export default async function AlertsPage() {
   ]);
   const canResolve = canResolveAlert(session.role);
   const userOpts = (operationals ?? []).map((u) => ({ id: u.id, full_name: u.full_name }));
-  const nameOf = (id?: string | null) => userOpts.find((u) => u.id === id)?.full_name ?? null;
 
-  const open = alerts.filter((a) => !a.is_resolved);
+  const open     = alerts.filter((a) => !a.is_resolved);
   const resolved = alerts.filter((a) => a.is_resolved);
 
-  function formatDate(iso: string) {
-    return new Date(iso).toLocaleString('fr-FR', { timeZone: 'Africa/Ouagadougou',
-      day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit',
-    });
-  }
-  const SEVERITY_LABEL = ['', 'Faible', 'Modéré', 'Élevé', 'Critique', 'Maximal'];
+  // KPIs (server-side, deterministic)
+  const critical    = open.filter((a) => a.severity >= 4).length;
+  const pendingAck  = open.filter((a) => a.status === 'NEW' || !a.status).length;
+  const avgAgeMin   = open.length
+    ? Math.round(open.reduce((s, a) => s + (Date.now() - Date.parse(a.triggered_at)) / 60_000, 0) / open.length)
+    : null;
+  const avgAgeLabel = avgAgeMin === null ? '—'
+    : avgAgeMin < 60 ? `${avgAgeMin}min`
+    : `${Math.floor(avgAgeMin / 60)}h${avgAgeMin % 60 ? String(avgAgeMin % 60).padStart(2, '0') : ''}`;
+
+  const kpis = [
+    { label: 'Actives',         value: String(open.length),  cls: open.length > 0 ? 'text-gray-900' : 'text-emerald-600' },
+    { label: 'Critiques (≥4)',  value: String(critical),     cls: critical > 0    ? 'text-red-600'   : 'text-gray-400' },
+    { label: 'En attente ACK',  value: String(pendingAck),   cls: pendingAck > 0  ? 'text-amber-600' : 'text-gray-400' },
+    { label: 'Âge moyen',       value: avgAgeLabel,          cls: 'text-gray-700' },
+  ];
 
   return (
     <div className="space-y-6">
+      <AutoRefresh intervalMs={15000} />
+
       <div className="flex items-start justify-between gap-3 flex-wrap">
         <div>
           <h2 className="text-xl font-bold text-gray-900">Centre d&apos;alertes</h2>
@@ -49,100 +49,26 @@ export default async function AlertsPage() {
             {open.length} alerte{open.length !== 1 ? 's' : ''} active{open.length !== 1 ? 's' : ''}
           </p>
         </div>
-        {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- file download from an API route */}
-        <a href="/api/export/alerts" data-tip="Exporter l'historique des alertes (type, gravité, statut, motif de clôture) en CSV" className="inline-flex items-center gap-1.5 text-sm border border-gray-200 rounded-lg px-3 py-1.5 hover:bg-gray-50 text-gray-700">
+        {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
+        <a
+          href="/api/export/alerts"
+          className="inline-flex items-center gap-1.5 text-sm border border-gray-200 rounded-lg px-3 py-1.5 hover:bg-gray-50 text-gray-700"
+        >
           ⬇️ Exporter CSV
         </a>
       </div>
 
-      <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
-        <div className="px-5 py-4 border-b border-gray-50">
-          <h3 className="font-semibold text-gray-900">Alertes en cours</h3>
-        </div>
-        {open.length === 0 ? (
-          <EmptyState icon={<Bell className="w-6 h-6" />} title="Aucune alerte active" description="Tous les dispositifs fonctionnent normalement." />
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="bg-gray-50 border-b border-gray-100">
-                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide w-4">Sév.</th>
-                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Type</th>
-                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Statut</th>
-                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Description</th>
-                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Dossier</th>
-                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Déclenchée</th>
-                  {canResolve && <th className="px-5 py-3" />}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-50">
-                {open.sort((a, b) => b.severity - a.severity).map((alert) => {
-                  const st = (alert.status ?? 'NEW') as AlertStatus;
-                  const meta = STATUS_META[st] ?? STATUS_META.NEW;
-                  const assignee = nameOf(alert.assigned_to);
-                  return (
-                    <tr key={alert.id} className="hover:bg-gray-50/50 transition-colors">
-                      <td className="px-5 py-3.5">
-                        <div className="flex items-center gap-2">
-                          <SeverityDot level={alert.severity} />
-                          <span className="text-xs text-gray-500">{SEVERITY_LABEL[alert.severity]}</span>
-                        </div>
-                      </td>
-                      <td className="px-5 py-3.5"><AlertTypeBadge type={alert.alert_type} /></td>
-                      <td className="px-5 py-3.5">
-                        <span className={`inline-block px-2 py-0.5 rounded-full text-[11px] font-medium ${meta.cls}`}>{meta.label}</span>
-                        {assignee && <div className="text-[11px] text-gray-400 mt-0.5">→ {assignee}</div>}
-                      </td>
-                      <td className="px-5 py-3.5 max-w-xs"><p className="text-xs text-gray-600 line-clamp-2">{alert.description ?? '—'}</p></td>
-                      <td className="px-5 py-3.5">
-                        <Link href={`/sigep/dashboard/cases/${alert.case_id}`} className="text-xs text-blue-600 hover:underline font-mono">
-                          {alert.case?.case_number ?? alert.case_id.slice(0, 8)}
-                        </Link>
-                      </td>
-                      <td className="px-5 py-3.5 text-xs text-gray-500 whitespace-nowrap">{formatDate(alert.triggered_at)}</td>
-                      {canResolve && (
-                        <td className="px-5 py-3.5">
-                          <AlertActions alertId={alert.id} status={st} assignedTo={alert.assigned_to ?? null} users={userOpts} />
-                        </td>
-                      )}
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+      {/* KPI tiles */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        {kpis.map((k) => (
+          <div key={k.label} className="bg-white border border-gray-100 rounded-xl p-4">
+            <p className="text-xs text-gray-500 mb-1">{k.label}</p>
+            <p className={`text-2xl font-bold ${k.cls}`}>{k.value}</p>
           </div>
-        )}
+        ))}
       </div>
 
-      {resolved.length > 0 && (
-        <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
-          <div className="px-5 py-4 border-b border-gray-50">
-            <h3 className="font-semibold text-gray-600">Alertes clôturées ({resolved.length})</h3>
-          </div>
-          <ul className="divide-y divide-gray-50">
-            {resolved.map((alert) => {
-              const st = (alert.status ?? 'RESOLVED') as AlertStatus;
-              const meta = STATUS_META[st] ?? STATUS_META.RESOLVED;
-              return (
-                <li key={alert.id} className="px-5 py-3 flex items-start gap-3">
-                  <CheckCircle className="w-4 h-4 text-emerald-500 flex-shrink-0 mt-0.5" />
-                  <AlertTypeBadge type={alert.alert_type} />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs text-gray-500 truncate">{alert.description}</p>
-                    {alert.resolution_reason && (
-                      <p className="text-[11px] text-gray-400 mt-0.5">
-                        <span className={`inline-block px-1.5 rounded ${meta.cls}`}>{meta.label}</span> — {alert.resolution_reason}
-                        {nameOf(alert.resolved_by) && <> · par {nameOf(alert.resolved_by)}</>}
-                      </p>
-                    )}
-                  </div>
-                  <span className="text-xs text-gray-400 whitespace-nowrap">{formatDate(alert.resolved_at ?? alert.triggered_at)}</span>
-                </li>
-              );
-            })}
-          </ul>
-        </div>
-      )}
+      <AlertsClient open={open} resolved={resolved} canResolve={canResolve} users={userOpts} />
     </div>
   );
 }
