@@ -30,9 +30,10 @@ import type { MapGeofenceLite } from './LiveTrackingMap';
 interface Props {
   initialPositions?: LivePosition[];
   geofences?: MapGeofenceLite[];
+  focusCaseId?: string | null;
 }
 
-export default function LiveMapGrid({ initialPositions = [], geofences = [] }: Props) {
+export default function LiveMapGrid({ initialPositions = [], geofences = [], focusCaseId = null }: Props) {
   const positions = usePositionFeed(initialPositions);
 
   return (
@@ -40,7 +41,7 @@ export default function LiveMapGrid({ initialPositions = [], geofences = [] }: P
 
       {/* Leaflet map fills entire container */}
       <div className="absolute inset-0">
-        <LiveTrackingMap positions={positions} geofences={geofences} />
+        <LiveTrackingMap positions={positions} geofences={geofences} focusCaseId={focusCaseId} />
       </div>
 
       {/* Top label overlay */}

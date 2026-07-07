@@ -150,11 +150,13 @@ function AnimatedMarker({ pos, icon, children }: { pos: LivePosition; icon: L.Di
 interface Props {
   positions: LivePosition[];
   geofences?: MapGeofenceLite[];
+  /** External camera focus (crisis-room auto-cycle) — pans without locking. */
+  focusCaseId?: string | null;
 }
 
 type TrailPoint = { lat: number; lng: number; ts: number };
 
-export default function LiveTrackingMap({ positions, geofences = [] }: Props) {
+export default function LiveTrackingMap({ positions, geofences = [], focusCaseId = null }: Props) {
   const [now, setNow] = useState(() => Date.now());
   const [followId, setFollowId] = useState<string | null>(null);
   const [trailMap, setTrailMap] = useState<Map<string, TrailPoint[]>>(new Map());
@@ -209,6 +211,15 @@ export default function LiveTrackingMap({ positions, geofences = [] }: Props) {
     return p ? [p.latitude, p.longitude] : null;
   }, [followId, positions]);
 
+  // Crisis-room auto-cycle: pan once each time the external focus changes
+  // (user follow-mode wins if active).
+  const cycleTarget = useMemo<[number, number] | null>(() => {
+    if (followId || !focusCaseId) return null;
+    const p = positions.find((x) => x.case_id === focusCaseId);
+    return p ? [p.latitude, p.longitude] : null;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focusCaseId, followId]);
+
   // Trail age buckets → fading opacity (recent bold, old faint).
   function trailSegments(arr: TrailPoint[], color: string) {
     const buckets: { pts: [number, number][]; opacity: number }[] = [
@@ -259,8 +270,9 @@ export default function LiveTrackingMap({ positions, geofences = [] }: Props) {
           </LayersControl.Overlay>
         </LayersControl>
 
-        <FitBounds positions={positions} disabled={followId != null} />
+        <FitBounds positions={positions} disabled={followId != null || focusCaseId != null} />
         <FollowCamera target={followTarget} />
+        <FollowCamera target={cycleTarget} />
 
         {/* Geofences — inclusion emerald, exclusion red dashed; the zones of a
             case currently in VIOLATION pulse. */}

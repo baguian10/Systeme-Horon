@@ -65,6 +65,19 @@ function ago(at: string, now: number) {
   return m < 60 ? `${m}min` : `${Math.floor(m / 60)}h`;
 }
 
+// Tiny inline sparkline (last ~30 min of KPI samples).
+function Spark({ data, color }: { data: number[]; color: string }) {
+  if (data.length < 2) return <div style={{ height: 14 }} />;
+  const min = Math.min(...data), max = Math.max(...data);
+  const range = max - min || 1;
+  const pts = data.map((v, i) => `${(i / (data.length - 1)) * 60},${12 - ((v - min) / range) * 10}`).join(' ');
+  return (
+    <svg width={60} height={14} className="mx-auto block">
+      <polyline points={pts} fill="none" stroke={color} strokeWidth={1.5} strokeLinejoin="round" strokeLinecap="round" opacity={0.7} />
+    </svg>
+  );
+}
+
 export default function MonitoringConsole({
   initialPositions, initialAlerts, initialEvents, operationals, metrics, ingestionLastMs, canResolve, caseInfo = {}, geofences = [],
   escalateMinutes = 30, meId = '', meName = '',
@@ -96,8 +109,12 @@ export default function MonitoringConsole({
   const [incidentTrail, setIncidentTrail] = useState<[number, number][] | null>(null);
   const [replayMode, setReplayMode] = useState(false);
   const [locateMsg, setLocateMsg] = useState<string | null>(null);
+  const [crisis, setCrisis] = useState(false);
+  const [cycleCase, setCycleCase] = useState<string | null>(null);
   const rootRef = useRef<HTMLDivElement>(null);
   const mutedRef = useRef(false);
+  // KPI history for the sparklines — one sample per metrics refresh (~30 s).
+  const [kpiHist, setKpiHist] = useState<Record<string, number[]>>({});
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -260,6 +277,46 @@ export default function MonitoringConsole({
   }, [openAlerts, selIdx, incident, canResolve, meId, ack, claim, openIncident]);
   useEffect(() => { selRef.current?.scrollIntoView({ block: 'nearest' }); }, [selIdx]);
 
+  // Sample metrics into the sparkline history (server refreshes them ~30 s).
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setKpiHist((prev) => {
+      const next = { ...prev };
+      const push = (k: string, v: number) => { next[k] = [...(prev[k] ?? []), v].slice(-60); };
+      push('online', metrics.online); push('offline', metrics.offline);
+      push('violations', metrics.violations); push('battery', metrics.battery); push('stale', metrics.stale);
+      return next;
+    });
+  }, [metrics]);
+
+  // Crisis mode: fullscreen lifecycle + violation auto-cycle every 10 s.
+  useEffect(() => {
+    function onFsChange() { if (!document.fullscreenElement) setCrisis(false); }
+    document.addEventListener('fullscreenchange', onFsChange);
+    return () => document.removeEventListener('fullscreenchange', onFsChange);
+  }, []);
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (!crisis) { setCycleCase(null); return; }
+    const violators = () => livePos.filter((p) => p.status === 'VIOLATION').map((p) => p.case_id);
+    let i = 0;
+    const tick = () => {
+      const v = violators();
+      if (v.length === 0) { setCycleCase(null); return; }
+      setCycleCase(v[i % v.length]);
+      i++;
+    };
+    const id = setInterval(tick, 10_000);
+    const first = setTimeout(tick, 300); // first focus right after entering crisis mode
+    return () => { clearInterval(id); clearTimeout(first); };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [crisis]);
+
+  function enterCrisis() {
+    setCrisis(true);
+    rootRef.current?.requestFullscreen?.().catch(() => {});
+  }
+
   // P — major-incident detection: many simultaneous active violations.
   const violationCount = useMemo(() => openAlerts.filter((a) => ['GEOFENCE_EXIT', 'BLE_EXIT', 'CURFEW_VIOLATION', 'TAMPER_DETECTED', 'PANIC_BUTTON'].includes(a.alert_type)).length, [openAlerts]);
   const major = violationCount >= 3;
@@ -303,17 +360,35 @@ export default function MonitoringConsole({
   const ingestionStale = ingestionLastMs ? (now - ingestionLastMs) > 15 * 60_000 : true;
 
   const KPIS = [
-    { label: 'En ligne', v: metrics.online, cls: 'text-emerald-700' },
-    { label: 'Hors ligne', v: metrics.offline, cls: 'text-gray-500' },
-    { label: 'Violations', v: metrics.violations, cls: 'text-red-700' },
-    { label: 'Batterie', v: metrics.battery, cls: 'text-amber-700' },
-    { label: 'Sans contact', v: metrics.stale, cls: 'text-orange-700' },
-    { label: 'Tps réponse', v: metrics.avgAckMin != null ? `${metrics.avgAckMin}min` : '—', cls: 'text-blue-700' },
-    { label: 'Tps résolution', v: metrics.avgResolveMin != null ? `${metrics.avgResolveMin}min` : '—', cls: 'text-violet-700' },
+    { key: 'online', label: 'En ligne', v: metrics.online, cls: crisis ? 'text-emerald-400' : 'text-emerald-700', spark: '#34d399' },
+    { key: 'offline', label: 'Hors ligne', v: metrics.offline, cls: crisis ? 'text-slate-400' : 'text-gray-500', spark: '#94a3b8' },
+    { key: 'violations', label: 'Violations', v: metrics.violations, cls: crisis ? 'text-red-400' : 'text-red-700', spark: '#f87171' },
+    { key: 'battery', label: 'Batterie', v: metrics.battery, cls: crisis ? 'text-amber-400' : 'text-amber-700', spark: '#fbbf24' },
+    { key: 'stale', label: 'Sans contact', v: metrics.stale, cls: crisis ? 'text-orange-400' : 'text-orange-700', spark: '#fb923c' },
+    { key: '', label: 'Tps réponse', v: metrics.avgAckMin != null ? `${metrics.avgAckMin}min` : '—', cls: crisis ? 'text-blue-400' : 'text-blue-700', spark: '' },
+    { key: '', label: 'Tps résolution', v: metrics.avgResolveMin != null ? `${metrics.avgResolveMin}min` : '—', cls: crisis ? 'text-violet-400' : 'text-violet-700', spark: '' },
   ];
 
+  const card = crisis ? 'border-slate-800 bg-slate-900' : 'border-gray-100 bg-white';
+  const cycled = cycleCase ? livePos.find((p) => p.case_id === cycleCase) : null;
+
   return (
-    <div ref={rootRef} className="space-y-3 bg-gray-50">
+    <div ref={rootRef} className={`space-y-3 ${crisis ? 'bg-slate-950 p-4 overflow-y-auto' : 'bg-gray-50'}`}>
+      <style>{`@keyframes tickerScroll { 0% { transform: translateX(100%) } 100% { transform: translateX(-100%) } }`}</style>
+
+      {/* Crisis ticker — scrolling banner of every open alert. */}
+      {crisis && openAlerts.length > 0 && (
+        <div className="relative overflow-hidden rounded-xl bg-red-950/80 border border-red-900 py-2">
+          <div className="whitespace-nowrap text-red-200 text-sm font-semibold" style={{ animation: `tickerScroll ${Math.max(18, openAlerts.length * 6)}s linear infinite` }}>
+            {openAlerts.map((a) => (
+              <span key={a.id} className="mx-6">
+                ⚠ {EVENT_LABEL[a.alert_type] ?? a.alert_type} · {a.case_number} · il y a {ago(a.triggered_at, now)}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* P — major incident banner */}
       {major && (
         <div className="flex items-center gap-2 bg-red-700 text-white rounded-xl px-4 py-2.5 text-sm font-bold animate-pulse">
@@ -321,32 +396,44 @@ export default function MonitoringConsole({
           {(metrics.stale > 0 || metrics.battery > 0) && <span className="font-normal opacity-90">· {metrics.stale} muets · {metrics.battery} batterie critique</span>}
         </div>
       )}
-      {flash && <div className="flex items-center gap-2 bg-red-600 text-white rounded-xl px-4 py-2 text-sm font-semibold animate-pulse"><Bell className="w-4 h-4" /> Nouvelle alerte reçue</div>}
+      {flash && !crisis && <div className="flex items-center gap-2 bg-red-600 text-white rounded-xl px-4 py-2 text-sm font-semibold animate-pulse"><Bell className="w-4 h-4" /> Nouvelle alerte reçue</div>}
 
-      {/* J — KPI + health */}
+      {/* J — KPI + health (sparklines = last ~30 min trend) */}
       <div className="flex flex-wrap items-stretch gap-2">
         {KPIS.map((k) => (
-          <div key={k.label} className="flex-1 min-w-[90px] rounded-xl border border-gray-100 bg-white px-3 py-2 text-center">
-            <p className={`text-xl font-bold ${k.cls}`}>{k.v}</p>
-            <p className="text-[10px] text-gray-500">{k.label}</p>
+          <div key={k.label} className={`flex-1 min-w-[90px] rounded-xl border px-3 py-2 text-center ${card}`}>
+            <p className={`${crisis ? 'text-3xl' : 'text-xl'} font-bold ${k.cls}`}>{k.v}</p>
+            <p className={`text-[10px] ${crisis ? 'text-slate-400' : 'text-gray-500'}`}>{k.label}</p>
+            {k.key && <Spark data={kpiHist[k.key] ?? []} color={k.spark} />}
           </div>
         ))}
-        <div className="flex flex-col justify-center gap-1 rounded-xl border border-gray-100 bg-white px-3 py-2">
-          <span data-tip="Connexion au flux temps réel" className={`flex items-center gap-1 text-[11px] font-medium ${connected ? 'text-emerald-600' : 'text-gray-400'}`}><CircleDot className="w-3 h-3" />{connected ? 'Temps réel actif' : 'Reconnexion…'}</span>
-          <span data-tip="Dernière position reçue de la flotte" className={`flex items-center gap-1 text-[11px] ${ingestionStale ? 'text-red-500' : 'text-gray-500'}`}><Radio className="w-3 h-3" />Ingestion : {ingestionLabel}</span>
+        <div className={`flex flex-col justify-center gap-1 rounded-xl border px-3 py-2 ${card}`}>
+          <span data-tip="Connexion au flux temps réel" className={`flex items-center gap-1 text-[11px] font-medium ${connected ? (crisis ? 'text-emerald-400' : 'text-emerald-600') : 'text-gray-400'}`}><CircleDot className="w-3 h-3" />{connected ? 'Temps réel actif' : 'Reconnexion…'}</span>
+          <span data-tip="Dernière position reçue de la flotte" className={`flex items-center gap-1 text-[11px] ${ingestionStale ? 'text-red-500' : crisis ? 'text-slate-400' : 'text-gray-500'}`}><Radio className="w-3 h-3" />Ingestion : {ingestionLabel}</span>
+          {crisis && cycled && (
+            <span className="flex items-center gap-1 text-[11px] text-red-400 font-semibold animate-pulse">
+              <Crosshair className="w-3 h-3" /> Cycle : {cycled.case_number}
+            </span>
+          )}
         </div>
-        <button onClick={() => setMuted((m) => !m)} data-tip={muted ? 'Réactiver le son des alertes' : 'Couper le son des alertes'} className="rounded-xl border border-gray-100 bg-white px-3 text-gray-600 hover:text-gray-900">{muted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}</button>
-        <button onClick={() => rootRef.current?.requestFullscreen?.()} data-tip="Mode mur de contrôle (plein écran)" className="rounded-xl border border-gray-100 bg-white px-3 text-gray-600 hover:text-gray-900"><Maximize2 className="w-4 h-4" /></button>
+        <button onClick={() => setMuted((m) => !m)} data-tip={muted ? 'Réactiver le son des alertes' : 'Couper le son des alertes'} className={`rounded-xl border px-3 ${card} ${crisis ? 'text-slate-300 hover:text-white' : 'text-gray-600 hover:text-gray-900'}`}>{muted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}</button>
+        <button
+          onClick={() => crisis ? document.exitFullscreen?.() : enterCrisis()}
+          data-tip={crisis ? 'Quitter la salle de crise' : 'Mode salle de crise (plein écran, cycle violations)'}
+          className={`rounded-xl border px-3 font-semibold text-xs ${crisis ? 'border-red-800 bg-red-950 text-red-300 hover:text-red-100' : `${card} text-gray-600 hover:text-gray-900`}`}
+        >
+          {crisis ? <span className="flex items-center gap-1.5"><X className="w-4 h-4" /> Quitter</span> : <Maximize2 className="w-4 h-4" />}
+        </button>
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-5 gap-4 h-[calc(100vh-15rem)]">
         {/* Map */}
         <div className="xl:col-span-3 rounded-2xl overflow-hidden border border-gray-100 min-h-[360px]">
-          <LiveMapGrid initialPositions={livePos} geofences={geofences} />
+          <LiveMapGrid initialPositions={livePos} geofences={geofences} focusCaseId={cycleCase} />
         </div>
 
         {/* Triage / Stream */}
-        <div className="xl:col-span-2 flex flex-col bg-white rounded-2xl border border-gray-100 overflow-hidden min-h-[360px]">
+        <div className={`xl:col-span-2 flex flex-col rounded-2xl border overflow-hidden min-h-[360px] ${crisis ? 'bg-slate-900 border-slate-800' : 'bg-white border-gray-100'}`}>
           <div className="flex border-b border-gray-50">
             <button onClick={() => setTab('triage')} className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 text-sm font-medium ${tab === 'triage' ? 'text-red-600 border-b-2 border-red-500' : 'text-gray-500'}`}>
               <AlertTriangle className="w-4 h-4" /> Triage ({openAlerts.length})
