@@ -16,8 +16,13 @@ const CATEGORIES = [
   { value: 'AUTRE',       label: 'Autre' },
 ];
 
-const ARRONDISSEMENTS = [
-  'Baskuy', 'Bogodogo', 'Boulmiougou', 'Nongremassom', 'Sig-Nonghin',
+const ARRONDISSEMENTS: { city: string; districts: string[] }[] = [
+  { city: 'Ouagadougou', districts: ['Baskuy', 'Bogodogo', 'Boulmiougou', 'Nongremassom', 'Sig-Nonghin'] },
+  { city: 'Bobo-Dioulasso', districts: ['Dô', 'Dafra', 'Konsa', 'Bindougousso'] },
+  { city: 'Koudougou', districts: ['Koudougou Centre', 'Koudougou Nord', 'Koudougou Sud'] },
+  { city: 'Ouahigouya', districts: ['Ouahigouya'] },
+  { city: 'Banfora', districts: ['Banfora'] },
+  { city: 'Autres', districts: ['Autre commune'] },
 ];
 
 export default function NewTigSitePage() {
@@ -69,8 +74,12 @@ export default function NewTigSitePage() {
                 <label className="block text-xs font-medium text-gray-600 mb-1.5">Arrondissement *</label>
                 <select name="arrondissement" required className={INPUT}>
                   <option value="">Sélectionner…</option>
-                  {ARRONDISSEMENTS.map((a) => (
-                    <option key={a} value={a}>{a}</option>
+                  {ARRONDISSEMENTS.map((g) => (
+                    <optgroup key={g.city} label={g.city}>
+                      {g.districts.map((d) => (
+                        <option key={d} value={d}>{d}</option>
+                      ))}
+                    </optgroup>
                   ))}
                 </select>
               </div>

@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useActionState, useCallback, useEffect } from 'react';
+import { useState, useActionState, useCallback, useEffect, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import {
@@ -21,15 +22,21 @@ type ShapeType = 'POLYGON' | 'CIRCLE';
 
 const INPUT = 'w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent';
 
-export default function NewGeofencePage() {
+function NewGeofenceContent() {
   const [state, formAction, isPending] = useActionState(createGeofenceAction, null);
+  const searchParams = useSearchParams();
+
+  const initLat  = parseFloat(searchParams.get('lat') ?? '');
+  const initLng  = parseFloat(searchParams.get('lng') ?? '');
+  const initName = searchParams.get('name') ?? '';
+  const hasCoords = !isNaN(initLat) && !isNaN(initLng);
 
   // Geofences are GPS-only now (BLE home perimeter lives on the beacon).
   const geoType: GeoType = 'GPS_ZONE';
   const [shapeType, setShape]   = useState<ShapeType>('POLYGON');
   const [isExclusion, setExcl]  = useState(false);
   const [drawnShape, setDrawn]  = useState<DrawnShape | null>(null);
-  const [devicePos, setDevicePos] = useState<[number, number] | null>(null);
+  const [devicePos, setDevicePos] = useState<[number, number] | null>(hasCoords ? [initLat, initLng] : null);
   const [caseId, setCaseId] = useState('');
   const [caseLabel, setCaseLabel] = useState('');
 
@@ -188,7 +195,7 @@ export default function NewGeofencePage() {
               </h2>
               <div>
                 <label className="block text-xs font-medium text-slate-400 mb-1.5">Nom de la zone *</label>
-                <input name="name" type="text" required placeholder="Ex : Domicile — Dapoya" className={INPUT} />
+                <input name="name" type="text" required placeholder="Ex : Domicile — Dapoya" defaultValue={initName} className={INPUT} />
               </div>
               <div>
                 <label className="block text-xs font-medium text-slate-400 mb-1.5">Personne / dossier *</label>
@@ -278,5 +285,13 @@ export default function NewGeofencePage() {
         </div>
       </form>
     </div>
+  );
+}
+
+export default function NewGeofencePage() {
+  return (
+    <Suspense>
+      <NewGeofenceContent />
+    </Suspense>
   );
 }

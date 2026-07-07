@@ -35,7 +35,7 @@ async function wouldCreateCycle(
   while (cur) {
     if (seen.has(cur)) break;
     seen.add(cur);
-    const parent = parentOf.get(cur) ?? null;
+    const parent: string | null = parentOf.get(cur) ?? null;
     if (parent === deptId) return true;
     cur = parent;
   }

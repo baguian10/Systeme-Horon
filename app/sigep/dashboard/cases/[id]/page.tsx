@@ -4,7 +4,7 @@ import {
   ArrowLeft, User, Calendar, FileText, Wifi, WifiOff,
   Battery, MapPin, ShieldCheck, Clock,
 } from 'lucide-react';
-import { fetchCaseById, fetchCaseAssignments, fetchOperationalUsers, fetchJournalEntries } from '@/lib/mock/helpers';
+import { fetchCaseById, fetchCaseAssignments, fetchOperationalUsers, fetchJournalEntries, fetchTigSites, fetchTigAttendance } from '@/lib/mock/helpers';
 import { getSession } from '@/lib/auth/session';
 import AutoRefresh from '@/components/common/AutoRefresh';
 import MiniPositionMapLoader from '@/components/devices/MiniPositionMapLoader';
@@ -24,6 +24,7 @@ import DeviceConfigPanel from '@/components/cases/DeviceConfigPanel';
 import CommsPanel from '@/components/cases/CommsPanel';
 import AssignmentManager from '@/components/cases/AssignmentManager';
 import JournalPanel from '@/components/cases/JournalPanel';
+import TigTrackingPanel from '@/components/tig/TigTrackingPanel';
 
 export const revalidate = 0;
 
@@ -32,6 +33,10 @@ export default async function CaseDetailPage({ params }: { params: Promise<{ id:
   const [session, caseData, assignments, allOperationals, journalEntries] = await Promise.all([
     getSession(), fetchCaseById(id), fetchCaseAssignments(id), fetchOperationalUsers(), fetchJournalEntries(id),
   ]);
+  const isTig = caseData?.measure_kind === 'TIG';
+  const [tigSites, tigAttendance] = isTig
+    ? await Promise.all([fetchTigSites(), fetchTigAttendance(id)])
+    : [[], []];
   if (!session || !caseData) notFound();
 
   const showPII = canViewPII(session.role);
@@ -315,6 +320,19 @@ export default async function CaseDetailPage({ params }: { params: Promise<{ id:
               obligations: caseData.obligations,
             }}
           />
+
+          {/* TIG tracking: site assignment, hours, attendance log */}
+          {isTig && (
+            <TigTrackingPanel
+              caseId={caseData.id}
+              tigSiteId={caseData.tig_site_id ?? null}
+              tigHoursOrdered={caseData.tig_hours_ordered ?? null}
+              tigHoursCompleted={caseData.tig_hours_completed ?? 0}
+              tigSites={tigSites}
+              attendance={tigAttendance}
+              canEdit={canSetMeasureConditions(session.role) && caseData.status !== 'TERMINATED' && caseData.status !== 'ARCHIVED'}
+            />
+          )}
 
           {/* Actions institutionnelles : requêtes (juge) / actes directs (super admin) */}
           {(session.role === 'JUDGE' || session.role === 'SUPER_ADMIN') && (

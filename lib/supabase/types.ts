@@ -179,6 +179,11 @@ export interface Case {
   curfew_days?: number[] | null;   // 0=Sun … 6=Sat
   curfew_start?: string | null;    // HH:MM[:SS]
   curfew_end?: string | null;
+  // TIG link (set when measure_kind = 'TIG')
+  tig_site_id?: string | null;
+  tig_hours_ordered?: number | null;
+  tig_hours_completed?: number;
+  tig_site?: TigSite | null;
   created_at: string;
   updated_at: string;
   individual?: Individual;
@@ -258,6 +263,19 @@ export interface TigSite {
   latitude: number;
   longitude: number;
   created_at: string;
+}
+
+export interface TigAttendance {
+  id: string;
+  case_id: string;
+  tig_site_id: string;
+  session_date: string;
+  hours_worked: number;
+  signed_by_id: string | null;
+  supervisor_notes: string | null;
+  created_by: string | null;
+  created_at: string;
+  tig_site?: TigSite | null;
 }
 
 export type RevocationStatus  = 'PENDING' | 'UNDER_REVIEW' | 'APPROVED' | 'REJECTED';

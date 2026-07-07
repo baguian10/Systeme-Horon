@@ -1,10 +1,10 @@
 import {
   MOCK_CASES, MOCK_ALERTS, MOCK_USERS, MOCK_STATS, MOCK_POSITIONS, MOCK_DEVICES,
-  MOCK_CASE_ASSIGNMENTS, MOCK_GEOFENCES, MOCK_TIG_SITES,
+  MOCK_CASE_ASSIGNMENTS, MOCK_GEOFENCES, MOCK_TIG_SITES, MOCK_TIG_ATTENDANCE,
   MOCK_REVOCATIONS, MOCK_JOURNAL_ENTRIES, MOCK_MAINTENANCE_TICKETS, MOCK_AGENDA,
   MOCK_THREADS, MOCK_MESSAGES, MOCK_VIOLATION_HEATPOINTS,
 } from './data';
-import type { Case, Alert, AlertType, User, OverviewStats, UserRole, Position, Device, Geofence, TigSite, RevocationRequest, JournalEntry, MaintenanceTick, AgendaObligation, MessageThread, Message, ViolationHeatPoint, CaseRequest } from '@/lib/supabase/types';
+import type { Case, Alert, AlertType, User, OverviewStats, UserRole, Position, Device, Geofence, TigSite, TigAttendance, RevocationRequest, JournalEntry, MaintenanceTick, AgendaObligation, MessageThread, Message, ViolationHeatPoint, CaseRequest } from '@/lib/supabase/types';
 import { isTraxbeanConfigured, getDeviceLocation } from '@/lib/traxbean/client';
 
 export const IS_DEMO_MODE =
@@ -361,8 +361,36 @@ export async function fetchTigSites(): Promise<TigSite[]> {
   const { createAdminClient } = await import('@/lib/supabase/admin');
   const supabase = createAdminClient();
   if (!supabase) return [];
-  const { data } = await supabase.from('tig_sites').select('*').order('created_at', { ascending: false });
-  return (data ?? []) as TigSite[];
+  const [{ data: sitesData }, { data: caseRows }] = await Promise.all([
+    supabase.from('tig_sites').select('*').order('created_at', { ascending: false }),
+    supabase.from('cases').select('tig_site_id').not('tig_site_id', 'is', null)
+      .in('status', ['ACTIVE', 'VIOLATION', 'SUSPENDED']),
+  ]);
+  const countMap = new Map<string, number>();
+  for (const c of (caseRows ?? []) as { tig_site_id: string }[]) {
+    countMap.set(c.tig_site_id, (countMap.get(c.tig_site_id) ?? 0) + 1);
+  }
+  return ((sitesData ?? []) as TigSite[]).map((s) => ({
+    ...s,
+    current_count: countMap.get(s.id) ?? 0,
+  }));
+}
+
+export async function fetchTigAttendance(caseId: string): Promise<TigAttendance[]> {
+  if (IS_DEMO_MODE) {
+    return MOCK_TIG_ATTENDANCE.filter((a) => a.case_id === caseId)
+      .sort((a, b) => b.session_date.localeCompare(a.session_date));
+  }
+  const { createAdminClient } = await import('@/lib/supabase/admin');
+  const supabase = createAdminClient();
+  if (!supabase) return [];
+  const { data } = await supabase
+    .from('tig_attendance')
+    .select('*, tig_site:tig_sites(name)')
+    .eq('case_id', caseId)
+    .order('session_date', { ascending: false })
+    .limit(100);
+  return (data ?? []) as TigAttendance[];
 }
 
 export async function fetchViolations(role: UserRole): Promise<Alert[]> {

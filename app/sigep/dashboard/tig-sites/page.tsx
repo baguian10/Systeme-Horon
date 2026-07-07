@@ -10,6 +10,8 @@ import { canViewTigSites, canManageTigSites , allow } from '@/lib/auth/permissio
 import { fetchTigSites } from '@/lib/mock/helpers';
 import { toggleTigSiteAction } from './actions';
 import type { TigSiteCategory } from '@/lib/supabase/types';
+import EditTigSiteButton from '@/components/tig/EditTigSiteButton';
+import DeleteTigSiteButton from '@/components/tig/DeleteTigSiteButton';
 
 export const metadata = { title: 'Sites TIG agréés — SIGEP' };
 export const revalidate = 0;
@@ -105,13 +107,17 @@ export default async function TigSitesPage() {
                       </div>
                     </div>
                     {canManage && (
-                      <form action={toggleTigSiteAction}>
-                        <input type="hidden" name="site_id" value={site.id} />
-                        <input type="hidden" name="is_active" value={String(site.is_active)} />
-                        <button type="submit" title="Désactiver" className="text-gray-300 hover:text-red-400 transition-colors">
-                          <XCircle className="w-4 h-4" />
-                        </button>
-                      </form>
+                      <div className="flex items-center gap-2">
+                        <EditTigSiteButton site={site} />
+                        <DeleteTigSiteButton id={site.id} name={site.name} />
+                        <form action={toggleTigSiteAction}>
+                          <input type="hidden" name="site_id" value={site.id} />
+                          <input type="hidden" name="is_active" value={String(site.is_active)} />
+                          <button type="submit" title="Désactiver" className="text-gray-300 hover:text-red-400 transition-colors">
+                            <XCircle className="w-4 h-4" />
+                          </button>
+                        </form>
+                      </div>
                     )}
                   </div>
 
