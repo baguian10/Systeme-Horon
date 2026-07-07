@@ -80,7 +80,7 @@ function Spark({ data, color }: { data: number[]; color: string }) {
 
 export default function MonitoringConsole({
   initialPositions, initialAlerts, initialEvents, operationals, metrics, ingestionLastMs, canResolve, caseInfo = {}, geofences = [],
-  escalateMinutes = 30, meId = '', meName = '',
+  escalateMinutes = 30, meId = '', meName = '', cronCheckedAt = null, traxbeanOk = null,
 }: {
   initialPositions: LivePosition[];
   initialAlerts: TriageAlert[];
@@ -94,6 +94,8 @@ export default function MonitoringConsole({
   escalateMinutes?: number;
   meId?: string;
   meName?: string;
+  cronCheckedAt?: string | null;
+  traxbeanOk?: boolean | null;
 }) {
   const [tab, setTab] = useState<'triage' | 'stream'>('triage');
   const [alerts, setAlerts] = useState<TriageAlert[]>(initialAlerts);
@@ -102,6 +104,11 @@ export default function MonitoringConsole({
   const [now, setNow] = useState(0);
   const [demoConnected, setDemoConnected] = useState(false);
   const [streamFilter, setStreamFilter] = useState<'all' | 'violations' | 'technical'>('all');
+  const [streamSearch, setStreamSearch] = useState('');
+  const [streamPaused, setStreamPaused] = useState(false);
+  const [pendingCount, setPendingCount] = useState(0);
+  const pendingEvents = useRef<StreamEvent[]>([]);
+  const streamPausedRef = useRef(false);
   const [flash, setFlash] = useState(false);
   const [muted, setMuted] = useState(false);
   const [incident, setIncident] = useState<string | null>(null); // case_id
@@ -128,6 +135,32 @@ export default function MonitoringConsole({
     initialPositions.forEach((p) => m.set(p.case_id, p.case_number));
     return m;
   }, [initialPositions]);
+
+  // Stream pause (hover): incoming events buffer instead of shifting the list
+  // under the operator's eyes; flushed on mouse leave / resume click.
+  useEffect(() => { streamPausedRef.current = streamPaused; }, [streamPaused]);
+  const pushStreamEvent = useCallback((ev: StreamEvent) => {
+    if (streamPausedRef.current) {
+      if (!pendingEvents.current.some((x) => x.id === ev.id)) {
+        pendingEvents.current.unshift(ev);
+        setPendingCount(pendingEvents.current.length);
+      }
+      return;
+    }
+    setEvents((prev) => prev.some((x) => x.id === ev.id) ? prev : [ev, ...prev].slice(0, 200));
+  }, []);
+  const flushStream = useCallback(() => {
+    const pend = pendingEvents.current;
+    pendingEvents.current = [];
+    if (pend.length) {
+      setEvents((prev) => {
+        const seen = new Set(prev.map((x) => x.id));
+        return [...pend.filter((e) => !seen.has(e.id)), ...prev].slice(0, 200);
+      });
+    }
+    setPendingCount(0);
+    setStreamPaused(false);
+  }, []);
 
   // Server re-render (AutoRefresh) re-seeds initialPositions — merge, newer fix wins.
   useEffect(() => {
@@ -189,10 +222,10 @@ export default function MonitoringConsole({
         escalated_at: a.escalated_at ?? null, escalated_l2_at: a.escalated_l2_at ?? null,
       };
       setAlerts((prev) => prev.some((x) => x.id === a.id) ? prev : [ta, ...prev]);
-      setEvents((prev) => [{ id: `a-${a.id}`, kind: 'alert' as const, type: a.alert_type, detail: a.description, at: a.triggered_at, caseRef: ta.case_number }, ...prev].slice(0, 200));
+      pushStreamEvent({ id: `a-${a.id}`, kind: 'alert', type: a.alert_type, detail: a.description, at: a.triggered_at, caseRef: ta.case_number });
       setFlash(true); setTimeout(() => setFlash(false), 4000);
       beep(a.severity, mutedRef.current); // L
-    }, [caseRefByCase]),
+    }, [caseRefByCase, pushStreamEvent]),
     onAlertUpdate: useCallback((a: StreamAlert) => {
       setAlerts((prev) => {
         if (a.is_resolved) return prev.filter((x) => x.id !== a.id);
@@ -208,11 +241,11 @@ export default function MonitoringConsole({
       });
     }, []),
     onEvent: useCallback((e: { id: string; event_type: string; detail: string | null; created_at: string; case_id: string | null; case_number: string | null }) => {
-      setEvents((prev) => prev.some((x) => x.id === e.id) ? prev : [{
-        id: e.id, kind: 'event' as const, type: e.event_type, detail: e.detail,
+      pushStreamEvent({
+        id: e.id, kind: 'event', type: e.event_type, detail: e.detail,
         at: e.created_at, caseRef: e.case_number ?? e.case_id?.slice(0, 8) ?? '—',
-      }, ...prev].slice(0, 200));
-    }, []),
+      });
+    }, [pushStreamEvent]),
     onPresence: useCallback((ops: StreamOperator[]) => setPresentOps(ops), []),
   });
   const connected = sseConnected || demoConnected;
@@ -353,13 +386,51 @@ export default function MonitoringConsole({
   }
 
   const streamView = useMemo(() => events.filter((e) => {
-    if (streamFilter === 'all') return true;
-    const violation = ['GEOFENCE_EXIT', 'BLE_EXIT', 'CURFEW_VIOLATION', 'TAMPER', 'TAMPER_DETECTED', 'PANIC_BUTTON'].includes(e.type);
-    return streamFilter === 'violations' ? violation : !violation;
-  }), [events, streamFilter]);
+    if (streamFilter !== 'all') {
+      const violation = ['GEOFENCE_EXIT', 'BLE_EXIT', 'CURFEW_VIOLATION', 'TAMPER', 'TAMPER_DETECTED', 'PANIC_BUTTON'].includes(e.type);
+      if (streamFilter === 'violations' ? !violation : violation) return false;
+    }
+    if (streamSearch.trim()) {
+      const q = streamSearch.trim().toLowerCase();
+      const label = (EVENT_LABEL[e.type] ?? e.type).toLowerCase();
+      if (!label.includes(q) && !e.caseRef.toLowerCase().includes(q) && !(e.detail ?? '').toLowerCase().includes(q)) return false;
+    }
+    return true;
+  }), [events, streamFilter, streamSearch]);
+
+  // CSV export of the currently displayed stream window.
+  const exportStreamCSV = useCallback(() => {
+    const lines = ['Horodatage,Type,Dossier,Détail'];
+    for (const e of streamView) {
+      const esc = (s: string) => `"${s.replace(/"/g, '""')}"`;
+      lines.push([
+        new Date(e.at).toLocaleString('fr-FR', { timeZone: 'Africa/Ouagadougou' }),
+        EVENT_LABEL[e.type] ?? e.type,
+        e.caseRef,
+        e.detail ?? '',
+      ].map(esc).join(','));
+    }
+    const blob = new Blob(['﻿' + lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `flux-activite-${new Date().toISOString().slice(0, 16).replace(/[:T]/g, '-')}.csv`;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }, [streamView]);
 
   const ingestionLabel = ingestionLastMs ? ago(new Date(ingestionLastMs).toISOString(), now) : '—';
   const ingestionStale = ingestionLastMs ? (now - ingestionLastMs) > 15 * 60_000 : true;
+
+  // Cron heartbeat (poll-traxbean writes traxbean_auth_checked_at each run).
+  const cronAgeS = cronCheckedAt ? Math.max(0, Math.floor((now - Date.parse(cronCheckedAt)) / 1000)) : null;
+  const cronCls = cronAgeS == null ? 'text-gray-400'
+    : cronAgeS < 120 ? (crisis ? 'text-emerald-400' : 'text-emerald-600')
+    : cronAgeS < 300 ? 'text-amber-500'
+    : 'text-red-500';
+  const cronLabel = cronAgeS == null ? 'jamais'
+    : cronAgeS < 60 ? `il y a ${cronAgeS}s`
+    : `il y a ${Math.floor(cronAgeS / 60)}min`;
 
   const KPIS = [
     { key: 'online', label: 'En ligne', v: metrics.online, cls: crisis ? 'text-emerald-400' : 'text-emerald-700', spark: '#34d399' },
@@ -412,6 +483,14 @@ export default function MonitoringConsole({
         <div className={`flex flex-col justify-center gap-1 rounded-xl border px-3 py-2 ${card}`}>
           <span data-tip="Connexion au flux temps réel" className={`flex items-center gap-1 text-[11px] font-medium ${connected ? (crisis ? 'text-emerald-400' : 'text-emerald-600') : 'text-gray-400'}`}><CircleDot className="w-3 h-3" />{connected ? 'Temps réel actif' : 'Reconnexion…'}</span>
           <span data-tip="Dernière position reçue de la flotte" className={`flex items-center gap-1 text-[11px] ${ingestionStale ? 'text-red-500' : crisis ? 'text-slate-400' : 'text-gray-500'}`}><Radio className="w-3 h-3" />Ingestion : {ingestionLabel}</span>
+          <span data-tip="Dernier passage du cron de surveillance (poll toutes les minutes)" className={`flex items-center gap-1 text-[11px] ${cronCls}`}>
+            <Activity className="w-3 h-3" />Cron : {cronLabel}
+          </span>
+          {traxbeanOk === false && (
+            <span data-tip="Token de la plateforme GPS expiré — le suivi est interrompu" className="flex items-center gap-1 text-[11px] font-bold text-red-500 animate-pulse">
+              <ShieldAlert className="w-3 h-3" />TOKEN GPS EXPIRÉ
+            </span>
+          )}
           {crisis && cycled && (
             <span className="flex items-center gap-1 text-[11px] text-red-400 font-semibold animate-pulse">
               <Crosshair className="w-3 h-3" /> Cycle : {cycled.case_number}
@@ -528,15 +607,38 @@ export default function MonitoringConsole({
             </div>
           ) : (
             <>
-              <div className="px-3 py-2 border-b border-gray-50 flex items-center gap-1.5">
+              <div className="px-3 py-2 border-b border-gray-50 flex items-center gap-1.5 flex-wrap">
                 <ListFilter className="w-3.5 h-3.5 text-gray-400" />
                 {(['all', 'violations', 'technical'] as const).map((f) => (
                   <button key={f} onClick={() => setStreamFilter(f)} className={`px-2 py-0.5 rounded-full text-[11px] ${streamFilter === f ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-600'}`}>
                     {f === 'all' ? 'Tout' : f === 'violations' ? 'Violations' : 'Technique'}
                   </button>
                 ))}
+                <input
+                  value={streamSearch}
+                  onChange={(e) => setStreamSearch(e.target.value)}
+                  placeholder="Rechercher…"
+                  className="flex-1 min-w-[80px] border border-gray-200 rounded-lg px-2 py-0.5 text-[11px] focus:outline-none focus:ring-1 focus:ring-emerald-400"
+                />
+                <button
+                  onClick={exportStreamCSV}
+                  data-tip="Exporter la fenêtre affichée en CSV"
+                  className="px-2 py-0.5 rounded-full text-[11px] bg-gray-100 text-gray-600 hover:bg-emerald-50 hover:text-emerald-700"
+                >
+                  ⇩ CSV
+                </button>
               </div>
-              <div className="flex-1 overflow-y-auto divide-y divide-gray-50">
+              {/* Paused-buffer banner: events keep arriving without shifting the list. */}
+              {streamPaused && pendingCount > 0 && (
+                <button onClick={flushStream} className="w-full px-3 py-1.5 bg-blue-50 text-blue-700 text-[11px] font-semibold text-left border-b border-blue-100">
+                  ⏸ En pause — +{pendingCount} nouveau{pendingCount > 1 ? 'x' : ''} événement{pendingCount > 1 ? 's' : ''} · cliquer pour reprendre
+                </button>
+              )}
+              <div
+                className="flex-1 overflow-y-auto divide-y divide-gray-50"
+                onMouseEnter={() => setStreamPaused(true)}
+                onMouseLeave={flushStream}
+              >
                 {streamView.length === 0 ? (
                   <div className="py-12 text-center text-sm text-gray-400">Aucun événement.</div>
                 ) : streamView.map((e) => (

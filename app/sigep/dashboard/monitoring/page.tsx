@@ -54,6 +54,20 @@ export default async function MonitoringPage() {
   const { getSettings } = await import('@/lib/settings');
   const escalateMinutes = (await getSettings()).escalate_minutes ?? 30;
 
+  // Cron heartbeat + Traxbean token health (written by poll-traxbean each run).
+  let cronCheckedAt: string | null = null;
+  let traxbeanOk: boolean | null = null;
+  if (process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+    const { createAdminClient } = await import('@/lib/supabase/admin');
+    const sb = createAdminClient();
+    if (sb) {
+      const { data: st } = await sb.from('system_settings')
+        .select('traxbean_auth_ok, traxbean_auth_checked_at').eq('id', 1).maybeSingle();
+      traxbeanOk = (st as { traxbean_auth_ok?: boolean | null } | null)?.traxbean_auth_ok ?? null;
+      cronCheckedAt = (st as { traxbean_auth_checked_at?: string | null } | null)?.traxbean_auth_checked_at ?? null;
+    }
+  }
+
   const initialEvents: StreamEvent[] = events.map((e) => ({
     id: e.id, kind: 'event', type: e.event_type, detail: e.detail, at: e.created_at,
     caseRef: e.case_number ?? e.case_id?.slice(0, 8) ?? '—',
@@ -112,6 +126,8 @@ export default async function MonitoringPage() {
         escalateMinutes={escalateMinutes}
         meId={session.id}
         meName={session.full_name}
+        cronCheckedAt={cronCheckedAt}
+        traxbeanOk={traxbeanOk}
         geofences={geofencesAll
           .filter((g) => (g as { status?: string }).status !== 'REQUESTED')
           .map((g) => ({
