@@ -36,10 +36,10 @@ export async function fetchCases(role: UserRole, userId: string): Promise<Case[]
     supabase
       .from('cases')
       .select('*, individual:individuals(*), judge:users!judge_id(*), device:devices(*)')
-      .order('created_at', { ascending: false }),
-    // Active-alert count per case — populates the "Alertes" badge that was
-    // always empty in real mode (the cases query carries no aggregate).
-    supabase.from('alerts').select('case_id').eq('is_resolved', false),
+      .order('created_at', { ascending: false })
+      .limit(500),
+    // Active-alert count per case — only case_id column, capped to avoid unbounded fetch.
+    supabase.from('alerts').select('case_id').eq('is_resolved', false).limit(2000),
   ]);
   const alertCounts = new Map<string, number>();
   for (const a of (alertRows ?? []) as { case_id: string }[]) {

@@ -36,7 +36,7 @@ export default async function CaseDetailPage({ params }: { params: Promise<{ id:
 
   const showPII = canViewPII(session.role);
   const canGeo = allow(session, canManageGeofences(session.role), 'geofences');
-  const canDefineObligation = allow(session, false, 'geofences.define');
+  const canDefineObligation = allow(session, canSetMeasureConditions(session.role), 'geofences.define');
   const canStatus = canUpdateCaseStatus(session.role);
   const canAssign = canManageAssignments(session.role);
   const canJournal = canWriteJournal(session.role);
@@ -59,21 +59,22 @@ export default async function CaseDetailPage({ params }: { params: Promise<{ id:
     const { createAdminClient } = await import('@/lib/supabase/admin');
     const sb = createAdminClient();
     if (sb) {
-      if (device?.id) {
-        const { data: cur } = await sb.from('beacons').select('id, uid, label, status').eq('device_id', device.id).maybeSingle();
-        currentBeacon = (cur as BeaconRow) ?? null;
-      }
-      const { data: sp } = await sb.from('beacons').select('id, uid, label, status').is('device_id', null).limit(50);
-      spareBeacons = (sp as BeaconRow[]) ?? [];
-      if (canHardware) {
-        const { data: sd } = await sb.from('devices').select('id, imei').is('case_id', null).limit(100);
-        spareDevices = (sd as { id: string; imei: string }[]) ?? [];
-      }
-      // Jurisdictions — destination options for a TRANSFER_JURISDICTION request.
-      if (session.role === 'JUDGE') {
-        const { data: dp } = await sb.from('departments').select('id, name').order('name');
-        departments = (dp as { id: string; name: string }[]) ?? [];
-      }
+      const [curRes, spRes, sdRes, dpRes] = await Promise.all([
+        device?.id
+          ? sb.from('beacons').select('id, uid, label, status').eq('device_id', device.id).maybeSingle()
+          : Promise.resolve({ data: null }),
+        sb.from('beacons').select('id, uid, label, status').is('device_id', null).limit(50),
+        canHardware
+          ? sb.from('devices').select('id, imei').is('case_id', null).limit(100)
+          : Promise.resolve({ data: [] }),
+        session.role === 'JUDGE'
+          ? sb.from('departments').select('id, name').order('name')
+          : Promise.resolve({ data: [] }),
+      ]);
+      currentBeacon = (curRes.data as BeaconRow) ?? null;
+      spareBeacons  = (spRes.data as BeaconRow[]) ?? [];
+      spareDevices  = (sdRes.data as { id: string; imei: string }[]) ?? [];
+      departments   = (dpRes.data as { id: string; name: string }[]) ?? [];
     }
   }
 

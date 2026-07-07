@@ -4,6 +4,15 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { getSession } from '@/lib/auth/session';
 import { canCreateCase, canManageGeofences, canUpdateCaseStatus, canManageAssignments } from '@/lib/auth/permissions';
+
+const VALID_TRANSITIONS: Partial<Record<string, string[]>> = {
+  PENDING:    ['ACTIVE', 'TERMINATED'],
+  ACTIVE:     ['VIOLATION', 'SUSPENDED', 'TERMINATED'],
+  VIOLATION:  ['ACTIVE', 'SUSPENDED', 'TERMINATED'],
+  SUSPENDED:  ['ACTIVE', 'TERMINATED'],
+  TERMINATED: [],
+  ARCHIVED:   [],
+};
 import { writeAudit } from '@/lib/audit/log';
 import type { CaseStatus } from '@/lib/supabase/types';
 
@@ -81,8 +90,11 @@ export async function createCaseAction(
   if (indErr || !ind) return { error: "Erreur lors de la création de l'individu" };
 
   const year = new Date().getFullYear();
-  const { count } = await supabase.from('cases').select('id', { count: 'exact', head: true });
-  const caseNumber = `OUAG-${year}-${String((count ?? 0) + 1).padStart(4, '0')}`;
+  // Count only cases for this year so the sequence resets annually and is accurate.
+  const { count: yearCount } = await supabase
+    .from('cases').select('id', { count: 'exact', head: true })
+    .ilike('case_number', `OUAG-${year}-%`);
+  const caseNumber = `OUAG-${year}-${String((yearCount ?? 0) + 1).padStart(4, '0')}`;
 
   // Tag the case with the creating judge's department (#5) so it inherits the org scope.
   const { data: judgeRow } = await supabase.from('users').select('department_id').eq('id', session.id).single();
@@ -97,7 +109,10 @@ export async function createCaseAction(
       department_id,
     })
     .select('id').single();
-  if (caseErr || !newCase) return { error: 'Erreur lors de la création du dossier' };
+  if (caseErr || !newCase) {
+    if (caseErr?.code === '23505') return { error: 'Numéro de dossier déjà attribué — réessayez.' };
+    return { error: 'Erreur lors de la création du dossier' };
+  }
 
   if (device_id) await supabase.from('devices').update({ case_id: newCase.id }).eq('id', device_id);
 
@@ -120,6 +135,7 @@ export async function updateCaseStatusAction(formData: FormData): Promise<void> 
     const { MOCK_CASES } = await import('@/lib/mock/data');
     const c = MOCK_CASES.find((c) => c.id === case_id);
     if (c) {
+      if (!(VALID_TRANSITIONS[c.status] ?? []).includes(status)) return;
       c.status = status;
       c.updated_at = new Date().toISOString();
       if (status === 'TERMINATED') c.end_date = new Date().toISOString();
@@ -133,6 +149,10 @@ export async function updateCaseStatusAction(formData: FormData): Promise<void> 
   const { createAdminClient } = await import('@/lib/supabase/admin');
   const supabase = createAdminClient();
   if (!supabase) return;
+
+  // Verify current status and enforce valid transition.
+  const { data: current } = await supabase.from('cases').select('status').eq('id', case_id).single();
+  if (!current || !(VALID_TRANSITIONS[current.status as string] ?? []).includes(status)) return;
 
   await supabase.from('cases').update({
     status, updated_at: new Date().toISOString(),
@@ -285,7 +305,8 @@ export async function deleteGeofenceAction(formData: FormData): Promise<void> {
   const supabase = createAdminClient();
   if (!supabase) return;
 
-  await supabase.from('geofences').delete().eq('id', geofence_id);
+  // Scope DELETE to case_id so a caller cannot delete another case's geofence (IDOR).
+  await supabase.from('geofences').delete().eq('id', geofence_id).eq('case_id', case_id);
   await writeAudit({ userId: session.id, action: 'DELETE_GEOFENCE', tableName: 'geofences', recordId: geofence_id, oldData: { case_id } });
   revalidatePath(`/sigep/dashboard/cases/${case_id}`);
 }
