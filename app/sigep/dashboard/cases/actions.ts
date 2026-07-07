@@ -282,35 +282,6 @@ export async function removeAssignmentAction(formData: FormData): Promise<void> 
   revalidatePath(`/sigep/dashboard/cases/${case_id}`);
 }
 
-export async function deleteGeofenceAction(formData: FormData): Promise<void> {
-  const session = await getSession();
-  if (!session || !canManageGeofences(session.role)) return;
-
-  const geofence_id = formData.get('geofence_id') as string;
-  const case_id = formData.get('case_id') as string;
-  if (!geofence_id || !case_id) return;
-
-  if (isDemoMode()) {
-    const { MOCK_GEOFENCES, MOCK_CASES } = await import('@/lib/mock/data');
-    const idx = MOCK_GEOFENCES.findIndex((g) => g.id === geofence_id);
-    if (idx !== -1) MOCK_GEOFENCES.splice(idx, 1);
-    const c = MOCK_CASES.find((c) => c.id === case_id);
-    if (c) c.geofences = (c.geofences ?? []).filter((g) => g.id !== geofence_id);
-    await writeAudit({ userId: session.id, action: 'DELETE_GEOFENCE', tableName: 'geofences', recordId: geofence_id, oldData: { case_id } });
-    revalidatePath(`/sigep/dashboard/cases/${case_id}`);
-    return;
-  }
-
-  const { createAdminClient } = await import('@/lib/supabase/admin');
-  const supabase = createAdminClient();
-  if (!supabase) return;
-
-  // Scope DELETE to case_id so a caller cannot delete another case's geofence (IDOR).
-  await supabase.from('geofences').delete().eq('id', geofence_id).eq('case_id', case_id);
-  await writeAudit({ userId: session.id, action: 'DELETE_GEOFENCE', tableName: 'geofences', recordId: geofence_id, oldData: { case_id } });
-  revalidatePath(`/sigep/dashboard/cases/${case_id}`);
-}
-
 // ── Mesure : aménagement (prolongation / mainlevée) — distinct de la révocation ─
 export async function amendMeasureAction(formData: FormData): Promise<void> {
   const session = await getSession();

@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { getSession } from '@/lib/auth/session';
-import { canManageGeofences , allow } from '@/lib/auth/permissions';
+import { canManageGeofences, canSetMeasureConditions, allow } from '@/lib/auth/permissions';
 import type { Geofence, GeofenceType, GeofenceShape } from '@/lib/supabase/types';
 
 function isDemoMode() {
@@ -109,7 +109,7 @@ export async function updateGeofenceAction(
   const name         = (formData.get('name') as string)?.trim();
   const shape_type   = formData.get('shape_type') as GeofenceShape;
   const is_exclusion = formData.get('is_exclusion') === 'true';
-  if (!geofence_id || !name || !shape_type) return { error: 'Champs obligatoires manquants' };
+  if (!geofence_id || !case_id || !name || !shape_type) return { error: 'Champs obligatoires manquants' };
 
   const update: Record<string, unknown> = { name, is_exclusion, shape_type, area: null, center_lat: null, center_lon: null, radius_m: null };
   if (shape_type === 'CIRCLE') {
@@ -136,7 +136,7 @@ export async function updateGeofenceAction(
   const { createAdminClient } = await import('@/lib/supabase/admin');
   const supabase = createAdminClient();
   if (!supabase) return { error: 'Base de données indisponible' };
-  const { error } = await supabase.from('geofences').update(update).eq('id', geofence_id);
+  const { error } = await supabase.from('geofences').update(update).eq('id', geofence_id).eq('case_id', case_id);
   if (error) return { error: error.message };
   revalidatePath('/sigep/dashboard/geofences');
   if (case_id) revalidatePath(`/sigep/dashboard/cases/${case_id}`);
@@ -151,7 +151,7 @@ export async function defineObligationAction(
   formData: FormData,
 ): Promise<{ error: string } | null> {
   const session = await getSession();
-  if (!session || !allow(session, false, 'geofences.define')) return { error: 'Accès refusé' };
+  if (!session || !allow(session, canSetMeasureConditions(session.role), 'geofences.define')) return { error: 'Accès refusé' };
 
   const case_id = formData.get('case_id') as string;
   const name = (formData.get('name') as string)?.trim();
@@ -205,12 +205,12 @@ export async function validateGeofenceAction(formData: FormData): Promise<void> 
   if (!session || !allow(session, canManageGeofences(session.role), 'geofences')) return;
   const geofence_id = formData.get('geofence_id') as string;
   const case_id = formData.get('case_id') as string;
-  if (!geofence_id) return;
+  if (!geofence_id || !case_id) return;
   if (isDemoMode()) return;
   const { createAdminClient } = await import('@/lib/supabase/admin');
   const supabase = createAdminClient();
   if (!supabase) return;
-  await supabase.from('geofences').update({ status: 'ACTIVE' }).eq('id', geofence_id);
+  await supabase.from('geofences').update({ status: 'ACTIVE' }).eq('id', geofence_id).eq('case_id', case_id);
   const { writeAudit } = await import('@/lib/audit/log');
   await writeAudit({ userId: session.id, action: 'VALIDATE_GEOFENCE', tableName: 'geofences', recordId: geofence_id });
   revalidatePath('/sigep/dashboard/geofences');
@@ -223,7 +223,7 @@ export async function deleteGeofenceAction(formData: FormData): Promise<void> {
 
   const geofence_id = formData.get('geofence_id') as string;
   const case_id     = formData.get('case_id') as string;
-  if (!geofence_id) return;
+  if (!geofence_id || !case_id) return;
 
   if (isDemoMode()) {
     const { MOCK_GEOFENCES, MOCK_CASES } = await import('@/lib/mock/data');
@@ -239,7 +239,7 @@ export async function deleteGeofenceAction(formData: FormData): Promise<void> {
   const { createAdminClient } = await import('@/lib/supabase/admin');
   const supabase = createAdminClient();
   if (!supabase) return;
-  await supabase.from('geofences').delete().eq('id', geofence_id);
+  await supabase.from('geofences').delete().eq('id', geofence_id).eq('case_id', case_id);
   { const { writeAudit } = await import('@/lib/audit/log'); await writeAudit({ userId: session.id, action: 'DELETE_GEOFENCE', tableName: 'geofences', recordId: geofence_id }); }
   revalidatePath('/sigep/dashboard/geofences');
   if (case_id) revalidatePath(`/sigep/dashboard/cases/${case_id}`);
