@@ -31,6 +31,14 @@ function toMin(t: string | null): number | null {
   return h * 60 + m;
 }
 
+// Convert a physical distance (metres) to an approximate BLE RSSI threshold.
+// Model: RSSI(d) = TX_POWER − 10·n·log10(d), TX_POWER=−59 dBm @1m, n=2.5 (indoor/mixed).
+// Example: 3m → −71 dBm, 4m → −74 dBm, 10m → −84 dBm.
+// Only an approximation — real RSSI varies with obstacles; use calibrated min_rssi when precise.
+function distanceToMinRssi(distM: number): number {
+  return Math.round(-59 - 10 * 2.5 * Math.log10(Math.max(1, distM)));
+}
+
 // Is the beacon's alarm schedule active now? (UTC; Burkina Faso = GMT+0)
 function withinActiveWindow(start: string | null, end: string | null): boolean {
   const s = toMin(start), e = toMin(end);
@@ -192,7 +200,12 @@ export async function GET(request: NextRequest) {
 
       if (beacon && beacon.alarm_enabled && !inclusionZones && withinActiveWindow(beacon.active_start, beacon.active_end)) {
         const mode = (beacon.alarm_mode as 'GPS' | 'BLE' | 'BOTH') ?? 'BOTH';
-        const minRssi = beacon.min_rssi ?? -85;
+        // RSSI threshold: if max_distance_m is set, derive from path-loss model so the
+        // "distance" parameter the operator configures actually works in BLE mode.
+        // Falls back to the manual min_rssi field if max_distance_m is absent.
+        const effectiveMinRssi = (beacon.max_distance_m != null)
+          ? distanceToMinRssi(beacon.max_distance_m)
+          : (beacon.min_rssi ?? -85);
 
         // BLE presence (needed for BLE + BOTH). null = no scan data → unknown.
         let bleInRange: boolean | null = null;
@@ -200,7 +213,7 @@ export async function GET(request: NextRequest) {
           const scan = await getLatestBleScan(device.imei);
           if (scan) {
             const hit = scan.sightings.find((s) => s.mac === (beacon.uid ?? '').toUpperCase());
-            bleInRange = !!hit && hit.rssi >= minRssi;
+            bleInRange = !!hit && hit.rssi >= effectiveMinRssi;
             if (beacon.ble_scan_lost_at) await supabase.from('beacons').update({ ble_scan_lost_at: null }).eq('id', beacon.id);
           } else {
             // No BLE scan uploaded → the bracelet's BLE module went silent. Re-arm
@@ -224,25 +237,17 @@ export async function GET(request: NextRequest) {
         const dist = (beacon.home_lat != null && beacon.home_lng != null)
           ? Math.round(haversineM(live.lat, live.lng, beacon.home_lat, beacon.home_lng)) : null;
 
-        // Motion gate: a real home exit means the person WALKED out. When the
-        // subject is asleep/still, a worn bracelet goes to sleep and drops the
-        // BLE scan → the beacon looks "absent". Without motion we must NOT raise
-        // an exit (that would false-alarm every night). So a BLE absence only
-        // STARTS the grace clock if there's movement; once started it keeps
-        // running even if they then stop.
-        const MOTION_KMH = 2;
-        const moving = live.speedKmh != null && live.speedKmh >= MOTION_KMH;
-
         // Decide "away from home" per mode.
-        //  BLE  → beacon not seen; confirmed as an exit only with motion (or an
-        //         already-running grace clock). Still + no clock → unknown (asleep).
-        //  GPS  → outside the home radius.
-        //  BOTH → GPS says far AND the beacon isn't in range (indoor-drift safe).
+        //  BLE  → beacon below RSSI threshold (or not seen). Grace period handles
+        //         transient BLE dropouts (device power-save, brief scan gaps).
+        //         Motion gate removed: a removed/distant bracelet while stationary
+        //         (e.g., placed on a table) must still trigger the alarm.
+        //  GPS  → outside the home radius (haversine vs max_distance_m).
+        //  BOTH → GPS says far AND beacon below threshold (indoor GPS drift safe).
         let away: boolean | null;
         if (mode === 'BLE') {
-          if (bleInRange === null) away = null;
-          else if (bleInRange) away = false;
-          else away = (moving || beacon.out_since) ? true : null;
+          if (bleInRange === null) away = null; // no scan data → unknown
+          else away = !bleInRange;              // directly: in range = home, else away
         }
         else if (mode === 'GPS') away = gpsFar;
         else away = (gpsFar === true) ? (bleInRange !== true) : false;
