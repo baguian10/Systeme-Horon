@@ -6,8 +6,9 @@ import Link from 'next/link';
 import { Activity, AlertTriangle, Bell, CircleDot, Maximize2, Clock, Radio, ListFilter, Volume2, VolumeX, Crosshair, Phone, X, MapPin, ShieldAlert } from 'lucide-react';
 import { AlertTypeBadge, RiskBadge } from '@/components/ui/StatusBadge';
 import AlertActions from '@/components/alerts/AlertActions';
-import { useAlertFeed } from '@/hooks/useAlertFeed';
+import { useRealtimeStream, type StreamAlert } from '@/hooks/useRealtimeStream';
 import type { LivePosition } from '@/hooks/usePositionFeed';
+import type { CaseStatus } from '@/lib/supabase/types';
 import type { TrackerMarker } from '@/components/map/TrackingMap';
 import type { RiskLevel } from '@/lib/supabase/types';
 
@@ -78,8 +79,9 @@ export default function MonitoringConsole({
   const [tab, setTab] = useState<'triage' | 'stream'>('triage');
   const [alerts, setAlerts] = useState<TriageAlert[]>(initialAlerts);
   const [events, setEvents] = useState<StreamEvent[]>(initialEvents);
+  const [livePos, setLivePos] = useState<LivePosition[]>(initialPositions);
   const [now, setNow] = useState(0);
-  const [connected, setConnected] = useState(false);
+  const [demoConnected, setDemoConnected] = useState(false);
   const [streamFilter, setStreamFilter] = useState<'all' | 'violations' | 'technical'>('all');
   const [flash, setFlash] = useState(false);
   const [muted, setMuted] = useState(false);
@@ -103,6 +105,19 @@ export default function MonitoringConsole({
     return m;
   }, [initialPositions]);
 
+  // Server re-render (AutoRefresh) re-seeds initialPositions — merge, newer fix wins.
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setLivePos((prev) => {
+      const byId = new Map(prev.map((p) => [p.case_id, p]));
+      for (const p of initialPositions) {
+        const ex = byId.get(p.case_id);
+        if (!ex || Date.parse(p.recorded_at) >= Date.parse(ex.recorded_at)) byId.set(p.case_id, p);
+      }
+      return Array.from(byId.values());
+    });
+  }, [initialPositions]);
+
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setNow(Date.now());
@@ -110,34 +125,64 @@ export default function MonitoringConsole({
     return () => clearInterval(id);
   }, []);
 
-  // H — live device-event stream.
+  // Demo mode: the simulator engine still drives positions/alerts via the map
+  // grid + toast provider; mark the console connected.
   useEffect(() => {
-    let cleanup: (() => void) | undefined;
-    import('@/lib/supabase/client').then(({ createClient, IS_DEMO_MODE }) => {
-      if (IS_DEMO_MODE) { setConnected(true); return; }
-      const supabase = createClient();
-      if (!supabase) return;
-      const stale = supabase.getChannels().find((c) => c.topic === 'realtime:monitoring-events');
-      if (stale) supabase.removeChannel(stale);
-      const channel = supabase.channel('monitoring-events')
-        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'device_events' }, (payload) => {
-          const r = payload.new as { id: string; event_type: string; detail: string | null; created_at: string; case_id: string | null };
-          setEvents((prev) => [{ id: r.id, kind: 'event' as const, type: r.event_type, detail: r.detail, at: r.created_at, caseRef: (r.case_id && caseRefByCase.get(r.case_id)) || r.case_id?.slice(0, 8) || '—' }, ...prev].slice(0, 200));
-        })
-        .subscribe((s) => setConnected(s === 'SUBSCRIBED'));
-      cleanup = () => { supabase.removeChannel(channel); };
+    import('@/lib/supabase/client').then(({ IS_DEMO_MODE }) => {
+      if (IS_DEMO_MODE) setDemoConnected(true);
     });
-    return () => { cleanup?.(); };
-  }, [caseRefByCase]);
+  }, []);
 
-  // I — new alert: prepend to triage + stream + flash.
-  useAlertFeed(useCallback((a) => {
-    const ta: TriageAlert = { id: a.id, case_id: a.case_id, case_number: (a.case as { case_number?: string } | undefined)?.case_number ?? caseRefByCase.get(a.case_id) ?? a.case_id.slice(0, 8), alert_type: a.alert_type, severity: a.severity, status: a.status ?? 'NEW', assigned_to: a.assigned_to ?? null, triggered_at: a.triggered_at, description: a.description };
-    setAlerts((prev) => prev.some((x) => x.id === a.id) ? prev : [ta, ...prev]);
-    setEvents((prev) => [{ id: `a-${a.id}`, kind: 'alert' as const, type: a.alert_type, detail: a.description, at: a.triggered_at, caseRef: ta.case_number }, ...prev].slice(0, 200));
-    setFlash(true); setTimeout(() => setFlash(false), 4000);
-    beep(a.severity, mutedRef.current); // L
-  }, [caseRefByCase]));
+  // Unified SSE stream (prod): positions + alerts + state changes + device
+  // events, < 3 s end-to-end, auto-resuming (Last-Event-ID).
+  const { connected: sseConnected } = useRealtimeStream({
+    onPosition: useCallback((p: { case_id: string; device_id: string; latitude: number; longitude: number; speed_kmh: number | null; recorded_at: string; case_number: string | null; status: string | null }) => {
+      setLivePos((prev) => {
+        const ex = prev.find((x) => x.case_id === p.case_id);
+        if (ex && Date.parse(p.recorded_at) < Date.parse(ex.recorded_at)) return prev;
+        const merged: LivePosition = {
+          case_id: p.case_id,
+          device_id: p.device_id,
+          case_number: p.case_number ?? ex?.case_number ?? p.case_id.slice(0, 8),
+          status: (p.status as CaseStatus | null) ?? ex?.status ?? 'ACTIVE',
+          alert_count: ex?.alert_count ?? 0,
+          latitude: p.latitude,
+          longitude: p.longitude,
+          speed_kmh: p.speed_kmh,
+          recorded_at: p.recorded_at,
+        };
+        return ex ? prev.map((x) => x.case_id === p.case_id ? merged : x) : [...prev, merged];
+      });
+    }, []),
+    onAlert: useCallback((a: StreamAlert) => {
+      const ta: TriageAlert = {
+        id: a.id, case_id: a.case_id,
+        case_number: a.case_number ?? caseRefByCase.get(a.case_id) ?? a.case_id.slice(0, 8),
+        alert_type: a.alert_type, severity: a.severity,
+        status: a.status ?? 'NEW', assigned_to: a.assigned_to ?? null,
+        triggered_at: a.triggered_at, description: a.description,
+      };
+      setAlerts((prev) => prev.some((x) => x.id === a.id) ? prev : [ta, ...prev]);
+      setEvents((prev) => [{ id: `a-${a.id}`, kind: 'alert' as const, type: a.alert_type, detail: a.description, at: a.triggered_at, caseRef: ta.case_number }, ...prev].slice(0, 200));
+      setFlash(true); setTimeout(() => setFlash(false), 4000);
+      beep(a.severity, mutedRef.current); // L
+    }, [caseRefByCase]),
+    onAlertUpdate: useCallback((a: StreamAlert) => {
+      setAlerts((prev) => {
+        if (a.is_resolved) return prev.filter((x) => x.id !== a.id);
+        return prev.map((x) => x.id === a.id
+          ? { ...x, status: a.status ?? x.status, assigned_to: a.assigned_to ?? x.assigned_to }
+          : x);
+      });
+    }, []),
+    onEvent: useCallback((e: { id: string; event_type: string; detail: string | null; created_at: string; case_id: string | null; case_number: string | null }) => {
+      setEvents((prev) => prev.some((x) => x.id === e.id) ? prev : [{
+        id: e.id, kind: 'event' as const, type: e.event_type, detail: e.detail,
+        at: e.created_at, caseRef: e.case_number ?? e.case_id?.slice(0, 8) ?? '—',
+      }, ...prev].slice(0, 200));
+    }, []),
+  });
+  const connected = sseConnected || demoConnected;
 
   // M — open the incident panel for a case (fetch its recent mini-trail).
   const openIncident = useCallback((caseId: string, triggeredAt?: string) => {
@@ -218,7 +263,7 @@ export default function MonitoringConsole({
       <div className="grid grid-cols-1 xl:grid-cols-5 gap-4 h-[calc(100vh-15rem)]">
         {/* Map */}
         <div className="xl:col-span-3 rounded-2xl overflow-hidden border border-gray-100 min-h-[360px]">
-          <LiveMapGrid initialPositions={initialPositions} />
+          <LiveMapGrid initialPositions={livePos} />
         </div>
 
         {/* Triage / Stream */}

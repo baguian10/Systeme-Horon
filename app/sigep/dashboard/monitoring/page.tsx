@@ -83,7 +83,9 @@ export default async function MonitoringPage() {
 
   return (
     <div className="space-y-3">
-      <AutoRefresh intervalMs={15000} />
+      {/* Data flows through the SSE stream (<3 s); this refresh only recomputes
+          the server-side KPI metrics. */}
+      <AutoRefresh intervalMs={30000} />
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div>
           <h2 className="text-xl font-bold text-gray-900">Centre opérationnel — temps réel</h2>
