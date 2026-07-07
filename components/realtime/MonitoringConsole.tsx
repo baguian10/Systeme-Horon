@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { Activity, AlertTriangle, Bell, CircleDot, Maximize2, Clock, Radio, ListFilter, Volume2, VolumeX, Crosshair, Phone, X, MapPin, ShieldAlert } from 'lucide-react';
 import { AlertTypeBadge, RiskBadge } from '@/components/ui/StatusBadge';
 import AlertActions from '@/components/alerts/AlertActions';
-import { useRealtimeStream, type StreamAlert } from '@/hooks/useRealtimeStream';
+import { useRealtimeStream, type StreamAlert, type StreamOperator } from '@/hooks/useRealtimeStream';
 import type { LivePosition } from '@/hooks/usePositionFeed';
 import type { CaseStatus } from '@/lib/supabase/types';
 import type { TrackerMarker } from '@/components/map/TrackingMap';
@@ -111,6 +111,7 @@ export default function MonitoringConsole({
   const [locateMsg, setLocateMsg] = useState<string | null>(null);
   const [crisis, setCrisis] = useState(false);
   const [cycleCase, setCycleCase] = useState<string | null>(null);
+  const [presentOps, setPresentOps] = useState<StreamOperator[]>([]);
   const rootRef = useRef<HTMLDivElement>(null);
   const mutedRef = useRef(false);
   // KPI history for the sparklines — one sample per metrics refresh (~30 s).
@@ -212,6 +213,7 @@ export default function MonitoringConsole({
         at: e.created_at, caseRef: e.case_number ?? e.case_id?.slice(0, 8) ?? '—',
       }, ...prev].slice(0, 200));
     }, []),
+    onPresence: useCallback((ops: StreamOperator[]) => setPresentOps(ops), []),
   });
   const connected = sseConnected || demoConnected;
 
@@ -416,6 +418,29 @@ export default function MonitoringConsole({
             </span>
           )}
         </div>
+        {/* Présence — operators currently connected to the center (SSE roster). */}
+        {presentOps.length > 0 && (
+          <div className={`flex items-center gap-1.5 rounded-xl border px-3 py-2 ${card}`} data-tip="Opérateurs connectés au centre en ce moment">
+            <div className="flex -space-x-1.5">
+              {presentOps.slice(0, 5).map((op) => (
+                <div
+                  key={op.user_id}
+                  title={`${op.full_name} (${op.role})`}
+                  className={`w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-bold border-2 ${
+                    op.user_id === meId
+                      ? 'bg-blue-600 text-white border-white'
+                      : crisis ? 'bg-slate-700 text-slate-200 border-slate-900' : 'bg-emerald-100 text-emerald-800 border-white'
+                  }`}
+                >
+                  {op.full_name.split(/\s+/).map((w) => w[0]).join('').slice(0, 2).toUpperCase()}
+                </div>
+              ))}
+            </div>
+            <span className={`text-[11px] font-medium ${crisis ? 'text-slate-300' : 'text-gray-600'}`}>
+              {presentOps.length} en poste{presentOps.length > 5 ? ` (+${presentOps.length - 5})` : ''}
+            </span>
+          </div>
+        )}
         <button onClick={() => setMuted((m) => !m)} data-tip={muted ? 'Réactiver le son des alertes' : 'Couper le son des alertes'} className={`rounded-xl border px-3 ${card} ${crisis ? 'text-slate-300 hover:text-white' : 'text-gray-600 hover:text-gray-900'}`}>{muted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}</button>
         <button
           onClick={() => crisis ? document.exitFullscreen?.() : enterCrisis()}

@@ -46,11 +46,18 @@ export interface StreamDeviceEvent {
   case_number: string | null;
 }
 
+export interface StreamOperator {
+  user_id: string;
+  full_name: string;
+  role: string;
+}
+
 interface Handlers {
   onPosition?: (p: StreamPosition) => void;
   onAlert?: (a: StreamAlert) => void;
   onAlertUpdate?: (a: StreamAlert) => void;
   onEvent?: (e: StreamDeviceEvent) => void;
+  onPresence?: (ops: StreamOperator[]) => void;
 }
 
 export function useRealtimeStream(handlers: Handlers): { connected: boolean } {
@@ -80,6 +87,7 @@ export function useRealtimeStream(handlers: Handlers): { connected: boolean } {
     on<StreamAlert>('alert', (a) => h.current.onAlert?.(a));
     on<StreamAlert>('alert_update', (a) => h.current.onAlertUpdate?.(a));
     on<StreamDeviceEvent>('device_event', (e) => h.current.onEvent?.(e));
+    on<StreamOperator[]>('presence', (ops) => h.current.onPresence?.(ops));
 
     return () => { es.close(); };
   }, []);

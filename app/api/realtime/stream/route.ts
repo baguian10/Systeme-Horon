@@ -42,6 +42,17 @@ export async function GET(request: NextRequest) {
   let alertCur = since;
   let updCur = since;
   let evtCur = since;
+  let tickCount = 0;
+
+  // Presence: register this operator immediately; refreshed every 4th tick
+  // (~10 s). Rows expire by TTL (90 s) — no explicit delete, so several tabs
+  // or a dirty disconnect never desynchronize the roster.
+  const touchPresence = () =>
+    supabase.from('op_presence').upsert({
+      user_id: session.id, full_name: session.full_name, role: session.role,
+      last_seen_at: new Date().toISOString(),
+    }, { onConflict: 'user_id' });
+  await touchPresence();
 
   const encoder = new TextEncoder();
   const startedAt = Date.now();
@@ -119,11 +130,24 @@ export async function GET(request: NextRequest) {
             evtCur = e.created_at;
           }
 
+          // Presence heartbeat + roster broadcast (~every 10 s).
+          if (tickCount % 4 === 0) {
+            await touchPresence();
+            const { data: present } = await supabase
+              .from('op_presence')
+              .select('user_id, full_name, role')
+              .gt('last_seen_at', new Date(Date.now() - 90_000).toISOString())
+              .order('full_name', { ascending: true })
+              .limit(50);
+            send(sse(null, 'presence', present ?? []));
+          }
+
           send(`: ping ${tickIso}\n\n`);
         } catch {
           // Transient DB error — keep the stream alive, next tick retries.
           send(': tick-error\n\n');
         }
+        tickCount++;
         await new Promise((r) => setTimeout(r, TICK_MS));
       }
 
