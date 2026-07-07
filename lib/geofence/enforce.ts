@@ -212,6 +212,22 @@ export async function enforceGeofences(
     }
   }
 
+  // Auto-resolve GEOFENCE_EXIT when device is back inside all inclusion zones.
+  // Without this, insertDeduped blocks every subsequent exit because the old
+  // unresolved alert is never cleared when the condition ends.
+  const inclusionZones = zones.filter((g) => !g.is_exclusion && g.status !== 'REQUESTED' && !(g.active_start && g.active_end));
+  if (inclusionZones.length > 0) {
+    const allInside = inclusionZones.every((g) => insideGeofence(lat, lon, g));
+    if (allInside) {
+      await supabase.from('alerts')
+        .update({ is_resolved: true, resolved_at: new Date().toISOString() })
+        .eq('case_id', caseId).eq('alert_type', 'GEOFENCE_EXIT').eq('is_resolved', false);
+      // Clear any lingering out_since on these zones.
+      const ids = inclusionZones.map((g) => g.id);
+      await supabase.from('geofences').update({ out_since: null }).in('id', ids).not('out_since', 'is', null);
+    }
+  }
+
   return raised;
 }
 
@@ -254,6 +270,10 @@ async function enforceCaseCurfew(
 
   if (atHome) {
     if (curfew.curfew_out_since) await supabase.from('cases').update({ curfew_out_since: null }).eq('id', caseId);
+    // Auto-resolve any open CURFEW_VIOLATION — the condition has cleared.
+    await supabase.from('alerts')
+      .update({ is_resolved: true, resolved_at: new Date().toISOString() })
+      .eq('case_id', caseId).eq('alert_type', 'CURFEW_VIOLATION').eq('is_resolved', false);
     return;
   }
 

@@ -284,9 +284,12 @@ export async function GET(request: NextRequest) {
               }
             }
           }
-        } else if (away === false && beacon.out_since) {
-          // Back home → reset the absence timer.
-          await supabase.from('beacons').update({ out_since: null }).eq('id', beacon.id);
+        } else if (away === false) {
+          if (beacon.out_since) await supabase.from('beacons').update({ out_since: null }).eq('id', beacon.id);
+          // Auto-resolve open BLE_EXIT — condition cleared, next exit must trigger fresh alert.
+          await supabase.from('alerts')
+            .update({ is_resolved: true, resolved_at: new Date().toISOString() })
+            .eq('case_id', device.case_id).eq('alert_type', 'BLE_EXIT').eq('is_resolved', false);
         }
         // away === null (no BLE data yet) → leave the grace clock untouched.
       }
