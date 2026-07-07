@@ -4,6 +4,33 @@ import type { CookieOptions } from '@supabase/ssr';
 const IS_DEMO_MODE =
   !process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
+const ACTIVITY_COOKIE = 'sigep_last_activity';
+
+// settings.session_timeout_min, cached in-memory 5 min (module scope persists
+// across requests within an instance) so we don't hit the DB on every request.
+let timeoutCache: { value: number; at: number } | null = null;
+async function getSessionTimeoutMin(): Promise<number> {
+  if (timeoutCache && Date.now() - timeoutCache.at < 300_000) return timeoutCache.value;
+  let v = 30;
+  try {
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (url && key) {
+      const r = await fetch(`${url}/rest/v1/system_settings?id=eq.1&select=session_timeout_min`, {
+        headers: { apikey: key, Authorization: `Bearer ${key}` },
+        cache: 'no-store',
+      });
+      if (r.ok) {
+        const j = await r.json() as { session_timeout_min?: number }[];
+        const n = j?.[0]?.session_timeout_min;
+        if (typeof n === 'number' && n >= 5) v = n;
+      }
+    }
+  } catch { /* fall back to default */ }
+  timeoutCache = { value: v, at: Date.now() };
+  return v;
+}
+
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
@@ -52,6 +79,25 @@ export async function proxy(request: NextRequest) {
     loginUrl.searchParams.set('next', pathname);
     return NextResponse.redirect(loginUrl);
   }
+
+  // Inactivity timeout (settings.session_timeout_min): each dashboard request
+  // stamps an activity cookie; a gap longer than the configured timeout ends
+  // the session and returns to login.
+  const timeoutMin = await getSessionTimeoutMin();
+  const lastRaw = request.cookies.get(ACTIVITY_COOKIE)?.value;
+  const last = lastRaw ? Number(lastRaw) : null;
+  if (last && Number.isFinite(last) && Date.now() - last > timeoutMin * 60_000) {
+    await supabase.auth.signOut();
+    const loginUrl = new URL('/sigep/login', request.url);
+    loginUrl.searchParams.set('next', pathname);
+    loginUrl.searchParams.set('expired', '1');
+    const redirect = NextResponse.redirect(loginUrl);
+    redirect.cookies.set(ACTIVITY_COOKIE, '', { maxAge: 0, path: '/' });
+    return redirect;
+  }
+  response.cookies.set(ACTIVITY_COOKIE, String(Date.now()), {
+    httpOnly: true, sameSite: 'lax', secure: true, path: '/',
+  });
 
   return response;
 }

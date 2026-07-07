@@ -35,6 +35,10 @@ export default async function NotificationsPage() {
   const recent = alerts.slice(0, 20);
   const unread = alerts.filter((a) => !a.is_resolved).length;
 
+  // Real escalation delay from system settings (drives the poll-traxbean engine).
+  const { getSettings } = await import('@/lib/settings');
+  const escalateMinutes = (await getSettings()).escalate_minutes ?? 30;
+
   // Load the current user's saved notification preferences (if any).
   let initialPrefs: Record<string, Record<string, boolean>> | null = null;
   if (process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
@@ -82,9 +86,9 @@ export default async function NotificationsPage() {
             <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Chaîne d&apos;escalade</h3>
             <ol className="space-y-3">
               {[
-                { step: '1', label: 'Agent opérationnel', desc: 'Notification immédiate', color: 'bg-emerald-600' },
-                { step: '2', label: 'Juge référent',      desc: 'Après 30 min sans résolution', color: 'bg-blue-600' },
-                { step: '3', label: 'SUPER_ADMIN',        desc: 'Après 2h (sévérité ≥ 4)', color: 'bg-orange-600' },
+                { step: '1', label: 'Agent opérationnel', desc: 'Notification immédiate (push + SMS selon préférences)', color: 'bg-emerald-600' },
+                { step: '2', label: 'Juge référent',      desc: `SMS après ${escalateMinutes} min sans acquittement`, color: 'bg-blue-600' },
+                { step: '3', label: 'SUPER_ADMIN',        desc: 'SMS après 2h non résolue (sévérité ≥ 4)', color: 'bg-orange-600' },
               ].map((item) => (
                 <li key={item.step} className="flex items-start gap-3">
                   <span className={`w-6 h-6 rounded-full ${item.color} text-white text-xs font-bold flex items-center justify-center flex-shrink-0 mt-0.5`}>

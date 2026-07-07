@@ -65,6 +65,44 @@ export function insideGeofence(lat: number, lon: number, g: EnforceGeofence): bo
   return pointInPolygon(lat, lon, ring);
 }
 
+// Distance (m) from a point to a segment, in a local equirectangular plane.
+// GeoJSON ring vertices are [lng, lat]. Accurate at city scale.
+function distToSegmentM(pLat: number, pLng: number, aLat: number, aLng: number, bLat: number, bLng: number): number {
+  const mLat = 111320;
+  const mLng = 111320 * Math.cos((pLat * Math.PI) / 180);
+  const ax = (aLng - pLng) * mLng, ay = (aLat - pLat) * mLat;
+  const bx = (bLng - pLng) * mLng, by = (bLat - pLat) * mLat;
+  const dx = bx - ax, dy = by - ay;
+  const len2 = dx * dx + dy * dy;
+  const t = len2 === 0 ? 0 : Math.max(0, Math.min(1, -(ax * dx + ay * dy) / len2));
+  return Math.hypot(ax + t * dx, ay + t * dy);
+}
+
+/**
+ * insideGeofence with a tolerance buffer (settings.geofence_buffer_m).
+ * Absorbs GPS jitter on INCLUSION-zone exit decisions: the subject is treated
+ * as inside if within the zone OR within bufferM metres of its boundary.
+ * Exclusion zones stay strict (no buffer) — protective for the victim.
+ */
+export function insideGeofenceBuffered(lat: number, lon: number, g: EnforceGeofence, bufferM: number): boolean {
+  if (insideGeofence(lat, lon, g)) return true;
+  if (bufferM <= 0) return false;
+  if (g.shape_type === 'CIRCLE') {
+    if (g.center_lat == null || g.center_lon == null || g.radius_m == null) return false;
+    return haversine(lat, lon, g.center_lat, g.center_lon) <= g.radius_m + bufferM;
+  }
+  const ring = g.area?.coordinates?.[0];
+  if (!ring || ring.length < 3) return false;
+  let min = Infinity;
+  for (let i = 0; i < ring.length; i++) {
+    const [x1, y1] = ring[i];
+    const [x2, y2] = ring[(i + 1) % ring.length];
+    min = Math.min(min, distToSegmentM(lat, lon, y1, x1, y2, x2));
+    if (min <= bufferM) return true;
+  }
+  return false;
+}
+
 function parseHM(hm: string): number | null {
   const m = /^(\d{1,2}):(\d{2})/.exec(hm);
   return m ? Number(m[1]) * 60 + Number(m[2]) : null;
@@ -134,6 +172,14 @@ export async function enforceGeofences(
   const raised: RaisedAlert[] = [];
   const zones = (geofences ?? []) as EnforceGeofence[];
 
+  // GPS jitter buffer (settings.geofence_buffer_m) — applied to inclusion-zone
+  // exit decisions only; exclusion zones stay strict.
+  let bufferM = 25;
+  try {
+    const { getSettings } = await import('@/lib/settings');
+    bufferM = (await getSettings()).geofence_buffer_m ?? 25;
+  } catch {}
+
   // ── Cross-check home-exit against the BLE beacon ──
   // GPS drifts indoors, so "outside the home zone" is confirmed only when the
   // home beacon is ALSO out of range. If the beacon is still seen, the subject
@@ -173,13 +219,16 @@ export async function enforceGeofences(
   // ── Case-level structured curfew (measure conditions) ──
   // During the curfew schedule (days + hours), the subject must be inside a home
   // inclusion zone. Outside every inclusion zone past the grace delay → violation.
-  await enforceCaseCurfew(supabase, caseId, deviceId, lat, lon, nowMs, zones, raised);
+  await enforceCaseCurfew(supabase, caseId, deviceId, lat, lon, nowMs, zones, raised, bufferM);
 
   if (zones.length === 0) return raised;
 
   for (const g of zones) {
     if (g.status === 'REQUESTED') continue; // not yet validated by an admin
-    const inside = insideGeofence(lat, lon, g);
+    // Inclusion decisions tolerate the GPS buffer; exclusion stays strict.
+    const inside = g.is_exclusion
+      ? insideGeofence(lat, lon, g)
+      : insideGeofenceBuffered(lat, lon, g, bufferM);
     const hasWindow = !!(g.active_start && g.active_end);
 
     // ── CURFEW: time-windowed inclusion zone ──
@@ -224,7 +273,7 @@ export async function enforceGeofences(
   // Per-zone logic would false-alarm permanently with 2+ disjoint zones.
   const inclusionZones = zones.filter((g) => !g.is_exclusion && g.status !== 'REQUESTED' && !(g.active_start && g.active_end));
   if (inclusionZones.length > 0) {
-    const insideAny = inclusionZones.some((g) => insideGeofence(lat, lon, g));
+    const insideAny = inclusionZones.some((g) => insideGeofenceBuffered(lat, lon, g, bufferM));
     if (insideAny) {
       // Compliant → mark the episode as ENDED on any open GEOFENCE_EXIT.
       // The alert stays OPEN (closing it is a manual operator act); the
@@ -268,6 +317,7 @@ async function enforceCaseCurfew(
   nowMs: number,
   zones: EnforceGeofence[],
   raised: RaisedAlert[],
+  bufferM: number,
 ): Promise<void> {
   const { data: c } = await supabase
     .from('cases')
@@ -286,7 +336,7 @@ async function enforceCaseCurfew(
   // Home = any validated inclusion zone. No home zone configured → cannot assess.
   const homeZones = zones.filter((g) => !g.is_exclusion && g.status !== 'REQUESTED');
   if (homeZones.length === 0) return;
-  const atHome = homeZones.some((g) => insideGeofence(lat, lon, g));
+  const atHome = homeZones.some((g) => insideGeofenceBuffered(lat, lon, g, bufferM));
 
   if (atHome) {
     if (curfew.curfew_out_since) await supabase.from('cases').update({ curfew_out_since: null }).eq('id', caseId);

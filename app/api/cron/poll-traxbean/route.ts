@@ -401,5 +401,60 @@ export async function GET(request: NextRequest) {
     })
   );
 
-  return NextResponse.json({ ok: true, polled: results.length, results });
+  // ── Escalation engine (chaîne d'escalade) ──────────────────────────────────
+  // L1: alert unacknowledged past settings.escalate_minutes → SMS the case judge.
+  // L2: severity >= 4 still unresolved past 2h → SMS every active SUPER_ADMIN.
+  // One-shot per level via escalated_at / escalated_l2_at markers.
+  let escalated = 0;
+  try {
+    const { sendSms } = await import('@/lib/sms');
+    const escalateMin = settings.escalate_minutes ?? 30;
+    const l1Cutoff = new Date(Date.now() - escalateMin * 60_000).toISOString();
+    const l2Cutoff = new Date(Date.now() - 120 * 60_000).toISOString();
+
+    const { data: l1 } = await supabase
+      .from('alerts')
+      .select('id, case_id, alert_type')
+      .eq('is_resolved', false)
+      .is('acknowledged_at', null)
+      .is('escalated_at', null)
+      .lt('triggered_at', l1Cutoff)
+      .limit(20);
+    for (const a of (l1 ?? []) as { id: string; case_id: string; alert_type: string }[]) {
+      const { data: kase } = await supabase.from('cases').select('judge_id, case_number').eq('id', a.case_id).maybeSingle();
+      const judgeId = (kase as { judge_id?: string | null } | null)?.judge_id;
+      if (judgeId) {
+        const { data: ju } = await supabase.from('users').select('phone').eq('id', judgeId).maybeSingle();
+        const phone = (ju as { phone?: string | null } | null)?.phone;
+        if (phone) {
+          await sendSms(phone, `SIGEP - ESCALADE: alerte ${a.alert_type} du dossier ${(kase as { case_number?: string } | null)?.case_number ?? ''} sans prise en charge depuis ${escalateMin} min. Verifiez la plateforme.`);
+        }
+      }
+      await supabase.from('alerts').update({ escalated_at: new Date().toISOString() }).eq('id', a.id);
+      escalated++;
+    }
+
+    const { data: l2 } = await supabase
+      .from('alerts')
+      .select('id, case_id, alert_type')
+      .eq('is_resolved', false)
+      .gte('severity', 4)
+      .is('escalated_l2_at', null)
+      .lt('triggered_at', l2Cutoff)
+      .limit(20);
+    if (l2 && l2.length > 0) {
+      const { data: admins } = await supabase.from('users').select('phone').eq('role', 'SUPER_ADMIN').eq('is_active', true);
+      const phones = ((admins ?? []) as { phone: string | null }[]).map((a) => a.phone).filter(Boolean) as string[];
+      for (const a of l2 as { id: string; case_id: string; alert_type: string }[]) {
+        const { data: kase } = await supabase.from('cases').select('case_number').eq('id', a.case_id).maybeSingle();
+        for (const p of phones) {
+          await sendSms(p, `SIGEP - ESCALADE NIVEAU 2: alerte critique ${a.alert_type} (dossier ${(kase as { case_number?: string } | null)?.case_number ?? ''}) non resolue depuis plus de 2h. Intervention requise.`);
+        }
+        await supabase.from('alerts').update({ escalated_l2_at: new Date().toISOString() }).eq('id', a.id);
+        escalated++;
+      }
+    }
+  } catch { /* escalation is best-effort — never blocks polling */ }
+
+  return NextResponse.json({ ok: true, polled: results.length, escalated, results });
 }

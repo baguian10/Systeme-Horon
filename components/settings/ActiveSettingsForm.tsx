@@ -48,7 +48,13 @@ export default function ActiveSettingsForm({ settings }: { settings: SystemSetti
       <div>
         <p className="text-xs font-semibold text-gray-400 uppercase mb-2">Régional &amp; notifications</p>
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-          <Field label="Fuseau horaire" name="timezone" value={settings.timezone} type="text" />
+          {/* Timezone is fixed platform-wide (display code hardcodes Africa/Ouagadougou) */}
+          <div>
+            <label className="block text-xs text-gray-500 mb-1">Fuseau horaire</label>
+            <p className="border border-gray-100 bg-gray-50 rounded-lg px-3 py-2 text-sm text-gray-500">
+              Africa/Ouagadougou (UTC+0) — fixe
+            </p>
+          </div>
           <Field label="Fournisseur SMS" name="sms_provider" value={settings.sms_provider ?? ''} type="text" />
           <label className="flex items-end gap-2 text-sm text-gray-700 pb-2">
             <input type="checkbox" name="sms_enabled" defaultChecked={settings.sms_enabled} /> Notifications SMS
