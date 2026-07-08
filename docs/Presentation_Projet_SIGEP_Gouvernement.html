@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>SIGEP · Système Horon — Dossier de présentation au Gouvernement</title>
+<style>
+  @page { size: A4; margin: 20mm 18mm 18mm 18mm; }
+  * { box-sizing: border-box; }
+  body { font-family: Georgia, "Times New Roman", serif; color: #1f2937; font-size: 11pt; line-height: 1.62; margin: 0; }
+  h1 { font-family: "Segoe UI", Arial, sans-serif; font-size: 20pt; color: #064e3b; margin: 0 0 6px; }
+  h2 { font-family: "Segoe UI", Arial, sans-serif; font-size: 15.5pt; color: #065f46; margin: 26px 0 10px; padding-bottom: 5px; border-bottom: 3px solid; border-image: linear-gradient(to right, #ef2b2d 33%, #eab308 33% 66%, #009e49 66%) 1; page-break-after: avoid; }
+  h3 { font-family: "Segoe UI", Arial, sans-serif; font-size: 12.5pt; color: #047857; margin: 16px 0 6px; page-break-after: avoid; }
+  p { margin: 7px 0; text-align: justify; }
+  ul, ol { margin: 7px 0 7px 22px; padding: 0; } li { margin: 4px 0; text-align: justify; }
+  table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 10pt; font-family: "Segoe UI", Arial, sans-serif; page-break-inside: avoid; }
+  th, td { border: 1px solid #94a3b8; padding: 7px 9px; text-align: left; vertical-align: top; }
+  th { background: #064e3b; color: #fff; font-weight: 600; }
+  tr:nth-child(even) td { background: #f8fafc; }
+  .cover { text-align: center; padding-top: 40mm; page-break-after: always; }
+  .cover .rep { font-family: "Segoe UI", Arial, sans-serif; font-size: 12pt; letter-spacing: 3px; color: #334155; }
+  .cover .devise { font-size: 10pt; color: #64748b; font-style: italic; margin-top: 2px; }
+  .cover .flag { width: 150px; height: 10px; margin: 18px auto; display: flex; border-radius: 5px; overflow: hidden; }
+  .cover .flag div { flex: 1; }
+  .cover .star { color:#eab308; font-size: 20pt; margin-top:-14px; }
+  .cover h1 { font-size: 27pt; margin: 26px 0 10px; }
+  .cover .sub { font-family: "Segoe UI", Arial, sans-serif; font-size: 13.5pt; color: #475569; line-height: 1.7; }
+  .cover .dest { margin-top: 26mm; font-family: "Segoe UI", Arial, sans-serif; font-size: 11pt; color: #334155; line-height: 2; }
+  .cover .conf { margin-top: 14mm; display:inline-block; border: 2px solid #b91c1c; color:#b91c1c; padding: 4px 18px; font-family:"Segoe UI",Arial,sans-serif; font-size: 10pt; letter-spacing: 2px; font-weight: 700; }
+  .lead { font-size: 12pt; color: #334155; }
+  .box { border: 1px solid #d1d5db; border-left: 5px solid #10b981; background: #f0fdf4; padding: 10px 14px; margin: 12px 0; border-radius: 4px; page-break-inside: avoid; }
+  .box-gold { border-left-color: #eab308; background: #fefce8; }
+  .box-red { border-left-color: #ef4444; background: #fef2f2; }
+  .keyfig { display:flex; gap:12px; margin: 14px 0; page-break-inside: avoid; }
+  .keyfig div { flex:1; border:1.5px solid #10b981; border-radius: 10px; padding: 10px; text-align:center; background:#f0fdf4; }
+  .keyfig .n { font-family:"Segoe UI",Arial,sans-serif; font-size: 17pt; font-weight: 800; color:#064e3b; }
+  .keyfig .l { font-size: 9pt; color:#475569; font-family:"Segoe UI",Arial,sans-serif; }
+  .fig { margin: 14px 0; text-align: center; page-break-inside: avoid; }
+  .fig .cap { font-size: 9pt; color: #64748b; margin-top: 5px; font-style: italic; }
+  .section { page-break-before: always; }
+  .sig { margin-top: 40px; display:flex; justify-content: space-between; gap: 30px; }
+  .sig div { flex:1; text-align:center; }
+  .sig .line { border-top: 1.5px solid #334155; margin-top: 60px; padding-top: 6px; font-size: 10pt; }
+  .toc ol { font-size: 11pt; line-height: 2; }
+  .no-print { background:#064e3b; color:#fff; padding:10px 16px; font-size:10pt; font-family:"Segoe UI",Arial,sans-serif; }
+  @media print { .no-print { display:none; } }
+  .hyp { font-size: 9pt; color:#92400e; font-style: italic; }
+</style>
+</head>
+<body>
+
+<div class="no-print">💡 PDF officiel : ouvrir dans un navigateur → Ctrl+P → « Enregistrer au format PDF » → activer « Graphiques d'arrière-plan ».</div>
+
+<!-- ═══════════════ COUVERTURE ═══════════════ -->
+<div class="cover">
+  <div class="rep">BURKINA FASO</div>
+  <div class="devise">La Patrie ou la Mort, nous Vaincrons</div>
+  <div class="flag"><div style="background:#ef2b2d"></div><div style="background:#009e49"></div></div>
+  <div class="star">★</div>
+  <div class="rep" style="font-size:10.5pt; letter-spacing:1.5px; margin-top:10px">MINISTÈRE DE LA JUSTICE ET DES DROITS HUMAINS</div>
+  <h1>SIGEP · Système Horon</h1>
+  <div class="sub">
+    La surveillance électronique au service de la Justice burkinabè<br>
+    <b>Dossier de présentation du projet au Gouvernement</b>
+  </div>
+  <div class="dest">
+    À l'attention de Son Excellence Monsieur le Président du Faso,<br>
+    de Madame/Monsieur le Ministre de la Justice et des Droits Humains,<br>
+    et des membres du Gouvernement
+  </div>
+  <div class="conf">CONFIDENTIEL — DOCUMENT DE TRAVAIL GOUVERNEMENTAL</div>
+</div>
+
+<!-- ═══════════════ SOMMAIRE ═══════════════ -->
+<div class="toc" style="page-break-after: always;">
+  <h2>Sommaire</h2>
+  <ol>
+    <li>Résumé à l'attention des décideurs</li>
+    <li>Le problème que nous résolvons</li>
+    <li>La solution : le bracelet électronique expliqué simplement</li>
+    <li>Le dispositif SIGEP : deux visages, un système</li>
+    <li>Le site public : informer et rassurer les citoyens</li>
+    <li>La plateforme institutionnelle : qui fait quoi</li>
+    <li>Comment le système veille, alerte et fait remonter</li>
+    <li>Les garanties : sécurité, traçabilité, souveraineté, droits</li>
+    <li>Les bénéfices, partie par partie</li>
+    <li>Le modèle économique : un dispositif qui s'autofinance</li>
+    <li>Feuille de route de déploiement</li>
+    <li>Conclusion et engagement</li>
+  </ol>
+</div>
+
+<!-- ═══════════════ 1. RÉSUMÉ ═══════════════ -->
+<h2>1. Résumé à l'attention des décideurs</h2>
+<p class="lead"><b>SIGEP (Système Horon)</b> est une plateforme burkinabè, déjà construite et opérationnelle, qui permet de faire exécuter certaines peines et mesures judiciaires <b>hors des murs de la prison</b>, grâce à un bracelet électronique porté à la cheville. La personne reste chez elle, garde son travail et sa famille ; la Justice, elle, sait à chaque minute où elle se trouve et est alertée immédiatement au moindre écart.</p>
+<div class="keyfig">
+  <div><div class="n">24 h/24</div><div class="l">position vérifiée en continu, alerte en moins d'une minute</div></div>
+  <div><div class="n">−70 %*</div><div class="l">de coût par personne par rapport à la détention (voir §10, hypothèses)</div></div>
+  <div><div class="n">0 F CFA</div><div class="l">de charge salariale pour l'État à terme : le dispositif s'autofinance</div></div>
+  <div><div class="n">100 %</div><div class="l">des actions tracées dans un journal d'audit inviolable</div></div>
+</div>
+<p>Ce document présente : le problème carcéral auquel le pays fait face ; le fonctionnement du dispositif, expliqué pour être compris <b>sans aucune connaissance en informatique</b> ; le rôle de chaque institution (juge, administration pénitentiaire, forces de sécurité, équipe SIGEP, Ministère) ; les garanties de sécurité et de respect des droits ; et enfin le <b>modèle économique</b> par lequel les contributions des porteurs solvables financent le dispositif et allègent durablement le budget de l'État.</p>
+<div class="box-gold box"><b>Ce que nous demandons au Gouvernement :</b> l'adoption du cadre réglementaire du placement sous surveillance électronique, la désignation des juridictions pilotes, et l'autorisation de lancement de la phase pilote décrite au §11. La plateforme, elle, est <b>déjà développée et fonctionnelle</b>.</div>
+
+<!-- ═══════════════ 2. PROBLÈME ═══════════════ -->
+<div class="section"></div>
+<h2>2. Le problème que nous résolvons</h2>
+<p>Comme la plupart des pays de la sous-région, le Burkina Faso fait face à une équation pénitentiaire difficile :</p>
+<ul>
+  <li><b>Des prisons surpeuplées.</b> Les maisons d'arrêt accueillent bien au-delà de leur capacité. La surpopulation dégrade les conditions de détention, complique la mission des gardes pénitentiaires et expose l'État à des critiques sur le plan des droits humains.</li>
+  <li><b>Un coût élevé et croissant pour l'État.</b> Chaque personne détenue doit être nourrie, logée, gardée, soignée — chaque jour, à la charge exclusive du contribuable.</li>
+  <li><b>Une part importante de détention évitable.</b> Une fraction significative des personnes incarcérées sont en <b>détention provisoire</b> (en attente de jugement) ou condamnées à de <b>courtes peines</b> pour des faits sans violence. Pour elles, la prison coûte cher, brise l'emploi et la famille, et favorise la récidive au contact de la délinquance endurcie.</li>
+  <li><b>La prison fabrique de la récidive.</b> Un père de famille incarcéré six mois pour un délit mineur perd souvent son travail, parfois son foyer. À sa sortie, la tentation de la récidive est plus forte qu'à son entrée.</li>
+</ul>
+<div class="box"><b>La question posée n'est pas « punir ou ne pas punir ».</b> Elle est : <i>pour les profils qui ne présentent pas de danger, existe-t-il un moyen de faire exécuter la décision de justice de manière certaine, contrôlée et moins coûteuse que la prison ?</i> La réponse, éprouvée dans de nombreux pays (France, Sénégal, Côte d'Ivoire en projet, Afrique du Sud, Kenya…), est la surveillance électronique. SIGEP est la version burkinabè, conçue par des Burkinabè, adaptée à nos réalités.</div>
+
+<!-- ═══════════════ 3. LA SOLUTION ═══════════════ -->
+<div class="section"></div>
+<h2>3. La solution : le bracelet électronique expliqué simplement</h2>
+<p>Le principe tient en quatre étapes que tout citoyen peut comprendre :</p>
+<div class="fig">
+<svg width="660" height="150" viewBox="0 0 660 150" xmlns="http://www.w3.org/2000/svg" style="max-width:100%">
+  <defs><marker id="a" markerWidth="9" markerHeight="9" refX="8" refY="3.5" orient="auto"><path d="M0,0 L8,3.5 L0,7 z" fill="#064e3b"/></marker></defs>
+  <g font-family="Segoe UI, Arial" text-anchor="middle">
+    <rect x="8" y="26" width="148" height="96" rx="12" fill="#ecfdf5" stroke="#10b981" stroke-width="2"/>
+    <circle cx="82" cy="52" r="15" fill="#064e3b"/><text x="82" y="58" font-size="14" fill="#fff" font-weight="bold">1</text>
+    <text x="82" y="86" font-size="10.5" font-weight="bold" fill="#065f46">Le juge décide</text>
+    <text x="82" y="101" font-size="8.5" fill="#334155">zones autorisées, horaires,</text>
+    <text x="82" y="113" font-size="8.5" fill="#334155">interdictions, durée</text>
+    <rect x="176" y="26" width="148" height="96" rx="12" fill="#ecfdf5" stroke="#10b981" stroke-width="2"/>
+    <circle cx="250" cy="52" r="15" fill="#064e3b"/><text x="250" y="58" font-size="14" fill="#fff" font-weight="bold">2</text>
+    <text x="250" y="86" font-size="10.5" font-weight="bold" fill="#065f46">Le bracelet est posé</text>
+    <text x="250" y="101" font-size="8.5" fill="#334155">à la cheville, inviolable,</text>
+    <text x="250" y="113" font-size="8.5" fill="#334155">étanche, batterie longue durée</text>
+    <rect x="344" y="26" width="148" height="96" rx="12" fill="#ecfdf5" stroke="#10b981" stroke-width="2"/>
+    <circle cx="418" cy="52" r="15" fill="#064e3b"/><text x="418" y="58" font-size="14" fill="#fff" font-weight="bold">3</text>
+    <text x="418" y="86" font-size="10.5" font-weight="bold" fill="#065f46">SIGEP veille 24 h/24</text>
+    <text x="418" y="101" font-size="8.5" fill="#334155">position reçue chaque minute,</text>
+    <text x="418" y="113" font-size="8.5" fill="#334155">comparée aux règles du juge</text>
+    <rect x="512" y="26" width="140" height="96" rx="12" fill="#fef2f2" stroke="#ef4444" stroke-width="2"/>
+    <circle cx="582" cy="52" r="15" fill="#b91c1c"/><text x="582" y="58" font-size="14" fill="#fff" font-weight="bold">4</text>
+    <text x="582" y="86" font-size="10.5" font-weight="bold" fill="#b91c1c">Écart = alerte</text>
+    <text x="582" y="101" font-size="8.5" fill="#334155">sirène, SMS, intervention ;</text>
+    <text x="582" y="113" font-size="8.5" fill="#334155">tout est enregistré</text>
+    <line x1="156" y1="74" x2="174" y2="74" stroke="#064e3b" stroke-width="2.5" marker-end="url(#a)"/>
+    <line x1="324" y1="74" x2="342" y2="74" stroke="#064e3b" stroke-width="2.5" marker-end="url(#a)"/>
+    <line x1="492" y1="74" x2="510" y2="74" stroke="#064e3b" stroke-width="2.5" marker-end="url(#a)"/>
+  </g>
+</svg>
+<div class="cap">Figure 1 — Le placement sous surveillance électronique en quatre étapes.</div>
+</div>
+<h3>Ce que le bracelet sait faire</h3>
+<ul>
+  <li><b>Dire où il est</b>, par satellite (GPS) et réseau téléphonique, chaque minute.</li>
+  <li><b>Détecter qu'on tente de l'enlever</b> : toute ouverture ou retrait du corps déclenche instantanément une alerte de sabotage au niveau maximal.</li>
+  <li><b>Confirmer la présence à la maison</b> grâce à un petit boîtier fixe posé au domicile (une « balise ») : même quand le signal satellite est brouillé par les murs, la Justice sait de façon fiable si la personne est chez elle — essentiel pour les couvre-feux et assignations à résidence.</li>
+  <li><b>Appeler à l'aide</b> : un bouton d'urgence permet au porteur de signaler un danger ; certains modèles surveillent aussi des constantes de santé.</li>
+  <li><b>Être rechargé à domicile</b> comme un téléphone ; le système prévient avant que la batterie ne soit faible.</li>
+</ul>
+<h3>Ce que le juge peut ordonner, concrètement</h3>
+<table>
+  <tr><th>Mesure</th><th>Traduction dans SIGEP</th></tr>
+  <tr><td>« Il doit rester dans son quartier »</td><td>Zone autorisée dessinée sur la carte : en sortir déclenche l'alerte.</td></tr>
+  <tr><td>« Interdiction d'approcher le domicile de la victime »</td><td>Zone interdite : y entrer déclenche l'alerte — protection active des victimes.</td></tr>
+  <tr><td>« À la maison de 21 h à 6 h »</td><td>Couvre-feu contrôlé par la balise domicile, jour par jour.</td></tr>
+  <tr><td>« 120 heures de travaux d'intérêt général »</td><td>Site TIG agréé + pointage des heures effectuées, avancement visible en temps réel.</td></tr>
+  <tr><td>« Audience le 15 du mois, visite sociale chaque semaine »</td><td>Agenda des obligations, rappels automatiques la veille, constat présence/absence — chaque absence non justifiée est consignée au dossier.</td></tr>
+</table>
+
+<!-- ═══════════════ 4. DEUX VISAGES ═══════════════ -->
+<div class="section"></div>
+<h2>4. Le dispositif SIGEP : deux visages, un système</h2>
+<p>SIGEP se compose de deux ensembles distincts et complémentaires :</p>
+<table>
+  <tr><th></th><th>Site public d'information</th><th>Plateforme institutionnelle sécurisée</th></tr>
+  <tr><td><b>Pour qui ?</b></td><td>Tout citoyen, la presse, les familles, les partenaires</td><td>Uniquement le personnel habilité : juges, agents, administration</td></tr>
+  <tr><td><b>Contenu</b></td><td>Présentation du dispositif, pédagogie, questions fréquentes, cadre légal, contact</td><td>Dossiers, cartes de suivi en temps réel, alertes, rapports, gestion du parc</td></tr>
+  <tr><td><b>Données personnelles</b></td><td><b>Aucune.</b> Rien de nominatif n'y figure jamais</td><td>Protégées, chiffrées, à accès contrôlé et journalisé</td></tr>
+  <tr><td><b>Accès</b></td><td>Libre, sans compte</td><td>Compte nominatif + mot de passe + double authentification</td></tr>
+</table>
+
+<!-- ═══════════════ 5. SITE PUBLIC ═══════════════ -->
+<h2>5. Le site public : informer et rassurer les citoyens</h2>
+<p>La réussite d'une politique de surveillance électronique dépend aussi de son <b>acceptation sociale</b>. Le site public y pourvoit :</p>
+<ul>
+  <li><b>Expliquer</b> ce qu'est le bracelet, qui peut en bénéficier, ce qu'il permet et ce qu'il interdit — en langage simple, accessible depuis n'importe quel téléphone.</li>
+  <li><b>Rassurer</b> : non, le bracelet ne « punit » pas la famille ; oui, la personne peut travailler ; non, personne d'autre que la Justice n'accède aux positions.</li>
+  <li><b>Valoriser l'action du Gouvernement</b> : une vitrine moderne qui montre un État qui innove, humanise l'exécution des peines et protège les victimes.</li>
+  <li><b>Orienter</b> : comment une famille peut se renseigner, comment un avocat dépose une demande de placement, où s'adresser.</li>
+</ul>
+<div class="box">Une <b>version de démonstration</b> du dispositif complet est d'ores et déjà consultable en ligne par les autorités, avec données fictives, pour toucher du doigt chaque écran décrit dans ce document.</div>
+
+<!-- ═══════════════ 6. QUI FAIT QUOI ═══════════════ -->
+<div class="section"></div>
+<h2>6. La plateforme institutionnelle : qui fait quoi</h2>
+<p>Chaque institution dispose de <b>son propre espace</b>, limité à son rôle. Personne ne voit plus que ce que sa fonction exige ; tout ce que chacun fait est enregistré.</p>
+
+<div class="fig">
+<svg width="660" height="230" viewBox="0 0 660 230" xmlns="http://www.w3.org/2000/svg" style="max-width:100%">
+  <defs><marker id="b" markerWidth="9" markerHeight="9" refX="8" refY="3.5" orient="auto"><path d="M0,0 L8,3.5 L0,7 z" fill="#475569"/></marker></defs>
+  <g font-family="Segoe UI, Arial" text-anchor="middle">
+    <ellipse cx="330" cy="115" rx="90" ry="46" fill="#064e3b"/>
+    <text x="330" y="110" font-size="13" font-weight="bold" fill="#fff">SIGEP</text>
+    <text x="330" y="127" font-size="9" fill="#a7f3d0">plateforme centrale</text>
+    <rect x="10" y="10" width="170" height="52" rx="10" fill="#dbeafe" stroke="#3b82f6" stroke-width="2"/>
+    <text x="95" y="31" font-size="10.5" font-weight="bold" fill="#1d4ed8">JUGES</text>
+    <text x="95" y="47" font-size="8.5" fill="#334155">décident et suivent leurs dossiers</text>
+    <rect x="10" y="160" width="170" height="60" rx="10" fill="#ffedd5" stroke="#f97316" stroke-width="2"/>
+    <text x="95" y="181" font-size="10.5" font-weight="bold" fill="#c2410c">ADMINISTRATION PÉNITENTIAIRE</text>
+    <text x="95" y="196" font-size="8.5" fill="#334155">pose/retrait du bracelet,</text>
+    <text x="95" y="208" font-size="8.5" fill="#334155">greffe des placements</text>
+    <rect x="480" y="10" width="170" height="60" rx="10" fill="#d1fae5" stroke="#10b981" stroke-width="2"/>
+    <text x="565" y="31" font-size="10.5" font-weight="bold" fill="#047857">AGENTS DE TERRAIN</text>
+    <text x="565" y="46" font-size="8.5" fill="#334155">police, gendarmerie, agents SIGEP :</text>
+    <text x="565" y="58" font-size="8.5" fill="#334155">interventions et visites</text>
+    <rect x="480" y="160" width="170" height="60" rx="10" fill="#ede9fe" stroke="#8b5cf6" stroke-width="2"/>
+    <text x="565" y="181" font-size="10.5" font-weight="bold" fill="#6d28d9">MINISTÈRE / DIRECTION</text>
+    <text x="565" y="196" font-size="8.5" fill="#334155">statistiques anonymisées,</text>
+    <text x="565" y="208" font-size="8.5" fill="#334155">pilotage de la politique pénale</text>
+    <rect x="255" y="185" width="150" height="40" rx="10" fill="#fee2e2" stroke="#ef4444" stroke-width="2"/>
+    <text x="330" y="202" font-size="10" font-weight="bold" fill="#b91c1c">ÉQUIPE SIGEP</text>
+    <text x="330" y="216" font-size="8.5" fill="#334155">exploitation technique 24 h/24</text>
+    <line x1="180" y1="42" x2="258" y2="90" stroke="#475569" stroke-width="1.8" marker-end="url(#b)"/>
+    <line x1="180" y1="180" x2="255" y2="140" stroke="#475569" stroke-width="1.8" marker-end="url(#b)"/>
+    <line x1="480" y1="45" x2="404" y2="90" stroke="#475569" stroke-width="1.8" marker-end="url(#b)"/>
+    <line x1="480" y1="180" x2="406" y2="140" stroke="#475569" stroke-width="1.8" marker-end="url(#b)"/>
+    <line x1="330" y1="185" x2="330" y2="163" stroke="#475569" stroke-width="1.8" marker-end="url(#b)"/>
+  </g>
+</svg>
+<div class="cap">Figure 2 — Chaque institution accède au même système, chacune par la porte qui correspond à sa mission.</div>
+</div>
+
+<h3>6.1 Côté juge — l'autorité qui décide</h3>
+<ul>
+  <li>Crée le dossier du bénéficiaire avec son fondement légal (article, n° d'ordonnance) ; fixe la durée, le couvre-feu, les heures de TIG.</li>
+  <li>Exprime les périmètres en une phrase (« doit rester dans Bogodogo », « interdit d'approcher le domicile de la plaignante ») — le tracé technique précis est ensuite réalisé et validé par l'administration, puis appliqué automatiquement.</li>
+  <li>Planifie audiences et visites dans l'agenda ; <b>constate ou justifie les absences</b> ; est prévenu par SMS la veille de chaque obligation.</li>
+  <li>Reçoit les alertes concernant <b>ses seuls dossiers</b> ; si personne ne traite une alerte dans le délai fixé, il est relancé automatiquement par SMS.</li>
+  <li>Décide des révocations : demande motivée → instruction → décision. Une révocation approuvée arrête proprement la surveillance et renvoie vers la détention.</li>
+  <li>Édite des rapports officiels signés (conformité, alertes, dossier individuel) prêts pour l'audience.</li>
+  <li>Peut créer et superviser <b>ses propres agents de terrain</b>, avec une portée limitée à ses dossiers s'il le souhaite.</li>
+</ul>
+<h3>6.2 Côté administration pénitentiaire et greffe</h3>
+<ul>
+  <li>Reçoit la décision de placement ; procède à la <b>pose physique</b> du bracelet à la cheville et à l'enregistrement du matériel sur le dossier (numéro unique du bracelet, carte SIM).</li>
+  <li>Installe la balise domicile lors d'une visite au lieu d'assignation ; teste la liaison avant de quitter les lieux.</li>
+  <li>Gère le <b>magasin de bracelets</b> : stock, affectations, retours, maintenance, réforme — chaque bracelet a son cycle de vie tracé.</li>
+  <li>À la fin de mesure : récupère le bracelet, le contrôle, le remet en stock pour <b>réutilisation</b> (clef du modèle économique, §10).</li>
+</ul>
+<h3>6.3 Côté forces de sécurité et agents de terrain</h3>
+<ul>
+  <li>Voient la carte de surveillance en temps réel de leur secteur ; une violation fait clignoter la zone et centre la carte automatiquement.</li>
+  <li>Traitent les alertes selon un circuit clair : <b>je vois → je prends → j'interviens → je résous avec motif</b>. Quand un agent « prend » une alerte, tous les autres le voient — pas de double intervention, pas d'alerte oubliée.</li>
+  <li>Disposent d'un <b>mode terrain sur téléphone</b>, qui fonctionne même sans réseau : liste des missions, itinéraires, notes. Le <b>pointage de visite enregistre la position GPS de l'agent lui-même</b> — la preuve que la visite a réellement eu lieu, opposable en justice.</li>
+  <li>Pointent les heures de TIG effectuées sur les sites agréés (mairies, hôpitaux, écoles…).</li>
+</ul>
+<h3>6.4 Côté équipe SIGEP (Super Administration) — l'exploitant</h3>
+<ul>
+  <li>Équipe technique nationale, garante du fonctionnement 24 h/24 : elle <b>exécute</b> les décisions de justice, elle n'en prend jamais.</li>
+  <li>Crée les comptes de toutes les institutions ; applique les règles de sécurité (double authentification, motifs de désactivation, fins de mission automatiques, registre des connexions).</li>
+  <li>Trace et valide techniquement les périmètres demandés par les juges.</li>
+  <li>Supervise la santé du dispositif sur un <b>centre opérationnel</b> : chaque bracelet, chaque alerte, l'état des liaisons — avec un mode « salle de crise » pour mur d'écrans.</li>
+  <li>Règle les paramètres nationaux : seuils de batterie, délais d'escalade, durées de conservation des données, passerelle SMS.</li>
+  <li>Est alertée automatiquement (SMS) si un maillon vital du système tombe.</li>
+</ul>
+<h3>6.5 Côté Ministère et direction stratégique</h3>
+<ul>
+  <li>Accès <b>exclusivement statistique et anonyme</b> : nombres de mesures, taux de conformité, répartition des alertes, tendances — jamais un nom, jamais une position individuelle.</li>
+  <li>Rapport statistique national imprimable pour le Conseil des ministres, avec référence unique et signature de l'émetteur.</li>
+</ul>
+
+<!-- ═══════════════ 7. COMMENT ÇA VEILLE ═══════════════ -->
+<div class="section"></div>
+<h2>7. Comment le système veille, alerte et fait remonter</h2>
+<p>Toute la crédibilité du dispositif tient en une promesse : <b>aucun écart ne passe inaperçu, et aucune alerte ne reste sans suite.</b> Voici comment cette promesse est tenue.</p>
+<h3>7.1 Une alerte par incident — ni silence, ni harcèlement</h3>
+<p>Quand un porteur sort de sa zone, <b>une</b> alerte est créée (sirène sur les postes, notification, SMS selon les préférences). Tant qu'il reste dehors, le système ne bombarde pas les opérateurs de répétitions inutiles : c'est <b>le même incident</b>. S'il rentre puis ressort, c'est un <b>nouvel incident</b> : nouvelle alerte. Et surtout : <b>la clôture d'une alerte est toujours un acte humain motivé</b> — jamais un effacement automatique. Chaque incident laisse une trace définitive.</p>
+<h3>7.2 L'escalade automatique — l'anti-négligence</h3>
+<div class="fig">
+<svg width="660" height="96" viewBox="0 0 660 96" xmlns="http://www.w3.org/2000/svg" style="max-width:100%">
+  <defs><marker id="c" markerWidth="9" markerHeight="9" refX="8" refY="3.5" orient="auto"><path d="M0,0 L8,3.5 L0,7 z" fill="#b91c1c"/></marker></defs>
+  <g font-family="Segoe UI, Arial" text-anchor="middle">
+    <rect x="8" y="22" width="190" height="54" rx="10" fill="#ecfdf5" stroke="#10b981" stroke-width="2"/>
+    <text x="103" y="43" font-size="10" font-weight="bold" fill="#065f46">Alerte → opérateurs de garde</text>
+    <text x="103" y="60" font-size="8.5" fill="#334155">sirène + notification immédiates</text>
+    <rect x="238" y="22" width="185" height="54" rx="10" fill="#fffbeb" stroke="#f59e0b" stroke-width="2"/>
+    <text x="330" y="43" font-size="10" font-weight="bold" fill="#92400e">Personne ne réagit ?</text>
+    <text x="330" y="60" font-size="8.5" fill="#334155">→ SMS au juge du dossier (30 min)</text>
+    <rect x="463" y="22" width="190" height="54" rx="10" fill="#fef2f2" stroke="#ef4444" stroke-width="2"/>
+    <text x="558" y="43" font-size="10" font-weight="bold" fill="#b91c1c">Toujours rien après 2 h ?</text>
+    <text x="558" y="60" font-size="8.5" fill="#334155">→ SMS à la direction SIGEP</text>
+    <line x1="198" y1="49" x2="236" y2="49" stroke="#b91c1c" stroke-width="2.5" marker-end="url(#c)"/>
+    <line x1="423" y1="49" x2="461" y2="49" stroke="#b91c1c" stroke-width="2.5" marker-end="url(#c)"/>
+  </g>
+</svg>
+<div class="cap">Figure 3 — La chaîne d'escalade : une alerte ignorée remonte automatiquement la hiérarchie. Personne ne peut « laisser dormir » un incident.</div>
+</div>
+<h3>7.3 La surveillance du surveillant</h3>
+<p>Le système se surveille lui-même : si la collecte des positions s'arrête (panne de liaison avec l'opérateur télécom, par exemple), <b>les écrans l'affichent en rouge immédiatement</b> et l'équipe SIGEP est prévenue par SMS. Le tableau de bord de chaque utilisateur porte une pastille d'état qui reflète la réalité — jamais un voyant vert de décoration.</p>
+
+<!-- ═══════════════ 8. GARANTIES ═══════════════ -->
+<div class="section"></div>
+<h2>8. Les garanties : sécurité, traçabilité, souveraineté, droits</h2>
+<table>
+  <tr><th>Garantie</th><th>Comment elle est assurée</th></tr>
+  <tr><td><b>Accès fermé</b></td><td>Aucune inscription libre : chaque compte est créé nominativement par une autorité habilitée. Double authentification. Sessions expirées après inactivité. Comptes à durée de mission (détachements) désactivés automatiquement à échéance.</td></tr>
+  <tr><td><b>Traçabilité totale</b></td><td>Journal d'audit inviolable et en lecture seule : qui s'est connecté, qui a créé quoi, qui a résolu quelle alerte, qui a édité quel rapport, avec quel motif. L'auteur reste identifié même si son compte est supprimé plus tard.</td></tr>
+  <tr><td><b>Cloisonnement</b></td><td>Un juge ne voit que ses dossiers ; un agent, son secteur ; le Ministère, des chiffres anonymes. Le principe du « besoin d'en connaître » est appliqué écran par écran.</td></tr>
+  <tr><td><b>Protection des victimes</b></td><td>Zones interdites actives : l'approche du domicile d'une victime déclenche l'alerte avant le contact, pas après le drame.</td></tr>
+  <tr><td><b>Dignité du porteur</b></td><td>Le bracelet est discret, porté sous le vêtement. Les positions ne sont accessibles qu'aux personnes habilitées, pour la seule finalité judiciaire. Durées de conservation encadrées et purge automatique.</td></tr>
+  <tr><td><b>Valeur probante</b></td><td>Rapports officiels à référence unique horodatée et bloc signature de l'émetteur ; historiques d'infractions exportables pour production en audience ; visites de terrain prouvées par la position GPS de l'agent.</td></tr>
+  <tr><td><b>Souveraineté des données</b></td><td>Plateforme conçue pour être hébergée à terme sur une <b>infrastructure nationale</b> ; procédure de migration documentée. Le Burkina Faso reste maître de ses données judiciaires.</td></tr>
+  <tr><td><b>Continuité</b></td><td>Le mode terrain fonctionne sans réseau ; les données saisies se synchronisent automatiquement au retour de la connexion. Rien ne se perd.</td></tr>
+</table>
+
+<!-- ═══════════════ 9. BÉNÉFICES ═══════════════ -->
+<div class="section"></div>
+<h2>9. Les bénéfices, partie par partie</h2>
+<table>
+  <tr><th>Pour…</th><th>Bénéfices concrets</th></tr>
+  <tr><td><b>L'État et le contribuable</b></td><td>Désengorgement immédiat des prisons ; économie sur chaque journée de détention évitée (nourriture, garde, santé, entretien) ; dispositif qui tend vers l'<b>autofinancement</b> (§10) ; image d'un État moderne et respectueux des standards internationaux.</td></tr>
+  <tr><td><b>Les juges et le parquet</b></td><td>Une alternative crédible enfin dotée d'un <b>contrôle réel</b> : le juge ordonne, le système vérifie, les preuves s'accumulent d'elles-mêmes. Rapports prêts pour l'audience. Moins de détentions provisoires par défaut d'alternative.</td></tr>
+  <tr><td><b>Le bénéficiaire (la personne placée)</b></td><td>Garde son emploi, son toit, sa famille ; purge sa peine sans le traumatisme carcéral ni le contact criminogène ; conserve sa dignité ; ses efforts (TIG, obligations honorées) sont documentés et jouent en sa faveur.</td></tr>
+  <tr><td><b>Sa famille</b></td><td>Le revenu du foyer est préservé ; les enfants gardent leur père ou leur mère ; pas de stigmatisation de la visite en prison.</td></tr>
+  <tr><td><b>Les victimes</b></td><td>Protection active par zones d'exclusion ; alerte immédiate en cas d'approche ; traçabilité utilisable en justice.</td></tr>
+  <tr><td><b>L'administration pénitentiaire</b></td><td>Moins de surpopulation = détention plus sûre et plus digne pour ceux qui doivent y rester ; les gardes se concentrent sur les profils dangereux ; nouveau métier valorisant de « pose et suivi ».</td></tr>
+  <tr><td><b>La société</b></td><td>Moins de récidive (l'insertion est maintenue) ; des travaux d'intérêt général qui profitent aux mairies, écoles et centres de santé ; une justice visible et mesurable.</td></tr>
+  <tr><td><b>Les personnes en sursis ou en procédure</b></td><td>Possibilité <b>volontaire</b> de porter le bracelet pour matérialiser leur bonne foi, éviter la détention provisoire, prévenir la récidive et rassurer le tribunal.</td></tr>
+</table>
+
+<!-- ═══════════════ 10. MODÈLE ÉCONOMIQUE ═══════════════ -->
+<div class="section"></div>
+<h2>10. Le modèle économique : un dispositif qui s'autofinance</h2>
+<p class="lead">L'idée directrice est simple : <b>celui qui a les moyens de contribuer au coût de sa propre surveillance contribue ; celui qui ne les a pas est pris en charge par l'État — et l'État y gagne quand même</b>, car la surveillance coûte plusieurs fois moins cher que la détention.</p>
+
+<h3>10.1 Le cycle de vie financier d'un bracelet</h3>
+<div class="fig">
+<svg width="660" height="210" viewBox="0 0 660 210" xmlns="http://www.w3.org/2000/svg" style="max-width:100%">
+  <defs><marker id="d" markerWidth="9" markerHeight="9" refX="8" refY="3.5" orient="auto"><path d="M0,0 L8,3.5 L0,7 z" fill="#064e3b"/></marker></defs>
+  <g font-family="Segoe UI, Arial" text-anchor="middle">
+    <rect x="20" y="20" width="180" height="62" rx="12" fill="#fef2f2" stroke="#ef4444" stroke-width="2"/>
+    <text x="110" y="44" font-size="10.5" font-weight="bold" fill="#b91c1c">ACHAT DU BRACELET</text>
+    <text x="110" y="62" font-size="11" font-weight="bold" fill="#334155">− 175 000 F CFA</text>
+    <text x="110" y="75" font-size="8" fill="#64748b">(une seule fois)</text>
+    <rect x="240" y="20" width="180" height="62" rx="12" fill="#ecfdf5" stroke="#10b981" stroke-width="2"/>
+    <text x="330" y="40" font-size="10.5" font-weight="bold" fill="#065f46">1ᵉʳ PLACEMENT PAYANT</text>
+    <text x="330" y="58" font-size="11" font-weight="bold" fill="#334155">+ 200 000 F CFA</text>
+    <text x="330" y="74" font-size="8" fill="#64748b">contribution du porteur solvable</text>
+    <rect x="460" y="20" width="180" height="62" rx="12" fill="#fefce8" stroke="#eab308" stroke-width="2"/>
+    <text x="550" y="40" font-size="10.5" font-weight="bold" fill="#92400e">FIN DE MESURE</text>
+    <text x="550" y="57" font-size="9" fill="#334155">bracelet restitué, contrôlé,</text>
+    <text x="550" y="71" font-size="9" fill="#334155">remis en stock</text>
+    <rect x="240" y="126" width="180" height="62" rx="12" fill="#ecfdf5" stroke="#10b981" stroke-width="2.5"/>
+    <text x="330" y="147" font-size="10.5" font-weight="bold" fill="#065f46">PLACEMENTS SUIVANTS</text>
+    <text x="330" y="165" font-size="11" font-weight="bold" fill="#334155">+ 200 000 F chacun</text>
+    <text x="330" y="180" font-size="8" fill="#64748b">le bracelet est déjà payé : recette quasi nette</text>
+    <line x1="200" y1="51" x2="238" y2="51" stroke="#064e3b" stroke-width="2.5" marker-end="url(#d)"/>
+    <line x1="420" y1="51" x2="458" y2="51" stroke="#064e3b" stroke-width="2.5" marker-end="url(#d)"/>
+    <path d="M 550 82 C 550 126 430 157 422 157" fill="none" stroke="#064e3b" stroke-width="2.5" marker-end="url(#d)"/>
+    <path d="M 240 157 C 150 157 110 120 110 84" fill="none" stroke="#94a3b8" stroke-width="2" stroke-dasharray="5 4" marker-end="url(#d)"/>
+    <text x="128" y="130" font-size="8.5" fill="#64748b" transform="rotate(-62 128 130)">re-déploiement</text>
+  </g>
+</svg>
+<div class="cap">Figure 4 — Un bracelet acheté une fois (175 000 F) génère une contribution de 200 000 F à chaque placement payant. Dès le premier porteur solvable, l'appareil est amorti ; chaque réutilisation est un excédent qui finance le dispositif.</div>
+</div>
+
+<h3>10.2 Le barème d'équité — principe fondamental</h3>
+<p>Pour être juste et constitutionnellement solide, la contribution est <b>proportionnée au niveau de vie</b>, apprécié par le juge sur pièces (comme pour l'aide juridictionnelle) :</p>
+<table>
+  <tr><th>Profil du porteur</th><th>Contribution proposée</th><th>Qui paie le reste ?</th></tr>
+  <tr><td>Solvable (revenus confortables, patrimoine)</td><td>Contribution pleine — <i>ex. 200 000 F</i> — voire majorée pour les placements de confort (détention provisoire évitée sur demande)</td><td>—</td></tr>
+  <tr><td>Revenus modestes</td><td>Contribution réduite, éventuellement échelonnée (mobile money)</td><td>Complément État / fonds SIGEP</td></tr>
+  <tr><td>Indigent</td><td><b>0 F — prise en charge intégrale par l'État</b></td><td>État (qui économise malgré tout par rapport à la détention)</td></tr>
+</table>
+<div class="box-red box"><b>Ligne rouge assumée :</b> la capacité de payer <b>n'influence jamais la décision judiciaire</b> (qui est éligible, qui ne l'est pas) — elle ne module que la <i>répartition du coût</i> d'une mesure déjà décidée par le juge selon les seuls critères de droit. Ce principe protège le dispositif de toute accusation de « justice à deux vitesses ».</div>
+
+<h3>10.3 Pourquoi l'État y gagne même quand il paie</h3>
+<p>Comparons, pour une mesure de 12 mois, la détention et la surveillance électronique. <span class="hyp">Les montants de détention sont des hypothèses de travail à affiner avec les services compétents du Ministère ; la logique demeure quelle que soit la valeur exacte.</span></p>
+<table>
+  <tr><th></th><th>Détention 12 mois</th><th>Bracelet 12 mois (porteur indigent, État payeur)</th><th>Bracelet 12 mois (porteur solvable)</th></tr>
+  <tr><td>Coût direct pour l'État</td><td>Nourriture + garde + santé + entretien : <i>hypothèse 1 500 F/jour ≈</i> <b>547 500 F</b></td><td>Amortissement bracelet (réutilisé ~5 fois : 35 000 F) + exploitation ≈ <b>150 000 F</b></td><td><b>≈ 0 F</b> (contribution 200 000 F ≥ coûts)</td></tr>
+  <tr><td>Recette pour le dispositif</td><td>0</td><td>0</td><td><b>+ 200 000 F</b></td></tr>
+  <tr><td>Effets induits</td><td>Emploi perdu, famille fragilisée, récidive favorisée, surpopulation</td><td colspan="2">Emploi conservé (impôts, consommation), famille stable, TIG au profit des communes, prison désengorgée</td></tr>
+</table>
+
+<h3>10.4 Projection indicative sur trois ans</h3>
+<p><span class="hyp">Hypothèses affichées : parc initial de 500 bracelets ; montée en charge progressive ; durée moyenne de placement 8 mois (soit ~1,5 porteur par bracelet et par an) ; 60 % de porteurs contributifs à contribution moyenne pondérée de 150 000 F (plein tarif, réduits et gratuits confondus) ; équipe SIGEP de 25 agents à coût moyen chargé de 250 000 F/mois.</span></p>
+<table>
+  <tr><th></th><th>Année 1 (pilote)</th><th>Année 2</th><th>Année 3</th></tr>
+  <tr><td>Parc de bracelets actifs</td><td>500</td><td>1 500</td><td>3 000</td></tr>
+  <tr><td>Investissement bracelets (175 000 F/u)</td><td>− 87,5 M</td><td>− 175 M</td><td>− 262,5 M</td></tr>
+  <tr><td>Placements dans l'année (~1,5 / bracelet)</td><td>750</td><td>2 250</td><td>4 500</td></tr>
+  <tr><td>Contributions perçues (60 % × 150 000 F)</td><td>+ 67,5 M</td><td>+ 202,5 M</td><td>+ 405 M</td></tr>
+  <tr><td>Masse salariale équipe SIGEP</td><td>− 75 M (25 agents)</td><td>− 105 M (35 agents)</td><td>− 150 M (50 agents)</td></tr>
+  <tr><td><b>Solde du dispositif</b></td><td><b>− 95 M (amorçage)</b></td><td><b>− 77,5 M</b></td><td><b>≈ 0 (équilibre atteint)</b></td></tr>
+  <tr><td><b>Journées de détention évitées</b> (8 mois × placements)</td><td>~180 000 j</td><td>~540 000 j</td><td>~1 080 000 j</td></tr>
+  <tr><td><b>Économie brute détention</b> <span class="hyp">(hyp. 1 500 F/j)</span></td><td><b>+ 270 M</b></td><td><b>+ 810 M</b></td><td><b>+ 1,62 Md</b></td></tr>
+  <tr><td style="background:#ecfdf5"><b>Gain net global pour l'État</b></td><td style="background:#ecfdf5"><b>+ 175 M</b></td><td style="background:#ecfdf5"><b>+ 732 M</b></td><td style="background:#ecfdf5"><b>+ 1,6 Md F CFA</b></td></tr>
+</table>
+<div class="box"><b>Lecture :</b> même en étant volontairement prudents (40 % de porteurs pris en charge gratuitement, salaires confortables pour fidéliser l'équipe), le dispositif est <b>bénéficiaire pour l'État dès la première année</b> grâce aux détentions évitées, et <b>l'exploitation elle-même s'équilibre en année 3</b> : à partir de là, les agents du SIGEP ne pèsent plus sur le budget de l'État — ce sont les contributions des porteurs qui les rémunèrent, et chaque bracelet réutilisé accroît l'excédent.</div>
+
+<h3>10.5 Recettes complémentaires possibles</h3>
+<ul>
+  <li><b>Port volontaire</b> : personnes en sursis, en liberté provisoire ou en procédure qui demandent le bracelet pour attester leur bonne conduite et prévenir la récidive — contribution pleine.</li>
+  <li><b>Caution technologique</b> : le bracelet comme condition de mise en liberté provisoire, à la charge du demandeur.</li>
+  <li><b>Frais de dégradation</b> : bracelet endommagé volontairement = remboursement au tarif de remplacement, adossé au dossier.</li>
+  <li>À terme, <b>prestation sous-régionale</b> : mise à disposition de la plateforme (hébergée au Burkina) à des juridictions voisines.</li>
+</ul>
+
+<!-- ═══════════════ 11. FEUILLE DE ROUTE ═══════════════ -->
+<div class="section"></div>
+<h2>11. Feuille de route de déploiement</h2>
+<table>
+  <tr><th>Phase</th><th>Contenu</th><th>Durée indicative</th></tr>
+  <tr><td><b>0 — Cadre</b></td><td>Adoption du texte réglementaire (décret/arrêté d'application) ; convention avec un agrégateur SMS national ; arrêté de tarification et barème d'équité.</td><td>1 à 2 mois</td></tr>
+  <tr><td><b>1 — Pilote</b></td><td>2 juridictions pilotes (ex. Ouagadougou, Bobo-Dioulasso) ; 500 bracelets ; formation des juges, greffes, gardes et agents (le manuel complet et les guides par rôle existent déjà) ; cellule SIGEP de garde.</td><td>6 mois</td></tr>
+  <tr><td><b>2 — Évaluation</b></td><td>Rapport d'évaluation au Gouvernement : conformité, incidents, coûts réels constatés, ajustement du barème.</td><td>1 mois</td></tr>
+  <tr><td><b>3 — Extension</b></td><td>Généralisation progressive aux TGI ; montée du parc à 1 500 puis 3 000 bracelets ; rapatriement de l'hébergement sur infrastructure nationale.</td><td>Années 2–3</td></tr>
+</table>
+<div class="box-gold box"><b>Atout décisif :</b> il ne s'agit pas de financer une étude ni un développement — <b>la plateforme est construite, testée et démontrable aujourd'hui</b>, en français, adaptée aux juridictions et aux arrondissements du Burkina Faso, avec ses manuels de formation. La décision politique peut être suivie d'effets en quelques semaines.</div>
+
+<!-- ═══════════════ 12. CONCLUSION ═══════════════ -->
+<h2>12. Conclusion et engagement</h2>
+<p>Le Système Horon offre au Burkina Faso l'occasion de conjuguer ce que l'on oppose d'ordinaire : <b>la fermeté</b> (une surveillance continue, des preuves inaltérables, une escalade qui ne laisse rien passer) et <b>l'humanité</b> (des familles préservées, des emplois maintenus, une réinsertion réelle) ; <b>la rigueur budgétaire</b> (un dispositif qui s'autofinance et fait économiser des centaines de millions de journées de détention) et <b>l'innovation souveraine</b> (une solution conçue par des compétences nationales, dont les données resteront sur le sol burkinabè).</p>
+<p>« Horon » signifie <b>l'homme libre</b>. Ce projet propose précisément cela : que la dette envers la société se paie debout, au travail, en famille — sous l'œil vigilant et impartial de la Justice.</p>
+<p>Nous nous tenons à la disposition du Gouvernement pour une <b>démonstration en conditions réelles</b>, sur simple convocation.</p>
+
+<div class="sig">
+  <div><div class="line">Le Porteur du projet SIGEP<br>Système Horon</div></div>
+  <div><div class="line">Pour le Ministère de la Justice<br>et des Droits Humains</div></div>
+</div>
+
+<p style="margin-top:34px; font-size:9pt; color:#64748b; border-top:1px solid #e2e8f0; padding-top:8px;">
+* Les montants marqués comme hypothèses de travail (coût journalier de détention, taux de contributeurs, effectifs) sont des ordres de grandeur volontairement prudents, destinés à illustrer la mécanique économique ; ils seront consolidés avec les services du Ministère lors de la phase 0. Les prix du bracelet (175 000 F CFA) et de la contribution de référence (200 000 F CFA) sont les paramètres proposés par le projet.
+</p>
+
+</body>
+</html>
