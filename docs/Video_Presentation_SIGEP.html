@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>SIGEP · Système Horon — Présentation vidéo</title>
+<style>
+  :root { --g:#009e49; --r:#ef2b2d; --y:#eab308; --dark:#04120c; --em:#10b981; }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  html,body { height:100%; background:var(--dark); color:#e7f6ee; font-family:"Segoe UI",Arial,sans-serif; overflow:hidden; }
+  #stage { position:fixed; inset:0; }
+  .scene { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center;
+           padding:5vh 6vw calc(9vh + 60px); text-align:center; opacity:0; pointer-events:none;
+           transition:opacity 1.1s ease; }
+  .scene.on { opacity:1; pointer-events:auto; }
+  .scene.on .a1 { animation:up .9s .15s both; } .scene.on .a2 { animation:up .9s .5s both; }
+  .scene.on .a3 { animation:up .9s .9s both; } .scene.on .a4 { animation:up .9s 1.3s both; }
+  .scene.on .a5 { animation:up .9s 1.7s both; } .scene.on .a6 { animation:up .9s 2.1s both; }
+  @keyframes up { from { opacity:0; transform:translateY(26px);} to { opacity:1; transform:none;} }
+  h1 { font-size:clamp(26px,5.2vw,58px); line-height:1.15; }
+  h2 { font-size:clamp(20px,3.6vw,40px); color:#a7f3d0; margin-bottom:2.5vh; }
+  p.big { font-size:clamp(14px,2vw,22px); color:#c9e9d8; max-width:900px; line-height:1.55; }
+  .flag { display:flex; width:min(240px,40vw); height:12px; border-radius:6px; overflow:hidden; margin:2.5vh auto; }
+  .flag div { flex:1; } .flag .fr { background:var(--r);} .flag .fg { background:var(--g);}
+  .star { color:var(--y); font-size:clamp(22px,3vw,34px); margin-top:-6px; }
+  .kicker { letter-spacing:4px; font-size:clamp(10px,1.3vw,14px); color:#7dd3ae; text-transform:uppercase; }
+  .cards { display:flex; gap:2vw; margin-top:3.5vh; flex-wrap:wrap; justify-content:center; }
+  .card { background:rgba(16,185,129,.08); border:1px solid rgba(16,185,129,.35); border-radius:16px;
+          padding:2.2vh 2vw; min-width:150px; max-width:230px; }
+  .card .n { font-size:clamp(22px,3.4vw,40px); font-weight:800; color:#34d399; }
+  .card .t { font-size:clamp(11px,1.3vw,14px); color:#bfe8d3; margin-top:.6vh; line-height:1.35; }
+  .card.red { background:rgba(239,43,45,.09); border-color:rgba(239,43,45,.4);} .card.red .n { color:#f87171; }
+  .card.gold { background:rgba(234,179,8,.09); border-color:rgba(234,179,8,.4);} .card.gold .n { color:#facc15; }
+  .shot { width:min(920px,88vw); border-radius:14px; border:1px solid rgba(16,185,129,.35);
+          box-shadow:0 24px 80px rgba(0,0,0,.55); overflow:hidden; background:#0a1f16; }
+  .shot img { display:block; width:100%; }
+  .browser { background:#0f291d; }
+  .browser .bar { display:flex; align-items:center; gap:8px; padding:9px 14px; background:#0a1f16; border-bottom:1px solid rgba(255,255,255,.06); }
+  .browser .bar i { width:11px; height:11px; border-radius:50%; display:inline-block; }
+  .browser .bar .u { flex:1; background:#132e21; border-radius:8px; font-size:11px; color:#7dd3ae; padding:4px 12px; text-align:left; }
+  .steps { display:flex; gap:1.6vw; margin-top:3.5vh; flex-wrap:wrap; justify-content:center; }
+  .stp { background:rgba(255,255,255,.05); border:1px solid rgba(16,185,129,.35); border-radius:16px; padding:2vh 1.6vw; width:min(200px,42vw); }
+  .stp .b { width:38px; height:38px; border-radius:50%; background:var(--em); color:#04120c; font-weight:800; font-size:18px;
+            display:flex; align-items:center; justify-content:center; margin:0 auto 1.2vh; }
+  .stp h3 { font-size:clamp(13px,1.5vw,17px); color:#d1fae5; margin-bottom:.6vh; }
+  .stp p { font-size:clamp(11px,1.2vw,13px); color:#9fd8bd; line-height:1.4; }
+  .stp.red { border-color:rgba(239,43,45,.5);} .stp.red .b { background:#ef2b2d; color:#fff; }
+  table.eco { border-collapse:collapse; margin-top:2.5vh; font-size:clamp(10px,1.4vw,15px); }
+  table.eco th, table.eco td { border:1px solid rgba(167,243,208,.3); padding:.9vh 1.4vw; }
+  table.eco th { background:rgba(16,185,129,.15); color:#a7f3d0; }
+  table.eco td { color:#d9f2e5; }
+  table.eco .win { color:#34d399; font-weight:800; }
+  /* ── UI mockup bits ── */
+  .mock { text-align:left; font-size:12px; }
+  .mrow { display:flex; gap:10px; padding:10px 14px; align-items:center; border-bottom:1px solid rgba(255,255,255,.05); }
+  .dotpulse { width:10px; height:10px; border-radius:50%; background:#ef4444; animation:pl 1.1s infinite; }
+  @keyframes pl { 0%,100%{box-shadow:0 0 0 0 rgba(239,68,68,.7)} 55%{box-shadow:0 0 0 9px rgba(239,68,68,0)} }
+  .chip { border-radius:9px; padding:2px 9px; font-size:10px; font-weight:700; }
+  .kpirow { display:flex; gap:8px; padding:12px; }
+  .kpi { flex:1; background:rgba(255,255,255,.05); border:1px solid rgba(16,185,129,.25); border-radius:10px; padding:8px; text-align:center; }
+  .kpi .v { font-size:19px; font-weight:800; color:#34d399; } .kpi .l { font-size:9px; color:#9fd8bd; }
+  .kpi.red .v { color:#f87171; }
+  /* map mock */
+  .mapmock { position:relative; height:min(46vh,420px); background:
+      radial-gradient(circle at 30% 40%, rgba(16,185,129,.14), transparent 45%),
+      radial-gradient(circle at 75% 60%, rgba(59,130,246,.1), transparent 40%),
+      repeating-linear-gradient(0deg, rgba(255,255,255,.035) 0 1px, transparent 1px 46px),
+      repeating-linear-gradient(90deg, rgba(255,255,255,.035) 0 1px, transparent 1px 46px),
+      #0b2418; }
+  .zone { position:absolute; border:2.5px solid rgba(16,185,129,.8); border-radius:50%; background:rgba(16,185,129,.12); }
+  .zone.bad { border-color:rgba(239,68,68,.9); background:rgba(239,68,68,.1); border-style:dashed; animation:zp 1.4s infinite; }
+  @keyframes zp { 0%,100%{border-color:rgba(239,68,68,.95)} 50%{border-color:rgba(239,68,68,.25)} }
+  .trk { position:absolute; width:16px; height:16px; border-radius:50%; background:#34d399; border:3px solid #fff; box-shadow:0 3px 10px rgba(0,0,0,.6); }
+  .trk.move { animation:walk 9s ease-in-out infinite; }
+  @keyframes walk { 0%{left:24%; top:44%; background:#34d399;} 42%{left:44%; top:38%; background:#34d399;}
+                    58%{left:60%; top:46%; background:#ef4444;} 78%{left:71%; top:57%; background:#ef4444;} 100%{left:24%; top:44%; background:#34d399;} }
+  .trail { position:absolute; width:7px; height:7px; border-radius:50%; background:rgba(52,211,153,.4); }
+  .alertpop { position:absolute; right:3%; top:6%; background:#7f1d1d; border:1px solid #ef4444; color:#fecaca;
+              border-radius:12px; padding:9px 14px; font-size:11px; font-weight:700; opacity:0; animation:ap 9s infinite; }
+  @keyframes ap { 0%,45%{opacity:0; transform:translateY(-8px);} 55%,88%{opacity:1; transform:none;} 96%,100%{opacity:0;} }
+  .phone { width:min(270px,62vw); border-radius:30px; border:3px solid rgba(167,243,208,.4); background:#0a1f16; padding:12px 10px; box-shadow:0 24px 70px rgba(0,0,0,.6); }
+  .phone .notch { width:90px; height:9px; border-radius:6px; background:rgba(255,255,255,.14); margin:0 auto 10px; }
+  .ticker { position:absolute; left:0; right:0; top:0; background:#450a0a; color:#fecaca; font-size:11px; font-weight:700; padding:6px 0; overflow:hidden; white-space:nowrap; }
+  .ticker span { display:inline-block; animation:tick 14s linear infinite; }
+  @keyframes tick { from{transform:translateX(100%);} to{transform:translateX(-100%);} }
+  /* cycle éco */
+  .cycle { position:relative; width:min(620px,90vw); height:min(300px,40vh); margin-top:2vh; }
+  .cnode { position:absolute; width:150px; padding:10px 8px; border-radius:14px; font-size:11px; text-align:center; border:2px solid; background:rgba(0,0,0,.35); }
+  .coin { position:absolute; font-size:22px; animation:coin 6s linear infinite; }
+  @keyframes coin { 0%{offset-distance:0%; opacity:0;} 8%{opacity:1;} 92%{opacity:1;} 100%{offset-distance:100%; opacity:0;} }
+  /* bars */
+  .bars { display:flex; gap:4vw; align-items:flex-end; height:min(30vh,240px); margin-top:3vh; }
+  .bgroup { display:flex; flex-direction:column; align-items:center; gap:8px; }
+  .bar { width:min(64px,12vw); border-radius:8px 8px 0 0; background:linear-gradient(180deg,#34d399,#065f46); transform-origin:bottom; animation:grow 1.4s ease both; }
+  .scene.on .bar { animation-play-state:running; }
+  @keyframes grow { from{transform:scaleY(0);} to{transform:scaleY(1);} }
+  .bgroup .lab { font-size:12px; color:#a7f3d0; } .bgroup .val { font-size:14px; font-weight:800; color:#34d399; }
+  /* ── HUD ── */
+  #hud { position:fixed; left:0; right:0; bottom:0; padding:10px 14px calc(10px + env(safe-area-inset-bottom));
+         display:flex; align-items:center; gap:10px; background:linear-gradient(0deg, rgba(4,18,12,.95), rgba(4,18,12,.6) 70%, transparent); z-index:50; }
+  #hud button { background:rgba(16,185,129,.15); color:#a7f3d0; border:1px solid rgba(16,185,129,.5); border-radius:10px;
+                padding:9px 13px; font-size:14px; cursor:pointer; }
+  #hud button:active { transform:scale(.96); }
+  #bar { flex:1; height:6px; background:rgba(255,255,255,.12); border-radius:3px; overflow:hidden; }
+  #fill { height:100%; width:0%; background:linear-gradient(90deg,var(--r),var(--y),var(--g)); transition:width .3s linear; }
+  #scount { font-size:11px; color:#7dd3ae; min-width:52px; text-align:right; }
+  #start { position:fixed; inset:0; z-index:100; background:rgba(4,18,12,.96); display:flex; flex-direction:column;
+           align-items:center; justify-content:center; gap:3vh; text-align:center; padding:6vw; }
+  #start button { background:var(--em); color:#04120c; border:0; border-radius:16px; padding:16px 34px; font-size:18px; font-weight:800; cursor:pointer; box-shadow:0 12px 40px rgba(16,185,129,.35); }
+  #start .hint { font-size:12px; color:#7dd3ae; max-width:560px; line-height:1.6; }
+  .subtitle { position:fixed; left:50%; transform:translateX(-50%); bottom:calc(64px + env(safe-area-inset-bottom));
+              max-width:min(860px,92vw); background:rgba(0,0,0,.55); border-radius:12px; padding:8px 16px;
+              font-size:clamp(12px,1.6vw,17px); color:#f0fdf4; z-index:40; line-height:1.45; }
+</style>
+</head>
+<body>
+
+<div id="start">
+  <div class="kicker">Burkina Faso · Ministère de la Justice et des Droits Humains</div>
+  <h1>SIGEP · Système Horon<br><span style="color:#34d399">Présentation vidéo officielle</span></h1>
+  <div class="flag"><div class="fr"></div><div class="fg"></div></div>
+  <button onclick="startShow()">▶ Lancer la présentation (≈ 5 min)</button>
+  <div class="hint">
+    Voix off française automatique · sous-titres intégrés · fonctionne sur ordinateur et téléphone.<br>
+    Commandes : ⏯ pause · ◀ ▶ scènes · 🔊 couper la voix. Plein écran conseillé (F11).<br>
+    Pour obtenir un fichier vidéo MP4 : lancez, puis enregistrez l'écran (Windows : Win+Alt+R ; iPhone/Android : enregistreur d'écran intégré).
+  </div>
+</div>
+
+<div id="stage"></div>
+
+<div class="subtitle" id="sub" style="display:none"></div>
+
+<div id="hud" style="display:none">
+  <button onclick="prev()">◀</button>
+  <button id="pp" onclick="toggle()">⏸</button>
+  <button onclick="next()">▶</button>
+  <button id="mute" onclick="toggleVoice()">🔊</button>
+  <div id="bar"><div id="fill"></div></div>
+  <span id="scount"></span>
+  <button onclick="restart()">↺</button>
+</div>
+
+<script>
+// ─────────────────────────────────────────────────────────────────────────────
+// SCÈNES — chaque scène : html, durée (ms), narration (voix off + sous-titre).
+// Les scènes "capture" tentent de charger une vraie capture d'écran déposée
+// dans le même dossier (voir noms de fichiers) ; sinon, maquette animée.
+// ─────────────────────────────────────────────────────────────────────────────
+function shot(file, mockHtml, url){
+  return `<div class="shot browser a2">
+    <div class="bar"><i style="background:#ef4444"></i><i style="background:#eab308"></i><i style="background:#22c55e"></i>
+      <span class="u">🔒 ${url}</span></div>
+    <img src="${file}" alt="" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+    <div style="display:none">${mockHtml}</div>
+  </div>`;
+}
+
+const SCENES = [
+// 0 — Ouverture solennelle
+{ d:14000, n:"Excellence Monsieur le Président du Faso, Mesdames et Messieurs les Ministres. Voici SIGEP, le Système Horon : la surveillance électronique au service de la justice burkinabè. Une solution conçue par des compétences nationales, déjà construite, et opérationnelle.",
+ h:`<div class="kicker a1">Burkina Faso — La Patrie ou la Mort, nous Vaincrons</div>
+    <h1 class="a2">SIGEP · Système <span style="color:#34d399">Horon</span></h1>
+    <div class="flag a3"><div class="fr"></div><div class="fg"></div></div>
+    <div class="star a3">★</div>
+    <p class="big a4">La surveillance électronique au service de la Justice burkinabè</p>
+    <p class="big a5" style="font-size:clamp(12px,1.5vw,17px);color:#7dd3ae">À l'attention de Son Excellence le Président du Faso, le Capitaine Ibrahim Traoré,<br>et des membres du Gouvernement</p>` },
+
+// 1 — Le problème
+{ d:16000, n:"Le constat est connu : nos maisons d'arrêt sont surpeuplées. Chaque détenu coûte chaque jour à l'État. Une grande partie des personnes incarcérées attendent leur jugement ou purgent de courtes peines pour des faits sans violence. Pour elles, la prison brise l'emploi, la famille, et fabrique la récidive.",
+ h:`<h2 class="a1">Le problème</h2>
+    <div class="cards">
+      <div class="card red a2"><div class="n">Surpeuplées</div><div class="t">des prisons au-delà de leur capacité, des conditions indignes</div></div>
+      <div class="card red a3"><div class="n">Coûteuse</div><div class="t">nourrir, garder, soigner : chaque journée de détention pèse sur le contribuable</div></div>
+      <div class="card red a4"><div class="n">Évitable</div><div class="t">détentions provisoires et courtes peines : la prison n'est pas toujours la bonne réponse</div></div>
+      <div class="card red a5"><div class="n">Récidive</div><div class="t">emploi perdu, famille brisée : la prison prépare souvent la rechute</div></div>
+    </div>` },
+
+// 2 — La solution en 4 étapes
+{ d:18000, n:"La solution tient en quatre étapes. Un : le juge décide des règles, zones autorisées, couvre-feu, interdictions. Deux : un bracelet inviolable est posé à la cheville. Trois : SIGEP veille vingt-quatre heures sur vingt-quatre, la position est vérifiée chaque minute. Quatre : au moindre écart, l'alerte est immédiate et tout est enregistré.",
+ h:`<h2 class="a1">La solution : le bracelet électronique</h2>
+    <div class="steps">
+      <div class="stp a2"><div class="b">1</div><h3>Le juge décide</h3><p>zones, horaires, interdictions, durée de la mesure</p></div>
+      <div class="stp a3"><div class="b">2</div><h3>Le bracelet est posé</h3><p>à la cheville — inviolable, étanche, rechargeable à domicile</p></div>
+      <div class="stp a4"><div class="b">3</div><h3>SIGEP veille 24 h/24</h3><p>position chaque minute + balise domicile pour le couvre-feu</p></div>
+      <div class="stp red a5"><div class="b">4</div><h3>Écart = alerte</h3><p>sirène, SMS, intervention — chaque incident laisse une trace</p></div>
+    </div>` },
+
+// 3 — Site public
+{ d:15000, n:"Le dispositif a deux visages. D'abord, un site public d'information : tout citoyen, toute famille, tout avocat peut comprendre ce qu'est le bracelet, qui peut en bénéficier, et comment s'adresser à la justice. Aucune donnée personnelle n'y figure jamais. C'est l'outil de l'acceptation sociale et de la transparence.",
+ h:`<h2 class="a1">1ᵉʳ visage — Le site public d'information</h2>
+    ${shot('capture-site-public.png', `
+      <div class="mock">
+        <div style="padding:26px 30px; background:linear-gradient(120deg,#064e3b,#0a3d2a)">
+          <div style="font-size:22px;font-weight:800;color:#fff">Système Horon</div>
+          <div style="color:#a7f3d0;font-size:13px;margin-top:4px">La justice autrement : comprendre la surveillance électronique</div>
+          <div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap">
+            <span class="chip" style="background:#10b981;color:#04120c">Qu'est-ce que le bracelet ?</span>
+            <span class="chip" style="background:rgba(255,255,255,.14);color:#d1fae5">Qui peut en bénéficier</span>
+            <span class="chip" style="background:rgba(255,255,255,.14);color:#d1fae5">Questions fréquentes</span>
+            <span class="chip" style="background:rgba(255,255,255,.14);color:#d1fae5">Cadre légal</span>
+            <span class="chip" style="background:rgba(255,255,255,.14);color:#d1fae5">Contact</span>
+          </div>
+        </div>
+        <div style="padding:18px 30px;color:#9fd8bd;font-size:12px;line-height:1.7">
+          ✔ Pédagogie en langage simple, accessible depuis tout téléphone<br>
+          ✔ Rassure les familles : travailler, vivre chez soi, purger debout<br>
+          ✔ Zéro donnée nominative — jamais
+        </div>
+      </div>`, 'systeme-horon.gov.bf — accès libre, sans compte')}
+    <p class="big a3" style="margin-top:2vh;font-size:clamp(12px,1.5vw,16px)">💡 Déposez vos vraies captures (<code style="color:#7dd3ae">capture-site-public.png</code>…) à côté de ce fichier : elles remplacent automatiquement les maquettes.</p>` },
+
+// 4 — Plateforme : vue d'ensemble
+{ d:16000, n:"Second visage : la plateforme institutionnelle sécurisée, réservée au personnel habilité. Dès l'ouverture, chaque responsable voit l'essentiel : dossiers actifs, alertes en cours, bracelets en ligne, obligations du jour, manquements récents. Et une pastille d'état qui reflète la santé réelle du système, en permanence.",
+ h:`<h2 class="a1">2ᵈ visage — La plateforme SIGEP : vue d'ensemble</h2>
+    ${shot('capture-vue-ensemble.png', `
+      <div class="mock">
+        <div class="mrow" style="background:rgba(16,185,129,.08)"><b style="color:#d1fae5">Vue d'ensemble</b>
+          <span style="display:flex;align-items:center;gap:6px;font-size:10px;color:#34d399"><span class="dotpulse" style="background:#34d399"></span>Système actif</span></div>
+        <div class="kpirow">
+          <div class="kpi"><div class="v">128</div><div class="l">Dossiers actifs</div></div>
+          <div class="kpi red"><div class="v">3</div><div class="l">Alertes actives</div></div>
+          <div class="kpi"><div class="v">121</div><div class="l">Bracelets en ligne</div></div>
+          <div class="kpi red"><div class="v">2</div><div class="l">En violation</div></div>
+        </div>
+        <div class="mrow"><span class="chip" style="background:#fee2e2;color:#b91c1c">✗ Manquée</span><span style="color:#d9f2e5">Audition mensuelle — TGI · dossier OUAG-2026-0041</span><span style="margin-left:auto;color:#60a5fa;font-size:10px">Dossier →</span></div>
+        <div class="mrow"><span class="chip" style="background:#fef3c7;color:#92400e">J-3</span><span style="color:#d9f2e5">Mesure OUAG-2025-0187 arrive à échéance</span><span style="margin-left:auto;color:#60a5fa;font-size:10px">Ouvrir →</span></div>
+        <div class="mrow"><span class="dotpulse"></span><span style="color:#fca5a5;font-weight:700">Sortie de zone — OUAG-2026-0103</span><span class="chip" style="background:#7f1d1d;color:#fecaca">1 escaladée</span></div>
+      </div>`, 'sigep.gov.bf/dashboard — accès habilité, double authentification')}` },
+
+// 5 — Carte de surveillance (animée)
+{ d:20000, n:"Voici la carte de surveillance en temps réel. Chaque point est un bracelet : il se déplace à l'écran comme la personne se déplace dans la ville. Les zones autorisées sont en vert, les zones interdites en rouge. Regardez : le porteur sort de sa zone… le point devient rouge, la zone clignote, et l'alerte se déclenche instantanément sur tous les postes. Quand il revient, tout se normalise — mais l'incident, lui, reste enregistré à jamais.",
+ h:`<h2 class="a1">La carte de surveillance — en direct</h2>
+    <div class="shot a2"><div class="mapmock">
+      <div class="ticker"><span>⚠ SORTIE DE ZONE — OUAG-2026-0103 · il y a 12 s &nbsp;&nbsp;·&nbsp;&nbsp; ⚠ COUVRE-FEU — OUAG-2025-0187 · il y a 4 min &nbsp;&nbsp;·&nbsp;&nbsp; SIGEP CENTRE OPÉRATIONNEL — TEMPS RÉEL ACTIF</span></div>
+      <div class="zone" style="left:14%; top:26%; width:34%; height:52%"></div>
+      <div class="zone bad" style="left:66%; top:18%; width:22%; height:34%"></div>
+      <div class="trail" style="left:27%; top:47%"></div><div class="trail" style="left:32%; top:44%"></div>
+      <div class="trail" style="left:38%; top:41%"></div><div class="trail" style="left:44%; top:40%"></div>
+      <div class="trk move"></div>
+      <div class="alertpop">🚨 GEOFENCE_EXIT — OUAG-2026-0103<br><span style="font-weight:400">Sortie de toutes les zones autorisées</span></div>
+      <div style="position:absolute;left:16%;top:30%;font-size:10px;color:#6ee7b7">ZONE AUTORISÉE — Bogodogo</div>
+      <div style="position:absolute;left:67%;top:54%;font-size:10px;color:#fca5a5">ZONE INTERDITE — domicile victime</div>
+    </div></div>` },
+
+// 6 — Anti-négligence : escalade
+{ d:17000, n:"Une alerte ne peut jamais être oubliée. Si personne ne la prend en charge dans le délai fixé, le système envoie lui-même un SMS au juge du dossier. Deux heures plus tard, si rien n'est fait, la direction du SIGEP est prévenue. Et chaque clôture d'alerte est un acte humain, motivé, signé, tracé. C'est l'anti-négligence par construction.",
+ h:`<h2 class="a1">Aucune alerte ne dort — l'escalade automatique</h2>
+    <div class="steps">
+      <div class="stp a2"><div class="b" style="background:#34d399">0'</div><h3>Alerte émise</h3><p>sirène + notification sur tous les postes de garde, SMS selon préférences</p></div>
+      <div class="stp a3"><div class="b" style="background:#eab308">30'</div><h3>Pas d'acquittement ?</h3><p>SMS automatique au <b>juge du dossier</b></p></div>
+      <div class="stp red a4"><div class="b">2 h</div><h3>Toujours rien ?</h3><p>SMS à la <b>direction SIGEP</b> — niveau 2</p></div>
+      <div class="stp a5"><div class="b" style="background:#60a5fa">∞</div><h3>Clôture humaine</h3><p>toujours motivée et signée — jamais d'effacement automatique</p></div>
+    </div>` },
+
+// 7 — Salle de crise
+{ d:15000, n:"Pour les postes de commandement et les murs d'écran, le mode salle de crise : fond sombre, indicateurs géants, bandeau d'alertes défilant, et la caméra qui passe automatiquement d'un dossier en violation à l'autre, toutes les dix secondes. L'état du système entier se lit en un regard, de jour comme de nuit.",
+ h:`<h2 class="a1">Le centre opérationnel — mode salle de crise</h2>
+    ${shot('capture-salle-crise.png', `
+      <div class="mock" style="background:#050d09">
+        <div style="position:relative;height:26px"><div class="ticker"><span>⚠ SORTIE DE ZONE — OUAG-2026-0103 · ⚠ SABOTAGE — OUAG-2025-0034 · ⚠ COUVRE-FEU — OUAG-2025-0187 — ÉTAT D'ALERTE : 3 VIOLATIONS SIMULTANÉES</span></div></div>
+        <div class="kpirow">
+          <div class="kpi"><div class="v" style="font-size:26px">121</div><div class="l">EN LIGNE</div></div>
+          <div class="kpi red"><div class="v" style="font-size:26px">3</div><div class="l">VIOLATIONS</div></div>
+          <div class="kpi"><div class="v" style="font-size:26px">4</div><div class="l">BATTERIE</div></div>
+          <div class="kpi"><div class="v" style="font-size:26px;color:#facc15">7 min</div><div class="l">TPS RÉPONSE</div></div>
+          <div class="kpi"><div class="v" style="font-size:26px;color:#f87171">⌖</div><div class="l">CYCLE : OUAG-0103</div></div>
+        </div>
+        <div class="mrow"><span class="dotpulse"></span><span style="color:#fca5a5;font-weight:800">GEOFENCE_EXIT · OUAG-2026-0103</span><span class="chip" style="background:#7f1d1d;color:#fecaca">Escalade 12:34</span><span style="margin-left:auto;color:#93c5fd">⛨ K. Ouédraogo traite cette alerte</span></div>
+        <div class="mrow"><span style="width:10px;height:10px;border-radius:50%;background:#f97316"></span><span style="color:#fdba74;font-weight:700">TAMPER · OUAG-2025-0034</span><span class="chip" style="background:#450a0a;color:#fecaca">ESCALADE N2</span></div>
+      </div>`, 'sigep.gov.bf/dashboard/monitoring — flux temps réel < 3 secondes')}` },
+
+// 8 — Qui fait quoi
+{ d:20000, n:"Chaque institution a sa porte d'entrée, limitée à sa mission. Le juge décide et suit ses dossiers. L'administration pénitentiaire pose le bracelet, gère le magasin, récupère l'appareil en fin de mesure. Les forces de sécurité interviennent et effectuent les visites, avec preuve GPS à l'appui. L'équipe SIGEP exploite la technique, vingt-quatre heures sur vingt-quatre, sans jamais prendre une décision de justice. Et le Ministère pilote avec des statistiques rigoureusement anonymes.",
+ h:`<h2 class="a1">Qui fait quoi — la séparation des pouvoirs, appliquée</h2>
+    <div class="steps">
+      <div class="stp a2" style="border-color:#3b82f6"><div class="b" style="background:#3b82f6;color:#fff">⚖</div><h3>Juges</h3><p>décident : dossiers, périmètres, couvre-feux, révocations, absences justifiées</p></div>
+      <div class="stp a3" style="border-color:#f97316"><div class="b" style="background:#f97316;color:#fff">🔗</div><h3>Adm. pénitentiaire</h3><p>pose et retire le bracelet, gère le parc, restitue pour réutilisation</p></div>
+      <div class="stp a4"><div class="b">🛡</div><h3>Forces de sécurité</h3><p>carte temps réel, interventions, visites prouvées par GPS, pointage TIG</p></div>
+      <div class="stp red a5"><div class="b">⚙</div><h3>Équipe SIGEP</h3><p>exploitation 24 h/24, comptes, paramètres — exécute, ne décide jamais</p></div>
+      <div class="stp a6" style="border-color:#8b5cf6"><div class="b" style="background:#8b5cf6;color:#fff">📊</div><h3>Ministère</h3><p>statistiques anonymisées, rapports nationaux signés</p></div>
+    </div>` },
+
+// 9 — Terrain mobile
+{ d:16000, n:"Sur le terrain, l'agent travaille depuis son téléphone, même sans réseau. Ses missions, les alertes, l'agenda : tout est consultable hors ligne. Et quand il pointe une visite, le téléphone enregistre sa propre position GPS : la preuve, opposable en justice, que la visite a réellement eu lieu. Dès que le réseau revient, tout se synchronise automatiquement au dossier.",
+ h:`<h2 class="a1">Le mode terrain — dans la poche de l'agent</h2>
+    <div class="a2" style="display:flex;justify-content:center"><div class="phone"><div class="notch"></div>
+      <div class="mock" style="border-radius:16px;overflow:hidden;background:#0f291d">
+        <div class="mrow" style="background:rgba(16,185,129,.12)"><span style="color:#34d399">📶 Hors-ligne — données en cache</span><span style="margin-left:auto" class="chip" style="background:#92400e">3 en attente</span></div>
+        <div class="mrow"><span class="dotpulse" style="background:#34d399"></span><div><b style="color:#d1fae5">OUAG-2026-0103</b><br><span style="color:#9fd8bd;font-size:10px">D. Ouédraogo · Bogodogo</span></div><span style="margin-left:auto;color:#9fd8bd">🔋 76%</span></div>
+        <div style="display:flex;gap:8px;padding:10px 14px">
+          <span class="chip" style="background:#10b981;color:#04120c;flex:1;text-align:center;padding:8px">✓ Check-in visite</span>
+          <span class="chip" style="background:rgba(255,255,255,.1);color:#d1fae5;flex:1;text-align:center;padding:8px">🧭 Naviguer</span>
+        </div>
+        <div class="mrow" style="font-size:10px;color:#7dd3ae">✓ Check-in envoyé (position enregistrée)<br>Position agent : 12.2993, −1.4741 (±8 m)</div>
+        <div class="mrow"><span class="chip" style="background:#dbeafe;color:#1d4ed8">Audience</span><span style="color:#d9f2e5;font-size:11px">Demain 09:00 · TGI Ouagadougou</span></div>
+      </div>
+    </div></div>` },
+
+// 10 — Garanties
+{ d:17000, n:"Les garanties sont structurelles. Accès fermé et double authentification. Journal d'audit inviolable : chaque action, chaque connexion, chaque motif, gravé. Cloisonnement strict : chacun ne voit que ce que sa fonction exige. Protection active des victimes par zones interdites. Et la souveraineté : la plateforme est conçue pour être hébergée sur une infrastructure nationale — les données judiciaires du Faso restent au Faso.",
+ h:`<h2 class="a1">Les garanties</h2>
+    <div class="cards">
+      <div class="card a2"><div class="n">🔐</div><div class="t"><b>Accès fermé</b><br>comptes nominatifs, double authentification, sessions expirées, fins de mission automatiques</div></div>
+      <div class="card a3"><div class="n">📜</div><div class="t"><b>Audit inviolable</b><br>qui a fait quoi, quand, pourquoi — en lecture seule, pour toujours</div></div>
+      <div class="card a4"><div class="n">🧱</div><div class="t"><b>Cloisonnement</b><br>un juge = ses dossiers ; le Ministère = des chiffres anonymes</div></div>
+      <div class="card gold a5"><div class="n">🇧🇫</div><div class="t"><b>Souveraineté</b><br>hébergement national prévu — les données restent au Burkina</div></div>
+      <div class="card a6"><div class="n">🛡</div><div class="t"><b>Victimes protégées</b><br>l'alerte se déclenche à l'approche, pas après le drame</div></div>
+    </div>` },
+
+// 11 — Modèle économique : le cycle
+{ d:20000, n:"Venons-en à l'économie du projet. Un bracelet coûte cent soixante-quinze mille francs, une seule fois. Le porteur solvable verse une contribution de deux cent mille francs — le bracelet est donc amorti dès le premier placement. En fin de mesure, il est restitué, contrôlé, et reposé sur une autre personne : chaque réutilisation est un excédent. L'indigent, lui, est intégralement pris en charge par l'État — et l'État y gagne quand même, car le bracelet coûte plusieurs fois moins cher que la prison.",
+ h:`<h2 class="a1">Le modèle économique — le cycle vertueux du bracelet</h2>
+    <div class="steps">
+      <div class="stp red a2"><div class="b" style="font-size:12px">−175k</div><h3>Achat (une fois)</h3><p>le bracelet entre au parc national</p></div>
+      <div class="stp a3"><div class="b" style="font-size:12px">+200k</div><h3>Placement payant</h3><p>contribution du porteur <b>selon ses moyens</b> — amorti dès le 1ᵉʳ</p></div>
+      <div class="stp a4" style="border-color:#eab308"><div class="b" style="background:#eab308">↺</div><h3>Restitution</h3><p>fin de mesure : contrôle, remise en stock</p></div>
+      <div class="stp a5"><div class="b" style="font-size:12px">+200k</div><h3>Réutilisation</h3><p>chaque nouveau porteur = recette quasi nette</p></div>
+    </div>
+    <p class="big a6" style="margin-top:2.5vh;font-size:clamp(12px,1.6vw,17px)"><b style="color:#facc15">Ligne rouge d'équité :</b> la capacité de payer ne pèse <u>jamais</u> sur la décision du juge. L'indigent est pris en charge à 100 % par l'État. Pas de justice à deux vitesses.</p>` },
+
+// 12 — Projection 3 ans
+{ d:18000, n:"Projetons sur trois ans, avec des hypothèses volontairement prudentes. Dès la première année, les journées de détention évitées font gagner à l'État plus qu'il n'investit. En année trois, l'exploitation s'équilibre : les salaires des agents du SIGEP sont couverts par les contributions des porteurs. Le dispositif ne pèse plus sur le budget de l'État — il lui rapporte, année après année, plus d'un milliard et demi de francs de gain net.",
+ h:`<h2 class="a1">Projection sur 3 ans — gain net pour l'État</h2>
+    <div class="bars a2">
+      <div class="bgroup"><div class="val">+175 M</div><div class="bar" style="height:12%"></div><div class="lab">Année 1<br>(pilote 500 bracelets)</div></div>
+      <div class="bgroup"><div class="val">+732 M</div><div class="bar" style="height:47%; animation-delay:.4s"></div><div class="lab">Année 2<br>(1 500 bracelets)</div></div>
+      <div class="bgroup"><div class="val">+1,6 Md</div><div class="bar" style="height:100%; animation-delay:.8s"></div><div class="lab">Année 3<br>(3 000 bracelets)</div></div>
+    </div>
+    <p class="big a4" style="margin-top:2.5vh;font-size:clamp(11px,1.5vw,15px);color:#9fd8bd">Gain net = détentions évitées + contributions − investissement − salaires SIGEP.<br>Hypothèses prudentes affichées dans le dossier écrit (60 % de porteurs contributifs, coût de détention 1 500 F/jour — à consolider avec le Ministère).</p>
+    <p class="big a5" style="font-size:clamp(13px,1.8vw,19px)"><b style="color:#34d399">Année 3 : les agents du SIGEP ne coûtent plus rien à l'État.</b></p>` },
+
+// 13 — Feuille de route
+{ d:15000, n:"La feuille de route est courte, car l'essentiel est déjà fait : la plateforme existe, en français, adaptée à nos juridictions, avec ses manuels de formation. Phase zéro : le cadre réglementaire. Phase un : six mois de pilote sur deux juridictions avec cinq cents bracelets. Phase deux : évaluation remise au Gouvernement. Phase trois : généralisation et hébergement souverain. La décision politique peut être suivie d'effets en quelques semaines.",
+ h:`<h2 class="a1">Feuille de route</h2>
+    <div class="steps">
+      <div class="stp a2"><div class="b">0</div><h3>Cadre (1–2 mois)</h3><p>décret d'application, barème d'équité, passerelle SMS nationale</p></div>
+      <div class="stp a3"><div class="b">1</div><h3>Pilote (6 mois)</h3><p>Ouagadougou + Bobo-Dioulasso · 500 bracelets · formation (manuels prêts)</p></div>
+      <div class="stp a4"><div class="b">2</div><h3>Évaluation (1 mois)</h3><p>rapport au Gouvernement, ajustements</p></div>
+      <div class="stp a5"><div class="b">3</div><h3>Généralisation</h3><p>tous les TGI · 3 000 bracelets · hébergement national</p></div>
+    </div>
+    <p class="big a6" style="margin-top:3vh"><b style="color:#facc15">La plateforme est déjà construite, testée et démontrable aujourd'hui.</b></p>` },
+
+// 14 — Clôture
+{ d:16000, n:"Horon signifie : l'homme libre. Ce projet propose que la dette envers la société se paie debout — au travail, en famille — sous l'œil vigilant et impartial de la Justice. Excellence, Mesdames et Messieurs les Ministres : la technologie est prête, l'équipe est prête, le pays y gagne. Nous sommes à votre disposition pour une démonstration en conditions réelles, sur simple convocation. Vive le Faso.",
+ h:`<div class="kicker a1">SIGEP · Système Horon</div>
+    <h1 class="a2">« Horon » — <span style="color:#34d399">l'homme libre</span></h1>
+    <p class="big a3">Que la dette envers la société se paie <b>debout</b> :<br>au travail, en famille, sous l'œil vigilant et impartial de la Justice.</p>
+    <div class="flag a4"><div class="fr"></div><div class="fg"></div></div>
+    <div class="star a4">★</div>
+    <p class="big a5" style="color:#7dd3ae">Fermeté · Humanité · Souveraineté · Autofinancement</p>
+    <p class="big a6" style="font-size:clamp(12px,1.5vw,17px)">Démonstration en conditions réelles disponible sur simple convocation.<br><b>La Patrie ou la Mort, nous Vaincrons.</b></p>` },
+];
+
+// ─────────────────────────── MOTEUR ───────────────────────────
+const stage = document.getElementById('stage');
+SCENES.forEach((s,i)=>{ const d=document.createElement('div'); d.className='scene'; d.id='sc'+i; d.innerHTML=s.h; stage.appendChild(d); });
+
+let cur=-1, playing=false, timer=null, t0=0, remain=0, voiceOn=true;
+const synth = window.speechSynthesis;
+function speak(txt){
+  if(!voiceOn || !synth) return;
+  synth.cancel();
+  const u = new SpeechSynthesisUtterance(txt);
+  u.lang='fr-FR'; u.rate=.98; u.pitch=1;
+  const v = synth.getVoices().find(v=>v.lang && v.lang.startsWith('fr'));
+  if(v) u.voice=v;
+  synth.speak(u);
+}
+function show(i){
+  if(i<0) i=0; if(i>=SCENES.length){ pause(); return; }
+  document.querySelectorAll('.scene').forEach(s=>s.classList.remove('on'));
+  cur=i;
+  const sc=document.getElementById('sc'+i);
+  sc.classList.remove('on'); void sc.offsetWidth; sc.classList.add('on');
+  document.getElementById('scount').textContent=(i+1)+' / '+SCENES.length;
+  document.getElementById('sub').textContent=SCENES[i].n;
+  speak(SCENES[i].n);
+  remain=SCENES[i].d; t0=Date.now();
+  clearTimeout(timer);
+  if(playing) timer=setTimeout(()=>show(cur+1), remain);
+  tickBar();
+}
+let barTimer=null;
+function tickBar(){
+  clearInterval(barTimer);
+  barTimer=setInterval(()=>{
+    const done = SCENES.slice(0,cur).reduce((s,x)=>s+x.d,0) + (playing? Math.min(SCENES[cur].d, Date.now()-t0) : SCENES[cur].d-remain);
+    const total = SCENES.reduce((s,x)=>s+x.d,0);
+    document.getElementById('fill').style.width=(100*done/total)+'%';
+  },200);
+}
+function play(){ playing=true; document.getElementById('pp').textContent='⏸';
+  t0=Date.now(); clearTimeout(timer); timer=setTimeout(()=>show(cur+1), remain);
+  if(voiceOn && synth && synth.paused) synth.resume(); }
+function pause(){ playing=false; document.getElementById('pp').textContent='▶';
+  remain-=Date.now()-t0; if(remain<0) remain=0; clearTimeout(timer);
+  if(synth) synth.pause(); }
+function toggle(){ playing? pause():play(); }
+function next(){ playing=true; document.getElementById('pp').textContent='⏸'; show(cur+1); }
+function prev(){ playing=true; document.getElementById('pp').textContent='⏸'; show(Math.max(0,cur-1)); }
+function restart(){ playing=true; document.getElementById('pp').textContent='⏸'; show(0); }
+function toggleVoice(){ voiceOn=!voiceOn; document.getElementById('mute').textContent=voiceOn?'🔊':'🔇';
+  if(!voiceOn && synth) synth.cancel(); else if(voiceOn) speak(SCENES[cur].n); }
+function startShow(){
+  document.getElementById('start').style.display='none';
+  document.getElementById('hud').style.display='flex';
+  document.getElementById('sub').style.display='block';
+  if(synth) synth.getVoices(); // warm-up
+  playing=true; show(0);
+  if(document.documentElement.requestFullscreen) document.documentElement.requestFullscreen().catch(()=>{});
+}
+document.addEventListener('keydown',e=>{
+  if(document.getElementById('start').style.display!=='none') return;
+  if(e.key===' '){ e.preventDefault(); toggle(); }
+  if(e.key==='ArrowRight') next(); if(e.key==='ArrowLeft') prev();
+});
+</script>
+</body>
+</html>
