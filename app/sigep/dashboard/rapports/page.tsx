@@ -54,22 +54,31 @@ const COLOR = {
   purple:  { bg: 'bg-purple-50',  border: 'border-purple-100',  icon: 'bg-purple-100 text-purple-700',   btn: 'bg-purple-600 hover:bg-purple-500 text-white',   badge: 'bg-purple-50 text-purple-700 border-purple-100' },
 };
 
-const RECENT = [
-  { type: 'conformite-mensuelle', title: 'Conformité — Avril 2024',        date: '2024-05-01T09:12:00Z', size: '84 Ko' },
-  { type: 'alertes-periode',      title: 'Alertes — Mars 2024',            date: '2024-04-01T08:45:00Z', size: '52 Ko' },
-  { type: 'conformite-mensuelle', title: 'Conformité — Mars 2024',         date: '2024-04-01T08:30:00Z', size: '79 Ko' },
-  { type: 'dossier-individuel',   title: 'Dossier OUAG-2024-0041',         date: '2024-03-15T14:22:00Z', size: '41 Ko' },
-  { type: 'statistiques-nationales', title: 'Statistiques nationales T1 2024', date: '2024-04-05T10:00:00Z', size: '210 Ko' },
-];
+// Real export trail (report_exports) — the previous list here was hardcoded
+// fiction, indefensible on an institutional page.
+interface ExportRow { id: string; report_type: string; title: string; generated_by_name: string | null; generated_at: string }
+async function fetchRecentExports(): Promise<{ rows: ExportRow[]; total: number }> {
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) return { rows: [], total: 0 };
+  const { createAdminClient } = await import('@/lib/supabase/admin');
+  const sb = createAdminClient();
+  if (!sb) return { rows: [], total: 0 };
+  const [{ data }, { count }] = await Promise.all([
+    sb.from('report_exports').select('id, report_type, title, generated_by_name, generated_at')
+      .order('generated_at', { ascending: false }).limit(8),
+    sb.from('report_exports').select('id', { count: 'exact', head: true }),
+  ]);
+  return { rows: (data ?? []) as ExportRow[], total: count ?? 0 };
+}
 
 export default async function RapportsPage() {
   const session = await getSession();
   if (!session || !allow(session, canViewReports(session.role), 'reports')) redirect('/sigep/dashboard');
 
-  const [alerts, stats, cases] = await Promise.all([
+  const [alerts, stats, cases, exports] = await Promise.all([
     fetchAlerts(session.role),
     fetchOverviewStats(session.role),
     fetchCases(session.role, session.id).catch(() => []),
+    fetchRecentExports().catch(() => ({ rows: [], total: 0 })),
   ]);
 
   const openAlerts = alerts.filter((a) => !a.is_resolved).length;
@@ -100,7 +109,7 @@ export default async function RapportsPage() {
           { label: 'Dossiers actifs',    value: stats.active_cases,    color: 'text-emerald-600' },
           { label: 'Alertes en cours',   value: openAlerts,            color: 'text-red-600' },
           { label: 'Individus suivis',   value: stats.monitored_individuals, color: 'text-blue-600' },
-          { label: 'Rapports générés',   value: RECENT.length,         color: 'text-purple-600' },
+          { label: 'Rapports générés',   value: exports.total,         color: 'text-purple-600' },
         ].map((k) => (
           <div key={k.label} className="bg-white rounded-2xl border border-gray-100 p-4">
             <p className={`text-2xl font-bold ${k.color}`}>{k.value}</p>
@@ -158,31 +167,40 @@ export default async function RapportsPage() {
           <Clock className="w-4 h-4 text-gray-400" />
           <h3 className="font-semibold text-gray-700 text-sm">Exports récents</h3>
         </div>
-        <ul className="divide-y divide-gray-50">
-          {RECENT.map((r, i) => {
-            const type = REPORT_TYPES.find((t) => t.slug === r.type);
-            const Icon = type?.icon ?? BarChart2;
-            const c = COLOR[(type?.color ?? 'blue') as keyof typeof COLOR];
-            return (
-              <li key={i} className="px-5 py-3 flex items-center gap-3 hover:bg-gray-50/50 transition-colors">
-                <div className={`w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 ${c.icon}`}>
-                  <Icon className="w-3.5 h-3.5" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-gray-800 truncate">{r.title}</p>
-                  <p className="text-[10px] text-gray-400">{formatDate(r.date)} · {r.size}</p>
-                </div>
-                <Link
-                  href={`/sigep/dashboard/rapports/${r.type}`}
-                  className="flex-shrink-0 inline-flex items-center gap-1 text-xs text-blue-600 hover:underline"
-                >
-                  <Download className="w-3 h-3" />
-                  Voir
-                </Link>
-              </li>
-            );
-          })}
-        </ul>
+        {exports.rows.length === 0 ? (
+          <p className="text-sm text-gray-400 text-center py-8">
+            Aucun export enregistré pour l&apos;instant — chaque génération de rapport est tracée ici.
+          </p>
+        ) : (
+          <ul className="divide-y divide-gray-50">
+            {exports.rows.map((r) => {
+              const type = REPORT_TYPES.find((t) => t.slug === r.report_type);
+              const Icon = type?.icon ?? BarChart2;
+              const c = COLOR[(type?.color ?? 'blue') as keyof typeof COLOR];
+              return (
+                <li key={r.id} className="px-5 py-3 flex items-center gap-3 hover:bg-gray-50/50 transition-colors">
+                  <div className={`w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 ${c.icon}`}>
+                    <Icon className="w-3.5 h-3.5" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-gray-800 truncate">{r.title}</p>
+                    <p className="text-[10px] text-gray-400">
+                      {formatDate(r.generated_at)}
+                      {r.generated_by_name ? ` · par ${r.generated_by_name}` : ''}
+                    </p>
+                  </div>
+                  <Link
+                    href={`/sigep/dashboard/rapports/${r.report_type}`}
+                    className="flex-shrink-0 inline-flex items-center gap-1 text-xs text-blue-600 hover:underline"
+                  >
+                    <Download className="w-3 h-3" />
+                    Régénérer
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        )}
       </div>
     </div>
   );

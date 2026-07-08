@@ -5,12 +5,18 @@ import { getSession } from '@/lib/auth/session';
 import { canViewReports } from '@/lib/auth/permissions';
 import { fetchCases, fetchAlerts, fetchOverviewStats, fetchCaseStatusCounts, fetchAlertTypeCounts } from '@/lib/mock/helpers';
 import PrintButton from '@/components/rapports/PrintButton';
+import AutoPrint from '@/components/rapports/AutoPrint';
 
 const REPORT_TITLES: Record<string, string> = {
   'conformite-mensuelle':    'Rapport de conformité mensuel',
   'alertes-periode':         "Rapport d'alertes et violations",
   'dossier-individuel':      'Rapport de dossier individuel',
   'statistiques-nationales': 'Rapport statistique national',
+};
+
+const ROLE_LABELS: Record<string, string> = {
+  SUPER_ADMIN: 'Super Administrateur', ADMIN: 'Administrateur',
+  JUDGE: 'Juge', OPERATIONAL: 'Agent opérationnel', STRATEGIC: 'Direction stratégique',
 };
 
 const CASE_STATUS_LABELS: Record<string, string> = {
@@ -29,15 +35,36 @@ const ALERT_LABELS: Record<string, string> = {
 
 export default async function RapportViewPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ type: string }>;
+  searchParams: Promise<{ print?: string }>;
 }) {
   const { type } = await params;
+  const { print } = await searchParams;
   const session = await getSession();
   if (!session || !canViewReports(session.role)) redirect('/sigep/dashboard');
 
   const title = REPORT_TITLES[type];
   if (!title) notFound();
+
+  // Real export trail — one row per generation (who / what / when). Feeds the
+  // "Exports récents" list on the hub (previously a hardcoded fake table).
+  const generatedAt = new Date();
+  if (process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+    try {
+      const { createAdminClient } = await import('@/lib/supabase/admin');
+      const sb = createAdminClient();
+      if (sb) {
+        await sb.from('report_exports').insert({
+          report_type: type, title,
+          generated_by: session.id, generated_by_name: session.full_name,
+        });
+      }
+    } catch { /* best-effort — the report still renders */ }
+  }
+  // Unique legal reference: TYPE_YYYYMMDD-HHMMSS
+  const refCode = `${type.toUpperCase().replace(/-/g, '_')}_${generatedAt.toISOString().slice(0, 19).replace(/[-:]/g, '').replace('T', '-')}`;
 
   const isNational = type === 'statistiques-nationales';
   const isAlertsReport = type === 'alertes-periode';
@@ -103,7 +130,7 @@ export default async function RapportViewPage({
           </div>
           <div className="text-right">
             <p className="text-xs text-gray-400">Généré le {now}</p>
-            <p className="text-xs text-gray-400">Ref : {type.toUpperCase().replace(/-/g, '_')}_{year}</p>
+            <p className="text-xs text-gray-400 font-mono">Réf : {refCode}</p>
           </div>
         </div>
 
@@ -261,13 +288,30 @@ export default async function RapportViewPage({
           </>
         )}
 
+        {/* Signature block — legal traceability of the issuing officer */}
+        <div className="border-t border-gray-200 pt-6 mt-8 grid grid-cols-2 gap-8">
+          <div>
+            <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Établi par</p>
+            <p className="text-sm font-semibold text-gray-900">{session.full_name}</p>
+            <p className="text-xs text-gray-500">{ROLE_LABELS[session.role] ?? session.role}{session.badge_number ? ` · Badge ${session.badge_number}` : ''}</p>
+            <p className="text-xs text-gray-400 mt-1">
+              Le {generatedAt.toLocaleString('fr-FR', { timeZone: 'Africa/Ouagadougou', day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+            </p>
+          </div>
+          <div className="text-right">
+            <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Signature et cachet</p>
+            <div className="border border-dashed border-gray-300 rounded-lg h-20 mt-1" />
+          </div>
+        </div>
+
         {/* Footer */}
         <div className="border-t border-gray-200 pt-6 mt-8 flex items-center justify-between text-[10px] text-gray-400">
           <span>SIGEP — Système de Surveillance Électronique du Burkina Faso</span>
           <span>Document confidentiel — Usage officiel exclusivement</span>
-          <span>Page 1/1</span>
+          <span className="font-mono">{refCode}</span>
         </div>
       </div>
+      <AutoPrint enabled={print === '1'} />
     </div>
   );
 }
