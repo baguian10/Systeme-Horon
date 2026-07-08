@@ -665,6 +665,7 @@ export async function fetchAgenda(role: UserRole, userId: string): Promise<Agend
     obligation_type: o.obligation_type, title: o.title,
     scheduled_date: o.scheduled_date, start_time: o.start_time, end_time: o.end_time,
     location: o.location, is_confirmed: o.is_confirmed,
+    outcome: o.outcome ?? null, outcome_note: o.outcome_note ?? null,
   }));
 }
 

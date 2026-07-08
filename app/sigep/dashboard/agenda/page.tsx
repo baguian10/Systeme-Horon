@@ -24,6 +24,7 @@ export default async function AgendaPage() {
     <AgendaClient
       obligations={obligations}
       canManage={canManage}
+      canLogOutcome={session.role !== 'STRATEGIC'}
       cases={cases}
     />
   );

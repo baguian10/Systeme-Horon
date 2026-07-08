@@ -328,6 +328,8 @@ export interface MaintenanceTick {
   created_at: string;
 }
 
+export type ObligationOutcome = 'HONORED' | 'MISSED' | 'EXCUSED';
+
 export interface AgendaObligation {
   id: string;
   case_id: string;
@@ -340,6 +342,9 @@ export interface AgendaObligation {
   end_time: string | null;
   location: string | null;
   is_confirmed: boolean;
+  // Institutional outcome, recorded after the date (MISSED feeds revocation).
+  outcome?: ObligationOutcome | null;
+  outcome_note?: string | null;
 }
 
 export interface MessageThread {

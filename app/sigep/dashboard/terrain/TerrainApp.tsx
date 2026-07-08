@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import {
   Wifi, WifiOff, RefreshCw, Battery,
@@ -69,6 +69,14 @@ export default function TerrainApp({ initialData }: { initialData: InitialData }
   const [expandedCase, setExpanded] = useState<string | null>(null);
   const [noteText, setNoteText]     = useState<Record<string, string>>({});
   const [activeTab, setActiveTab]   = useState<'cases' | 'alerts' | 'agenda'>('cases');
+
+  // Auto-sync when connectivity returns: the queue must not wait for a click.
+  const queueRef = useRef<QueuedAction[]>([]);
+  useEffect(() => { queueRef.current = queue; }, [queue]);
+  useEffect(() => {
+    if (isOnline && queueRef.current.length > 0) void syncQueue();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOnline]);
 
   // Track online/offline
   useEffect(() => {
@@ -141,12 +149,28 @@ export default function TerrainApp({ initialData }: { initialData: InitialData }
   }
 
   function logCheckin(c: CasePayload) {
-    queueAction({
-      type: 'CHECK_IN', case_id: c.id, case_number: c.case_number,
-      payload: { location: c.individual_address, timestamp: new Date().toISOString() },
-    });
-    setSyncMsg(isOnline ? 'Check-in envoyé.' : 'Check-in mis en file — synchronisation à la reconnexion.');
-    setTimeout(() => setSyncMsg(''), 3000);
+    // Proof of presence: capture the AGENT's GPS position at check-in time.
+    // Without it a check-in only proves a button was pressed, not a visit.
+    const enqueue = (gps: string | null) => {
+      queueAction({
+        type: 'CHECK_IN', case_id: c.id, case_number: c.case_number,
+        payload: { location: c.individual_address, timestamp: new Date().toISOString(), ...(gps ? { gps } : {}) },
+      });
+      setSyncMsg(isOnline
+        ? (gps ? 'Check-in envoyé (position enregistrée).' : 'Check-in envoyé — position GPS indisponible.')
+        : 'Check-in mis en file — synchronisation à la reconnexion.');
+      setTimeout(() => setSyncMsg(''), 4000);
+    };
+    if (typeof navigator !== 'undefined' && navigator.geolocation) {
+      setSyncMsg('Acquisition de la position…');
+      navigator.geolocation.getCurrentPosition(
+        (pos) => enqueue(`${pos.coords.latitude.toFixed(6)}, ${pos.coords.longitude.toFixed(6)} (±${Math.round(pos.coords.accuracy)} m)`),
+        () => enqueue(null),
+        { enableHighAccuracy: true, timeout: 8000, maximumAge: 30_000 },
+      );
+    } else {
+      enqueue(null);
+    }
   }
 
   function logNote(c: CasePayload) {
@@ -194,6 +218,15 @@ export default function TerrainApp({ initialData }: { initialData: InitialData }
             >
               <RefreshCw className={`w-3.5 h-3.5 ${syncing ? 'animate-spin' : ''}`} />
               {syncing ? 'Sync…' : `Sync (${queue.length})`}
+            </button>
+          )}
+          {isOnline && queue.length === 0 && (
+            <button
+              onClick={() => window.location.reload()}
+              title="Recharger les données (missions, alertes, agenda)"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-emerald-300 text-emerald-700 text-xs font-semibold hover:bg-emerald-100 transition-colors"
+            >
+              <RefreshCw className="w-3.5 h-3.5" /> Actualiser
             </button>
           )}
         </div>

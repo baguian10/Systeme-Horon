@@ -11,8 +11,15 @@ import {
   confirmObligationAction,
   deleteObligationAction,
   createObligationAction,
+  setObligationOutcomeAction,
 } from '@/app/sigep/dashboard/agenda/actions';
-import type { AgendaObligation, ObligationType } from '@/lib/supabase/types';
+import type { AgendaObligation, ObligationType, ObligationOutcome } from '@/lib/supabase/types';
+
+const OUTCOME_META: Record<ObligationOutcome, { label: string; cls: string }> = {
+  HONORED: { label: '✓ Honorée',   cls: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
+  MISSED:  { label: '✗ Manquée',   cls: 'bg-red-50 text-red-700 border-red-200' },
+  EXCUSED: { label: '⚖ Justifiée', cls: 'bg-blue-50 text-blue-700 border-blue-200' },
+};
 import type { CaseSelectOption } from '@/lib/mock/helpers';
 
 const OBL_META: Record<ObligationType, { label: string; color: string; bg: string; border: string }> = {
@@ -39,6 +46,7 @@ function dateStr(d: Date): string {
 interface Props {
   obligations: AgendaObligation[];
   canManage: boolean;
+  canLogOutcome: boolean;
   cases: CaseSelectOption[];
 }
 
@@ -46,13 +54,15 @@ interface RowProps {
   ob: AgendaObligation;
   today: string;
   canManage: boolean;
+  canLogOutcome: boolean;
   pending: boolean;
   dimPast?: boolean;
   onConfirm: (id: string, current: boolean) => void;
   onDelete: (id: string) => void;
+  onOutcome: (id: string, outcome: ObligationOutcome) => void;
 }
 
-function ObligationRow({ ob, today, canManage, pending, dimPast = false, onConfirm, onDelete }: RowProps) {
+function ObligationRow({ ob, today, canManage, canLogOutcome, pending, dimPast = false, onConfirm, onDelete, onOutcome }: RowProps) {
   const meta    = OBL_META[ob.obligation_type];
   const obDate  = new Date(ob.scheduled_date + 'T00:00:00');
   const isToday = ob.scheduled_date === today;
@@ -78,12 +88,19 @@ function ObligationRow({ ob, today, canManage, pending, dimPast = false, onConfi
           >
             {ob.case_number}
           </Link>
-          {!ob.is_confirmed && (
+          {!ob.is_confirmed && !ob.outcome && (
             <span className="text-[10px] font-medium text-amber-600 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded-full">
               À confirmer
             </span>
           )}
-          {ob.is_confirmed && dimPast && (
+          {ob.outcome ? (
+            <span
+              title={ob.outcome_note ?? undefined}
+              className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full border ${OUTCOME_META[ob.outcome].cls}`}
+            >
+              {OUTCOME_META[ob.outcome].label}
+            </span>
+          ) : ob.is_confirmed && dimPast && (
             <span className="text-[10px] font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded-full">
               Confirmée
             </span>
@@ -105,6 +122,36 @@ function ObligationRow({ ob, today, canManage, pending, dimPast = false, onConfi
             </span>
           )}
         </div>
+        {/* Institutional outcome — recordable once the date has passed. */}
+        {canLogOutcome && !ob.outcome && ob.scheduled_date <= today && (
+          <div className="flex items-center gap-1.5 mt-2">
+            <span className="text-[10px] text-gray-400 mr-0.5">Résultat :</span>
+            <button
+              onClick={() => onOutcome(ob.id, 'HONORED')}
+              disabled={pending}
+              className="text-[10px] font-bold px-2 py-0.5 rounded-full border bg-white text-emerald-700 border-emerald-200 hover:bg-emerald-50 disabled:opacity-40"
+            >
+              ✓ Honorée
+            </button>
+            <button
+              onClick={() => onOutcome(ob.id, 'MISSED')}
+              disabled={pending}
+              className="text-[10px] font-bold px-2 py-0.5 rounded-full border bg-white text-red-700 border-red-200 hover:bg-red-50 disabled:opacity-40"
+            >
+              ✗ Manquée
+            </button>
+            {canManage && (
+              <button
+                onClick={() => onOutcome(ob.id, 'EXCUSED')}
+                disabled={pending}
+                title="Absence justifiée — décision judiciaire"
+                className="text-[10px] font-bold px-2 py-0.5 rounded-full border bg-white text-blue-700 border-blue-200 hover:bg-blue-50 disabled:opacity-40"
+              >
+                ⚖ Justifiée
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
       {canManage ? (
@@ -137,7 +184,7 @@ function ObligationRow({ ob, today, canManage, pending, dimPast = false, onConfi
   );
 }
 
-export default function AgendaClient({ obligations: initial, canManage, cases }: Props) {
+export default function AgendaClient({ obligations: initial, canManage, canLogOutcome, cases }: Props) {
   const router = useRouter();
   const [items,      setItems]      = useState<AgendaObligation[]>(initial);
   const [weekOffset, setWeekOffset] = useState(0);
@@ -200,6 +247,27 @@ export default function AgendaClient({ obligations: initial, canManage, cases }:
       const r = await deleteObligationAction(fd);
       if (r?.error) { alert(r.error); return; }
       setItems((prev) => prev.filter((a) => a.id !== id));
+    });
+  }
+
+  function handleOutcome(id: string, outcome: ObligationOutcome) {
+    let note: string | null = null;
+    if (outcome === 'MISSED') {
+      if (!confirm('Marquer cette obligation comme MANQUÉE ? Un constat sera inscrit au journal du dossier.')) return;
+      note = prompt('Précision (optionnel — motif constaté, circonstances) :') || null;
+    }
+    if (outcome === 'EXCUSED') {
+      note = prompt('Motif de la justification (décision judiciaire) :') || null;
+      if (note === null) return;
+    }
+    const fd = new FormData();
+    fd.set('id', id);
+    fd.set('outcome', outcome);
+    if (note) fd.set('note', note);
+    startTransition(async () => {
+      const r = await setObligationOutcomeAction(fd);
+      if (r?.error) { alert(r.error); return; }
+      setItems((prev) => prev.map((a) => a.id === id ? { ...a, outcome, outcome_note: note } : a));
     });
   }
 
@@ -415,9 +483,11 @@ export default function AgendaClient({ obligations: initial, canManage, cases }:
                   ob={ob}
                   today={today}
                   canManage={canManage}
+                  canLogOutcome={canLogOutcome}
                   pending={pending}
                   onConfirm={handleConfirm}
                   onDelete={handleDelete}
+                  onOutcome={handleOutcome}
                 />
               ))}
             </ul>
@@ -459,10 +529,12 @@ export default function AgendaClient({ obligations: initial, canManage, cases }:
                 ob={ob}
                 today={today}
                 canManage={canManage}
+                canLogOutcome={canLogOutcome}
                 pending={pending}
                 dimPast
                 onConfirm={handleConfirm}
                 onDelete={handleDelete}
+                onOutcome={handleOutcome}
               />
             ))}
           </ul>

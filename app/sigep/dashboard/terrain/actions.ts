@@ -11,7 +11,7 @@ export interface TerrainQueuedAction {
   type: 'CHECK_IN' | 'JOURNAL';
   case_id: string;
   case_number: string;
-  payload: { content?: string; location?: string | null; timestamp: string };
+  payload: { content?: string; location?: string | null; timestamp: string; gps?: string | null };
 }
 
 // Persists the offline field queue: each check-in / note becomes a journal
@@ -34,7 +34,8 @@ export async function syncTerrainQueueAction(
     return a.type === 'CHECK_IN'
       ? {
           entry_type: 'POSITIVE' as const,
-          content: `Check-in terrain effectué le ${when}${a.payload.location ? ` — ${a.payload.location}` : ''}.`,
+          // GPS fix of the AGENT at check-in time = proof of on-site presence.
+          content: `Check-in terrain effectué le ${when}${a.payload.location ? ` — ${a.payload.location}` : ''}${a.payload.gps ? `. Position agent : ${a.payload.gps}` : '. Position agent non disponible'}.`,
         }
       : {
           entry_type: 'NEUTRAL' as const,
