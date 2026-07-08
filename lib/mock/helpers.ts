@@ -510,9 +510,10 @@ export async function fetchTigAttendance(caseId: string): Promise<TigAttendance[
 
 export async function fetchViolations(role: UserRole): Promise<Alert[]> {
   const alerts = await fetchAlerts(role);
-  // Behavioural infractions: perimeter exit, curfew breach, tampering. Curfew
-  // was previously excluded, so couvre-feu violations never reached this view.
-  const INFRACTION_TYPES = ['GEOFENCE_EXIT', 'CURFEW_VIOLATION', 'TAMPER_DETECTED'];
+  // Behavioural infractions: perimeter exit, home (BLE) exit, curfew breach,
+  // tampering. BLE_EXIT was missing — home-perimeter violations never reached
+  // this legal history view.
+  const INFRACTION_TYPES = ['GEOFENCE_EXIT', 'BLE_EXIT', 'CURFEW_VIOLATION', 'TAMPER_DETECTED'];
   return alerts
     .filter((a) => INFRACTION_TYPES.includes(a.alert_type))
     .sort((a, b) => new Date(b.triggered_at).getTime() - new Date(a.triggered_at).getTime());
