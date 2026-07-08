@@ -11,15 +11,18 @@ import {
 } from '@/lib/mock/helpers';
 import { getSession } from '@/lib/auth/session';
 import { canViewPII } from '@/lib/auth/permissions';
+import AutoRefresh from '@/components/common/AutoRefresh';
 import Link from 'next/link';
 import type { UserRole } from '@/lib/supabase/types';
+
+export const revalidate = 0;
 
 export default async function DashboardPage() {
   const session = await getSession();
   if (!session) return null;
 
   const isStrategic = session.role === 'STRATEGIC';
-  const [stats, cases, alerts, agenda, statusCounts, alertCounts] = await Promise.all([
+  const [stats, cases, alerts, agenda, statusCounts, alertCounts, health] = await Promise.all([
     fetchOverviewStats(session.role),
     fetchCases(session.role, session.id),
     fetchAlerts(session.role),
@@ -28,6 +31,7 @@ export default async function DashboardPage() {
     // PII-free system-wide counts, not the (empty) scoped lists.
     isStrategic ? fetchCaseStatusCounts() : Promise.resolve({} as Record<string, number>),
     isStrategic ? fetchAlertTypeCounts() : Promise.resolve({ byType: {} as Record<string, number>, total: 0, resolved: 0 }),
+    fetchSystemHealth().catch(() => ({ lastIngestionAt: null as string | null })),
   ]);
 
   // Non-permanent measures nearing their end date (judge/operational/admin view).
@@ -37,6 +41,23 @@ export default async function DashboardPage() {
   const todayObs = agenda.filter((a) => a.scheduled_date === today);
   const recentAlerts = alerts.filter((a) => !a.is_resolved).slice(0, 5);
   const activeCases = cases.filter((c) => c.status === 'ACTIVE' || c.status === 'VIOLATION').slice(0, 5);
+  // Missed obligations of the last 14 days — breach trail the judge must see.
+  const missedObs = agenda.filter((a) => a.outcome === 'MISSED').slice(0, 5);
+  // Alerts that reached the escalation chain (judge SMS / SUPER_ADMIN) and are
+  // still unresolved — highest institutional urgency.
+  const escalatedCount = alerts.filter((a) => !a.is_resolved
+    && ((a as { escalated_at?: string | null }).escalated_at || (a as { escalated_l2_at?: string | null }).escalated_l2_at)).length;
+
+  // Real system pulse — the header dot must reflect ingestion, not decoration.
+  // eslint-disable-next-line react-hooks/purity
+  const ingestAgeMin = health.lastIngestionAt ? Math.floor((Date.now() - Date.parse(health.lastIngestionAt)) / 60000) : null;
+  const pulse = ingestAgeMin === null
+    ? { color: 'amber' as const, label: 'Aucune donnée GPS' }
+    : ingestAgeMin < 15
+      ? { color: 'green' as const, label: 'Système actif' }
+      : ingestAgeMin < 60
+        ? { color: 'amber' as const, label: `Ingestion en retard (${ingestAgeMin} min)` }
+        : { color: 'red' as const, label: 'Ingestion GPS arrêtée' };
   const showPII = canViewPII(session.role);
   const role: UserRole = session.role;
 
@@ -70,6 +91,7 @@ export default async function DashboardPage() {
 
   return (
     <div className="space-y-6">
+      <AutoRefresh intervalMs={30000} />
       <div className="flex items-start justify-between flex-wrap gap-3">
         <div>
           <h2 className="text-xl font-bold text-gray-900">Vue d&apos;ensemble</h2>
@@ -77,7 +99,8 @@ export default async function DashboardPage() {
             <p className="text-sm text-gray-500">
               {new Date().toLocaleDateString('fr-FR', { timeZone: 'Africa/Ouagadougou', weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
             </p>
-            <LiveRadarDot color="green" label="Système actif" />
+            {/* Real pulse — reflects GPS ingestion freshness, not decoration. */}
+            <LiveRadarDot color={pulse.color} label={pulse.label} />
           </div>
         </div>
         {role === 'STRATEGIC' && (
@@ -178,8 +201,15 @@ export default async function DashboardPage() {
 
           {/* Active Alerts */}
           <div className="bg-white/95 backdrop-blur-sm rounded-2xl border border-gray-100/80 overflow-hidden shadow-lg shadow-black/5">
-            <div className="px-5 py-4 border-b border-gray-50 flex items-center justify-between">
-              <h3 className="font-semibold text-gray-900">Alertes actives</h3>
+            <div className="px-5 py-4 border-b border-gray-50 flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <h3 className="font-semibold text-gray-900">Alertes actives</h3>
+                {escalatedCount > 0 && (
+                  <span className="text-[10px] font-bold text-red-700 bg-red-50 border border-red-200 px-2 py-0.5 rounded-full animate-pulse">
+                    {escalatedCount} escaladée{escalatedCount > 1 ? 's' : ''}
+                  </span>
+                )}
+              </div>
               <Link href="/sigep/dashboard/alerts" className="text-xs text-blue-600 hover:underline">Voir tout</Link>
             </div>
             {recentAlerts.length === 0 ? (
@@ -204,6 +234,34 @@ export default async function DashboardPage() {
               </ul>
             )}
           </div>
+        </div>
+      )}
+
+      {/* Obligations manquées récentes — breach trail (revocation file) */}
+      {role !== 'STRATEGIC' && missedObs.length > 0 && (
+        <div className="bg-white/95 backdrop-blur-sm rounded-2xl border border-red-100 overflow-hidden shadow-lg shadow-black/5">
+          <div className="px-5 py-4 border-b border-gray-50 flex items-center gap-2">
+            <AlertOctagon className="w-4 h-4 text-red-500" />
+            <h3 className="font-semibold text-gray-900">Obligations manquées (14 derniers jours)</h3>
+            <Link href="/sigep/dashboard/agenda" className="ml-auto text-xs text-blue-600 hover:underline">Agenda →</Link>
+          </div>
+          <ul className="divide-y divide-gray-50">
+            {missedObs.map((ob) => (
+              <li key={ob.id} className="px-5 py-3 flex items-center gap-3">
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-red-50 text-red-700 border border-red-200">✗ Manquée</span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-gray-800 truncate">{ob.title}</p>
+                  <p className="text-xs text-gray-400">
+                    {ob.scheduled_date} · {showPII ? ob.individual_name : ob.case_number}
+                    {ob.outcome_note ? ` — ${ob.outcome_note}` : ''}
+                  </p>
+                </div>
+                <Link href={`/sigep/dashboard/cases/${ob.case_id}`} className="text-xs text-blue-500 hover:underline flex-shrink-0">
+                  Dossier →
+                </Link>
+              </li>
+            ))}
+          </ul>
         </div>
       )}
 
@@ -352,7 +410,7 @@ async function SuperAdminHealthRow() {
         <p className="text-2xl font-bold text-gray-900">{pendingRevs.length}</p>
         <p className="text-xs text-gray-400 mt-0.5">en attente de décision</p>
       </Link>
-      <Link href="/sigep/dashboard/maintenance" className="bg-white border border-gray-100 rounded-2xl p-4 hover:border-blue-200 transition-colors group">
+      <Link href="/sigep/dashboard/monitoring" className="bg-white border border-gray-100 rounded-2xl p-4 hover:border-blue-200 transition-colors group">
         <div className="flex items-center gap-2 mb-2">
           <Activity className="w-4 h-4 text-blue-500" />
           <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Ingestion</span>
