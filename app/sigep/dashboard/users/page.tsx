@@ -3,13 +3,10 @@ import Link from 'next/link';
 import { getSession } from '@/lib/auth/session';
 import { canViewUsers, canManageAllUsers , allow } from '@/lib/auth/permissions';
 import { fetchUsers } from '@/lib/mock/helpers';
-import RoleBadge from '@/components/ui/RoleBadge';
 import { CheckCircle, XCircle, UserPlus, ShieldAlert, Users, ShieldCheck } from 'lucide-react';
 import ToggleUserButton from '@/components/users/ToggleUserButton';
 import ForceResetButton from '@/components/users/ForceResetButton';
-import DeleteUserButton from '@/components/users/DeleteUserButton';
-import EditPermissionsButton from '@/components/users/EditPermissionsButton';
-import TransferCasesButton from '@/components/users/TransferCasesButton';
+import UsersTable from '@/components/users/UsersTable';
 
 export const metadata = { title: 'Gestion des utilisateurs — SIGEP' };
 
@@ -36,6 +33,31 @@ export default async function UsersPage() {
   const users = await fetchUsers(session.role, session.id);
   // Active judges = valid transfer destinations for a departing judge's caseload.
   const activeJudges = users.filter((u) => u.role === 'JUDGE' && u.is_active).map((u) => ({ id: u.id, full_name: u.full_name }));
+
+  // Enrich with Supabase Auth metadata: last sign-in (dormant accounts) and
+  // MFA enrollment (institutional 2FA coverage). Best-effort, prod only.
+  let authEnriched = false;
+  if (isSuperAdmin && process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+    try {
+      const { createAdminClient } = await import('@/lib/supabase/admin');
+      const sb = createAdminClient();
+      if (sb) {
+        const { data: authList } = await sb.auth.admin.listUsers({ page: 1, perPage: 500 });
+        const byAuthId = new Map(
+          (authList?.users ?? []).map((au) => [au.id, {
+            last_sign_in_at: (au as { last_sign_in_at?: string | null }).last_sign_in_at ?? null,
+            mfa: (((au as { factors?: Array<{ status?: string }> }).factors) ?? []).some((f) => f.status === 'verified'),
+          }]),
+        );
+        for (const u of users) {
+          const meta = byAuthId.get(u.auth_id);
+          u.last_sign_in_at = meta?.last_sign_in_at ?? null;
+          u.mfa_enabled = meta?.mfa ?? false;
+        }
+        authEnriched = true;
+      }
+    } catch { /* auth metadata unavailable — table shows em-dashes */ }
+  }
 
   // ── JUDGE VIEW ────────────────────────────────────────────────────────────
   if (isJudge) {
@@ -165,82 +187,14 @@ export default async function UsersPage() {
         </p>
       </div>
 
-      <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="bg-gray-50 border-b border-gray-100">
-                <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Nom</th>
-                <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Rôle</th>
-                <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Badge</th>
-                <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Juridiction</th>
-                <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Portée</th>
-                <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Créé par</th>
-                <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Créé le</th>
-                <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Actif</th>
-                {isSuperAdmin && (
-                  <th className="px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide text-right">Actions</th>
-                )}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-50">
-              {users.map((user) => (
-                <tr key={user.id} className="hover:bg-gray-50/50 transition-colors">
-                  <td className="px-5 py-3.5">
-                    <div>
-                      <p className="font-semibold text-gray-900">{user.full_name}</p>
-                      {user.id === session.id && (
-                        <p className="text-[10px] text-emerald-600 font-medium">Vous</p>
-                      )}
-                    </div>
-                  </td>
-                  <td className="px-5 py-3.5">
-                    <RoleBadge role={user.role} />
-                  </td>
-                  <td className="px-5 py-3.5 font-mono text-xs text-gray-500">
-                    {user.badge_number ?? '—'}
-                  </td>
-                  <td className="px-5 py-3.5 text-xs text-gray-500 max-w-xs truncate">
-                    {user.jurisdiction ?? '—'}
-                  </td>
-                  <td className="px-5 py-3.5">
-                    <ScopeBadge scope={user.access_scope} />
-                  </td>
-                  <td className="px-5 py-3.5 text-xs text-gray-500">
-                    {user.created_by_name ?? <span className="text-gray-300">Système</span>}
-                  </td>
-                  <td className="px-5 py-3.5 text-xs text-gray-400">
-                    {formatDate(user.created_at)}
-                  </td>
-                  <td className="px-5 py-3.5">
-                    {user.is_active
-                      ? <CheckCircle className="w-4 h-4 text-green-500" />
-                      : <XCircle className="w-4 h-4 text-gray-300" />}
-                  </td>
-                  {isSuperAdmin && (
-                    <td className="px-5 py-3.5">
-                      {user.id !== session.id && (
-                        <div className="flex items-center justify-end gap-2 flex-wrap">
-                          {user.role === 'ADMIN' && (
-                            <EditPermissionsButton userId={user.id} name={user.full_name} current={user.permissions ?? []} />
-                          )}
-                          <ToggleUserButton userId={user.id} isActive={user.is_active} />
-                          <ForceResetButton userId={user.id} />
-                          {user.role === 'JUDGE' && (user.case_count ?? 0) > 0 ? (
-                            <TransferCasesButton fromJudge={user.id} fromName={user.full_name} caseCount={user.case_count ?? 0} judges={activeJudges} />
-                          ) : (
-                            <DeleteUserButton userId={user.id} name={user.full_name} />
-                          )}
-                        </div>
-                      )}
-                    </td>
-                  )}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      {/* Registry: KPIs (2FA coverage, dormants, expiries), search/filters,
+          CSV export, lifecycle columns. */}
+      <UsersTable
+        users={users}
+        sessionId={session.id}
+        activeJudges={activeJudges}
+        authEnriched={authEnriched}
+      />
     </div>
   );
 }

@@ -26,6 +26,12 @@ export interface User {
   access_scope?: 'FULL' | 'RESTRICTED' | null;
   permissions?: string[];
   department_id?: string | null;
+  // Institutional lifecycle
+  expires_at?: string | null;
+  deactivation_reason?: string | null;
+  // Enriched from Supabase Auth (page-level, prod only)
+  last_sign_in_at?: string | null;
+  mfa_enabled?: boolean | null;
 }
 
 export interface Individual {

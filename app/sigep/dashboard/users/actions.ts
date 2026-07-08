@@ -77,6 +77,15 @@ export async function createUserAction(
   const jurisdiction = (formData.get('jurisdiction') as string)?.trim() || null;
   const phone = (formData.get('phone') as string)?.trim() || null;
   const access_scope = (formData.get('access_scope') as 'FULL' | 'RESTRICTED') || null;
+  // End of mission / secondment (optional): the session layer denies access
+  // past this date automatically.
+  const expiresRaw = (formData.get('expires_at') as string)?.trim() || null;
+  let expires_at: string | null = null;
+  if (expiresRaw) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(expiresRaw)) return { error: 'Date de fin de mission invalide' };
+    if (expiresRaw <= new Date().toISOString().slice(0, 10)) return { error: 'La fin de mission doit être future' };
+    expires_at = `${expiresRaw}T23:59:59Z`;
+  }
   // Granular permissions for ADMIN accounts (checkboxes → repeated "permissions"
   // fields), validated against the catalog — forged values are dropped.
   const permissions = role === 'ADMIN' ? sanitizePermissions(formData.getAll('permissions') as string[]) : [];
@@ -144,6 +153,7 @@ export async function createUserAction(
     created_by: session.id,
     access_scope: role === 'OPERATIONAL' ? (access_scope ?? 'FULL') : null,
     permissions,
+    expires_at,
   });
   if (userErr) {
     await supabase.auth.admin.deleteUser(authData.user.id);
@@ -205,6 +215,8 @@ export async function toggleUserActiveAction(formData: FormData): Promise<void> 
 
   const user_id = formData.get('user_id') as string;
   const next_active = formData.get('next_active') === 'true';
+  // Deactivation motive — institutional trail, kept on the account + audited.
+  const reason = (formData.get('reason') as string)?.trim() || null;
   if (!user_id || user_id === session.id) return; // cannot toggle self
   if (!(await canManageTarget(session, user_id))) return;
   // Never deactivate the last active SUPER_ADMIN — total admin lockout.
@@ -222,7 +234,11 @@ export async function toggleUserActiveAction(formData: FormData): Promise<void> 
   const supabase = createAdminClient();
   if (!supabase) return;
 
-  await supabase.from('users').update({ is_active: next_active, updated_at: new Date().toISOString() }).eq('id', user_id);
+  await supabase.from('users').update({
+    is_active: next_active,
+    deactivation_reason: next_active ? null : reason,
+    updated_at: new Date().toISOString(),
+  }).eq('id', user_id);
 
   const { writeAudit } = await import('@/lib/audit/log');
   await writeAudit({
@@ -230,6 +246,7 @@ export async function toggleUserActiveAction(formData: FormData): Promise<void> 
     action: next_active ? 'REACTIVATE_USER' : 'DEACTIVATE_USER',
     tableName: 'users',
     recordId: user_id,
+    newData: reason ? { reason } : undefined,
   });
 
   revalidatePath('/sigep/dashboard/users');

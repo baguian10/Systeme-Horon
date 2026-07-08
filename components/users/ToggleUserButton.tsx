@@ -15,6 +15,12 @@ export default function ToggleUserButton({ userId, isActive }: Props) {
     const fd = new FormData();
     fd.set('user_id', userId);
     fd.set('next_active', String(!isActive));
+    if (isActive) {
+      // Institutional trail: a deactivation carries a motive.
+      const reason = prompt('Motif de la désactivation (obligatoire — mutation, fin de fonction, mesure disciplinaire…) :')?.trim();
+      if (!reason) return;
+      fd.set('reason', reason);
+    }
     startTransition(() => toggleUserActiveAction(fd));
   }
 

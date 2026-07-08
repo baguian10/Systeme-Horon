@@ -30,13 +30,16 @@ export async function getSession(): Promise<SessionUser | null> {
 
     const { data: profile } = await supabase
       .from('users')
-      .select('id, auth_id, role, full_name, badge_number, jurisdiction, permissions, is_active')
+      .select('id, auth_id, role, full_name, badge_number, jurisdiction, permissions, is_active, expires_at')
       .eq('auth_id', user.id)
       .single();
 
     if (!profile) return null;
     // Suspended account → no session (blocked everywhere).
     if ((profile as { is_active?: boolean }).is_active === false) return null;
+    // End of mission reached (expires_at) → account no longer grants access.
+    const expiresAt = (profile as { expires_at?: string | null }).expires_at;
+    if (expiresAt && Date.parse(expiresAt) < Date.now()) return null;
     return profile as SessionUser;
   } catch {
     // On any failure with Supabase configured, DENY — never fall back to a

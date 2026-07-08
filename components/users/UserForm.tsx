@@ -300,6 +300,11 @@ export default function UserForm({ creatorRole }: Props) {
             <label className="block text-xs font-medium text-gray-600 mb-1.5">Téléphone (alertes SMS)</label>
             <input name="phone" type="tel" placeholder="+226 70 00 00 00" className={INPUT} />
           </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1.5">Fin de mission (optionnel)</label>
+            <input name="expires_at" type="date" className={INPUT} />
+            <p className="text-[10px] text-gray-400 mt-1">Détachement, intérim… L&apos;accès est automatiquement refusé passé cette date.</p>
+          </div>
 
           {/* ── Scope of Access — for OPERATIONAL role ──────────────── */}
           {selectedRole === 'OPERATIONAL' && (
