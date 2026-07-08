@@ -722,7 +722,59 @@ export async function fetchThreads(userId: string): Promise<MessageThread[]> {
     subject: t.subject, participant_ids: t.participant_ids ?? [],
     last_message_at: t.last_message_at, last_message_preview: t.last_message_preview ?? '',
     created_by: t.created_by, created_at: t.created_at,
+    closed_at: t.closed_at ?? null, closed_by: t.closed_by ?? null,
   }));
+}
+
+// Unread tracking: total (sidebar badge) + per-thread counts (list badges).
+// A message is unread when the user participates in its thread, didn't send it,
+// and doesn't appear in is_read_by.
+export async function fetchUnreadMessagesInfo(userId: string): Promise<{ total: number; byThread: Record<string, number> }> {
+  const byThread: Record<string, number> = {};
+  if (IS_DEMO_MODE) {
+    const threadIds = new Set(MOCK_THREADS.filter((t) => t.participant_ids.includes(userId)).map((t) => t.id));
+    for (const m of MOCK_MESSAGES) {
+      if (!threadIds.has(m.thread_id) || m.sender_id === userId) continue;
+      if (!(m.is_read_by ?? []).includes(userId)) byThread[m.thread_id] = (byThread[m.thread_id] ?? 0) + 1;
+    }
+    return { total: Object.values(byThread).reduce((s, n) => s + n, 0), byThread };
+  }
+  const { createAdminClient } = await import('@/lib/supabase/admin');
+  const supabase = createAdminClient();
+  if (!supabase) return { total: 0, byThread };
+  const { data: threads } = await supabase.from('message_threads')
+    .select('id').contains('participant_ids', [userId]).limit(200);
+  const ids = ((threads ?? []) as { id: string }[]).map((t) => t.id);
+  if (ids.length === 0) return { total: 0, byThread };
+  const { data: msgs } = await supabase.from('messages')
+    .select('thread_id, sender_id, is_read_by')
+    .in('thread_id', ids)
+    .neq('sender_id', userId)
+    .limit(3000);
+  for (const m of (msgs ?? []) as { thread_id: string; sender_id: string; is_read_by: string[] | null }[]) {
+    if (!(m.is_read_by ?? []).includes(userId)) byThread[m.thread_id] = (byThread[m.thread_id] ?? 0) + 1;
+  }
+  return { total: Object.values(byThread).reduce((s, n) => s + n, 0), byThread };
+}
+
+// Mark every message of a thread as read by the user (called when the
+// conversation opens). Best-effort; per-row update appends to is_read_by.
+export async function markThreadRead(userId: string, threadId: string): Promise<void> {
+  if (IS_DEMO_MODE) {
+    for (const m of MOCK_MESSAGES) {
+      if (m.thread_id === threadId && !(m.is_read_by ?? []).includes(userId)) m.is_read_by.push(userId);
+    }
+    return;
+  }
+  const { createAdminClient } = await import('@/lib/supabase/admin');
+  const supabase = createAdminClient();
+  if (!supabase) return;
+  const { data: msgs } = await supabase.from('messages')
+    .select('id, is_read_by').eq('thread_id', threadId).limit(500);
+  const unread = ((msgs ?? []) as { id: string; is_read_by: string[] | null }[])
+    .filter((m) => !(m.is_read_by ?? []).includes(userId));
+  await Promise.all(unread.map((m) =>
+    supabase.from('messages').update({ is_read_by: [...(m.is_read_by ?? []), userId] }).eq('id', m.id)));
 }
 
 export async function fetchMessages(threadId: string): Promise<Message[]> {

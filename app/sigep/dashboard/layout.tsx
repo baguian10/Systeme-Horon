@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation';
 import { getSession } from '@/lib/auth/session';
-import { fetchOpenAlertCount } from '@/lib/mock/helpers';
+import { fetchOpenAlertCount, fetchUnreadMessagesInfo } from '@/lib/mock/helpers';
 import { SessionProvider } from './context';
 import Sidebar from '@/components/dashboard/Sidebar';
 import Topbar from '@/components/dashboard/Topbar';
@@ -17,13 +17,16 @@ export default async function DashboardLayout({
   const session = await getSession();
   if (!session) redirect('/sigep/login');
 
-  const openAlertCount = await fetchOpenAlertCount(session.role).catch(() => 0);
+  const [openAlertCount, unreadInfo] = await Promise.all([
+    fetchOpenAlertCount(session.role).catch(() => 0),
+    fetchUnreadMessagesInfo(session.id).catch(() => ({ total: 0, byThread: {} })),
+  ]);
 
   return (
     <SessionProvider user={session}>
       <AlertToastProvider>
         <div className="min-h-screen bg-gray-50 flex">
-          <Sidebar role={session.role} permissions={session.permissions} openAlertCount={openAlertCount} />
+          <Sidebar role={session.role} permissions={session.permissions} openAlertCount={openAlertCount} unreadMessagesCount={unreadInfo.total} />
           <div className="flex-1 ml-60 flex flex-col min-h-screen">
             <Topbar title="SIGEP" />
             <main className="flex-1 p-6 overflow-auto">{children}</main>

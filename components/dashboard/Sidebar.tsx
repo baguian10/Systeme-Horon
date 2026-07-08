@@ -28,7 +28,7 @@ interface NavItem {
   badge?: number;
 }
 
-type Sess = { role: UserRole; permissions?: string[]; openAlertCount?: number };
+type Sess = { role: UserRole; permissions?: string[]; openAlertCount?: number; unreadMessagesCount?: number };
 
 function buildNav(session: Sess): NavItem[] {
   const role = session.role;
@@ -84,7 +84,7 @@ function buildNav(session: Sess): NavItem[] {
     items.push({ href: '/sigep/dashboard/requetes', label: 'Requêtes', icon: <Inbox className="w-4 h-4" /> });
   }
   if (allow(session, canViewCases(role), 'cases.viewAll')) {
-    items.push({ href: '/sigep/dashboard/messagerie', label: 'Messagerie', icon: <MessageSquare className="w-4 h-4" /> });
+    items.push({ href: '/sigep/dashboard/messagerie', label: 'Messagerie', icon: <MessageSquare className="w-4 h-4" />, badge: session.unreadMessagesCount });
   }
   items.push({ href: '/sigep/dashboard/notifications', label: 'Notifications', icon: <BellRing className="w-4 h-4" /> });
   if (allow(session, canViewCases(role), 'cases.viewAll')) {
@@ -138,9 +138,9 @@ const navItem = {
   visible: { opacity: 1, x: 0, transition: { duration: 0.25, ease: 'easeOut' as const } },
 };
 
-export default function Sidebar({ role, permissions, openAlertCount }: { role: UserRole; permissions?: string[]; openAlertCount?: number }) {
+export default function Sidebar({ role, permissions, openAlertCount, unreadMessagesCount }: { role: UserRole; permissions?: string[]; openAlertCount?: number; unreadMessagesCount?: number }) {
   const pathname = usePathname();
-  const nav = buildNav({ role, permissions, openAlertCount });
+  const nav = buildNav({ role, permissions, openAlertCount, unreadMessagesCount });
 
   function isActive(href: string) {
     if (href === '/sigep/dashboard') return pathname === href;

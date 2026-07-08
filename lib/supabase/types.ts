@@ -352,6 +352,9 @@ export interface MessageThread {
   last_message_preview: string;
   created_by: string;
   created_at: string;
+  // Lifecycle: closed thread = read-only archive (legal timestamp + author).
+  closed_at?: string | null;
+  closed_by?: string | null;
 }
 
 export interface Message {

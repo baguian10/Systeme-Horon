@@ -109,6 +109,7 @@ export async function sendMessageAction(
   const thread_id = formData.get('thread_id') as string;
   const content   = (formData.get('content') as string)?.trim();
   if (!thread_id || !content) return { error: 'Message vide' };
+  if (content.length > 5000) return { error: 'Message trop long (max 5000 caractères)' };
 
   if (isDemoMode()) {
     const { MOCK_MESSAGES, MOCK_THREADS } = await import('@/lib/mock/data');
@@ -139,8 +140,9 @@ export async function sendMessageAction(
   if (!supabase) return { error: 'Base de données indisponible' };
 
   // Membership check: only participants may post (was open to any thread id).
-  const { data: t } = await supabase.from('message_threads').select('participant_ids, subject').eq('id', thread_id).maybeSingle();
+  const { data: t } = await supabase.from('message_threads').select('participant_ids, subject, closed_at').eq('id', thread_id).maybeSingle();
   if (!t) return { error: 'Fil introuvable' };
+  if ((t as { closed_at?: string | null }).closed_at) return { error: 'Fil clôturé — lecture seule' };
   const participants = (t.participant_ids as string[] | null) ?? [];
   if (!participants.includes(session.id)) return { error: 'Vous ne participez pas à ce fil' };
 
@@ -168,4 +170,126 @@ export async function sendMessageAction(
   revalidatePath(`/sigep/dashboard/messagerie/${thread_id}`);
   revalidatePath('/sigep/dashboard/messagerie');
   return null;
+}
+
+// ── Participant management (creator or SUPER_ADMIN) ──────────────────────────
+
+async function canAdministerThread(
+  supabase: NonNullable<Awaited<ReturnType<typeof import('@/lib/supabase/admin')['createAdminClient']>>>,
+  sessionId: string,
+  role: string,
+  threadId: string,
+): Promise<{ ok: boolean; participants: string[]; created_by: string | null; closed_at: string | null }> {
+  const { data: t } = await supabase.from('message_threads')
+    .select('participant_ids, created_by, closed_at').eq('id', threadId).maybeSingle();
+  if (!t) return { ok: false, participants: [], created_by: null, closed_at: null };
+  const participants = (t.participant_ids as string[] | null) ?? [];
+  const created_by = (t as { created_by?: string | null }).created_by ?? null;
+  const closed_at = (t as { closed_at?: string | null }).closed_at ?? null;
+  const ok = role === 'SUPER_ADMIN' || created_by === sessionId;
+  return { ok, participants, created_by, closed_at };
+}
+
+export async function addParticipantAction(formData: FormData): Promise<{ error?: string } | void> {
+  const session = await getSession();
+  if (!session) return { error: 'Accès refusé' };
+  const thread_id = formData.get('thread_id') as string;
+  const user_id = formData.get('user_id') as string;
+  if (!thread_id || !user_id) return { error: 'Champs manquants' };
+  if (isDemoMode()) {
+    const { MOCK_THREADS } = await import('@/lib/mock/data');
+    const t = MOCK_THREADS.find((x) => x.id === thread_id);
+    if (t && !t.participant_ids.includes(user_id)) t.participant_ids.push(user_id);
+    revalidatePath(`/sigep/dashboard/messagerie/${thread_id}`);
+    return;
+  }
+  const { createAdminClient } = await import('@/lib/supabase/admin');
+  const supabase = createAdminClient();
+  if (!supabase) return { error: 'Base de données indisponible' };
+  const ctx = await canAdministerThread(supabase, session.id, session.role, thread_id);
+  if (!ctx.ok) return { error: 'Seul le créateur du fil ou un SUPER_ADMIN peut gérer les participants' };
+  if (ctx.closed_at) return { error: 'Fil clôturé' };
+  if (ctx.participants.includes(user_id)) return { error: 'Déjà participant' };
+  if (ctx.participants.length >= 30) return { error: 'Maximum 30 participants' };
+  const { data: u } = await supabase.from('users').select('id, full_name').eq('id', user_id).eq('is_active', true).maybeSingle();
+  if (!u) return { error: 'Utilisateur introuvable ou inactif' };
+  await supabase.from('message_threads')
+    .update({ participant_ids: [...ctx.participants, user_id] }).eq('id', thread_id);
+  await writeAudit({ userId: session.id, action: 'THREAD_ADD_PARTICIPANT', tableName: 'message_threads', recordId: thread_id, newData: { user_id } });
+  // Notify the newcomer.
+  try {
+    const { sendPushToUser } = await import('@/lib/push');
+    await sendPushToUser(supabase as unknown as Parameters<typeof sendPushToUser>[0], user_id, {
+      title: 'SIGEP — Ajouté à une conversation',
+      body: `${session.full_name} vous a ajouté à un fil de discussion.`,
+      url: `/sigep/dashboard/messagerie/${thread_id}`,
+      tag: `thread-${thread_id}`,
+    });
+  } catch {}
+  revalidatePath(`/sigep/dashboard/messagerie/${thread_id}`);
+  revalidatePath('/sigep/dashboard/messagerie');
+}
+
+export async function removeParticipantAction(formData: FormData): Promise<{ error?: string } | void> {
+  const session = await getSession();
+  if (!session) return { error: 'Accès refusé' };
+  const thread_id = formData.get('thread_id') as string;
+  const user_id = formData.get('user_id') as string;
+  if (!thread_id || !user_id) return { error: 'Champs manquants' };
+  if (isDemoMode()) {
+    const { MOCK_THREADS } = await import('@/lib/mock/data');
+    const t = MOCK_THREADS.find((x) => x.id === thread_id);
+    if (t) t.participant_ids = t.participant_ids.filter((p) => p !== user_id);
+    revalidatePath(`/sigep/dashboard/messagerie/${thread_id}`);
+    return;
+  }
+  const { createAdminClient } = await import('@/lib/supabase/admin');
+  const supabase = createAdminClient();
+  if (!supabase) return { error: 'Base de données indisponible' };
+  const ctx = await canAdministerThread(supabase, session.id, session.role, thread_id);
+  if (!ctx.ok) return { error: 'Seul le créateur du fil ou un SUPER_ADMIN peut gérer les participants' };
+  if (user_id === ctx.created_by) return { error: 'Le créateur du fil ne peut pas être retiré' };
+  if (ctx.participants.length <= 2) return { error: 'Un fil doit garder au moins 2 participants' };
+  await supabase.from('message_threads')
+    .update({ participant_ids: ctx.participants.filter((p) => p !== user_id) }).eq('id', thread_id);
+  await writeAudit({ userId: session.id, action: 'THREAD_REMOVE_PARTICIPANT', tableName: 'message_threads', recordId: thread_id, newData: { user_id } });
+  revalidatePath(`/sigep/dashboard/messagerie/${thread_id}`);
+  revalidatePath('/sigep/dashboard/messagerie');
+}
+
+// ── Thread lifecycle: close (read-only archive) / reopen ─────────────────────
+
+export async function closeThreadAction(formData: FormData): Promise<{ error?: string } | void> {
+  const session = await getSession();
+  if (!session) return { error: 'Accès refusé' };
+  const thread_id = formData.get('thread_id') as string;
+  if (!thread_id) return { error: 'Fil manquant' };
+  if (isDemoMode()) { revalidatePath(`/sigep/dashboard/messagerie/${thread_id}`); return; }
+  const { createAdminClient } = await import('@/lib/supabase/admin');
+  const supabase = createAdminClient();
+  if (!supabase) return { error: 'Base de données indisponible' };
+  const ctx = await canAdministerThread(supabase, session.id, session.role, thread_id);
+  if (!ctx.ok) return { error: 'Seul le créateur du fil ou un SUPER_ADMIN peut clôturer' };
+  if (ctx.closed_at) return { error: 'Fil déjà clôturé' };
+  await supabase.from('message_threads')
+    .update({ closed_at: new Date().toISOString(), closed_by: session.id }).eq('id', thread_id);
+  await writeAudit({ userId: session.id, action: 'THREAD_CLOSE', tableName: 'message_threads', recordId: thread_id });
+  revalidatePath(`/sigep/dashboard/messagerie/${thread_id}`);
+  revalidatePath('/sigep/dashboard/messagerie');
+}
+
+export async function reopenThreadAction(formData: FormData): Promise<{ error?: string } | void> {
+  const session = await getSession();
+  if (!session || session.role !== 'SUPER_ADMIN') return { error: 'Réouverture réservée au SUPER_ADMIN' };
+  const thread_id = formData.get('thread_id') as string;
+  if (!thread_id) return { error: 'Fil manquant' };
+  if (isDemoMode()) { revalidatePath(`/sigep/dashboard/messagerie/${thread_id}`); return; }
+  const { createAdminClient } = await import('@/lib/supabase/admin');
+  const supabase = createAdminClient();
+  if (!supabase) return { error: 'Base de données indisponible' };
+  await supabase.from('message_threads')
+    .update({ closed_at: null, closed_by: null }).eq('id', thread_id);
+  await writeAudit({ userId: session.id, action: 'THREAD_REOPEN', tableName: 'message_threads', recordId: thread_id });
+  revalidatePath(`/sigep/dashboard/messagerie/${thread_id}`);
+  revalidatePath('/sigep/dashboard/messagerie');
 }
