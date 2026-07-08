@@ -48,11 +48,16 @@ export async function createDepartmentAction(formData: FormData): Promise<void> 
   const name = (formData.get('name') as string)?.trim();
   const type = ((formData.get('type') as string) || 'COURT').toUpperCase();
   const parent_id = (formData.get('parent_id') as string) || null;
-  if (!name || !VALID_TYPES.includes(type)) return;
+  if (!name || name.length > 120 || !VALID_TYPES.includes(type)) return;
   if (isDemoMode()) { revalidatePath('/sigep/dashboard/organisation'); return; }
 
   const supabase = await getSupabase();
   if (!supabase) return;
+  // Forged parent_id → verify the parent exists before inserting.
+  if (parent_id) {
+    const { data: parent } = await supabase.from('departments').select('id').eq('id', parent_id).maybeSingle();
+    if (!parent) return;
+  }
   const { data } = await supabase.from('departments').insert({ name, type, parent_id }).select('id').single();
   await writeAudit({ userId: session!.id, action: 'CREATE_DEPARTMENT', tableName: 'departments', recordId: data?.id, newData: { name, type, parent_id } });
   revalidatePath('/sigep/dashboard/organisation');
@@ -66,16 +71,20 @@ export async function updateDepartmentAction(formData: FormData): Promise<{ erro
   const type = ((formData.get('type') as string) || 'COURT').toUpperCase();
   const parent_id = (formData.get('parent_id') as string) || null;
   if (!id || !name) return;
+  if (name.length > 120) return { error: 'Nom trop long (max 120 caractères)' };
   if (!VALID_TYPES.includes(type)) return;
   if (isDemoMode()) { revalidatePath('/sigep/dashboard/organisation'); return; }
 
   const supabase = await getSupabase();
   if (!supabase) return;
   if (parent_id) {
+    const { data: parent } = await supabase.from('departments').select('id').eq('id', parent_id).maybeSingle();
+    if (!parent) return { error: 'Entité parente introuvable' };
     const circular = await wouldCreateCycle(supabase, id, parent_id);
     if (circular) return { error: "Rattachement impossible : cela créerait une boucle dans l'arbre." };
   }
-  await supabase.from('departments').update({ name, type, parent_id }).eq('id', id);
+  const { error: updErr } = await supabase.from('departments').update({ name, type, parent_id }).eq('id', id);
+  if (updErr) return { error: 'Erreur lors de la mise à jour' };
   await writeAudit({ userId: session!.id, action: 'UPDATE_DEPARTMENT', tableName: 'departments', recordId: id, newData: { name, type, parent_id } });
   revalidatePath('/sigep/dashboard/organisation');
 }
@@ -89,14 +98,24 @@ export async function deleteDepartmentAction(formData: FormData): Promise<{ erro
 
   const supabase = await getSupabase();
   if (!supabase) return;
-  const { count } = await supabase
-    .from('cases')
-    .select('id', { count: 'exact', head: true })
-    .eq('department_id', id);
-  if (count && count > 0) {
-    return { error: `${count} dossier(s) rattaché(s) à cette entité. Transférez-les avant suppression.` };
+  // Three guards, explicit errors — the raw DB failure was silently swallowed:
+  // attached cases, child entities, assigned members.
+  const [{ count: caseCount }, { count: childCount }, { count: memberCount }] = await Promise.all([
+    supabase.from('cases').select('id', { count: 'exact', head: true }).eq('department_id', id),
+    supabase.from('departments').select('id', { count: 'exact', head: true }).eq('parent_id', id),
+    supabase.from('users').select('id', { count: 'exact', head: true }).eq('department_id', id),
+  ]);
+  if (caseCount && caseCount > 0) {
+    return { error: `${caseCount} dossier(s) rattaché(s) à cette entité. Transférez-les avant suppression.` };
   }
-  await supabase.from('departments').delete().eq('id', id);
+  if (childCount && childCount > 0) {
+    return { error: `${childCount} entité(s) enfant(s) rattachée(s). Détachez ou supprimez-les d'abord.` };
+  }
+  if (memberCount && memberCount > 0) {
+    return { error: `${memberCount} agent(s) affecté(s) à cette entité. Réaffectez-les avant suppression.` };
+  }
+  const { error: delErr } = await supabase.from('departments').delete().eq('id', id);
+  if (delErr) return { error: 'Suppression refusée par la base de données' };
   await writeAudit({ userId: session!.id, action: 'DELETE_DEPARTMENT', tableName: 'departments', recordId: id });
   revalidatePath('/sigep/dashboard/organisation');
 }
@@ -111,6 +130,11 @@ export async function assignUserDepartmentAction(formData: FormData): Promise<vo
 
   const supabase = await getSupabase();
   if (!supabase) return;
+  // Forged department_id → verify it exists (null = unassign, always allowed).
+  if (department_id) {
+    const { data: dept } = await supabase.from('departments').select('id').eq('id', department_id).maybeSingle();
+    if (!dept) return;
+  }
   await supabase.from('users').update({ department_id }).eq('id', userId);
   await writeAudit({ userId: session!.id, action: 'ASSIGN_DEPARTMENT', tableName: 'users', recordId: userId, newData: { department_id } });
   revalidatePath('/sigep/dashboard/organisation');

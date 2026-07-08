@@ -24,10 +24,28 @@ function canManage(session: Session) {
   return allow(session, canManageTigSites(session.role), 'tig');
 }
 
-function parseCapacity(raw: FormDataEntryValue | null): number {
+function parseCapacity(raw: FormDataEntryValue | null): number | null {
   const n = parseInt(raw as string, 10);
-  // Server-side cap: max 500 regardless of what the client sends
-  return Number.isFinite(n) && n >= 1 && n <= 500 ? n : 1;
+  // Server-side bounds: 1–500. Invalid → null so the action can REFUSE instead
+  // of silently coercing (600 → capacity 1 surprised operators).
+  return Number.isFinite(n) && n >= 1 && n <= 500 ? n : null;
+}
+
+// Coordinates must be plausible or absent — a typo like lat=999 must not
+// enter the geolocation pipeline.
+function parseCoord(raw: FormDataEntryValue | null, min: number, max: number): number | null | 'invalid' {
+  const s = (raw as string)?.trim();
+  if (!s) return null;
+  const n = parseFloat(s);
+  if (!Number.isFinite(n)) return 'invalid';
+  return n >= min && n <= max ? n : 'invalid';
+}
+
+function fieldLengthError(fields: Record<string, [string | null | undefined, number]>): string | null {
+  for (const [label, [v, max]] of Object.entries(fields)) {
+    if (v && v.length > max) return `${label} trop long (max ${max} caractères)`;
+  }
+  return null;
 }
 
 // ── Create ───────────────────────────────────────────────────────────────────
@@ -47,13 +65,20 @@ export async function createTigSiteAction(
   const contact_phone  = (formData.get('contact_phone') as string)?.trim();
   const capacity       = parseCapacity(formData.get('capacity'));
   const hours          = (formData.get('hours') as string)?.trim();
-  const latitude       = parseFloat(formData.get('latitude') as string);
-  const longitude      = parseFloat(formData.get('longitude') as string);
+  const latitude       = parseCoord(formData.get('latitude'), -90, 90);
+  const longitude      = parseCoord(formData.get('longitude'), -180, 180);
 
   if (!name || !category || !address || !arrondissement || !contact_name) {
     return { error: 'Veuillez remplir tous les champs obligatoires' };
   }
   if (!VALID_CATEGORIES.includes(category)) return { error: 'Catégorie invalide' };
+  if (capacity == null) return { error: 'Capacité invalide (entre 1 et 500)' };
+  if (latitude === 'invalid' || longitude === 'invalid') return { error: 'Coordonnées GPS invalides' };
+  const lenErr = fieldLengthError({
+    'Nom': [name, 150], 'Adresse': [address, 300], 'Contact': [contact_name, 100],
+    'Téléphone': [contact_phone, 30], 'Horaires': [hours, 100],
+  });
+  if (lenErr) return { error: lenErr };
 
   if (isDemoMode()) {
     const { MOCK_TIG_SITES } = await import('@/lib/mock/data');
@@ -64,8 +89,7 @@ export async function createTigSiteAction(
       capacity, current_count: 0,
       hours: hours || 'Lun–Ven 08h00–17h00',
       is_active: true,
-      latitude: isNaN(latitude) ? null : latitude,
-      longitude: isNaN(longitude) ? null : longitude,
+      latitude, longitude,
       created_at: new Date().toISOString(),
     });
     revalidatePath('/sigep/dashboard/tig-sites');
@@ -78,8 +102,7 @@ export async function createTigSiteAction(
   const { data, error } = await supabase.from('tig_sites').insert({
     name, category, address, arrondissement, contact_name, contact_phone,
     capacity, hours, is_active: true,
-    latitude: isNaN(latitude) ? null : latitude,
-    longitude: isNaN(longitude) ? null : longitude,
+    latitude, longitude,
   }).select('id').single();
 
   if (error) return { error: 'Erreur lors de la création du site' };
@@ -103,15 +126,20 @@ export async function updateTigSiteAction(formData: FormData): Promise<{ error: 
   const contact_phone  = (formData.get('contact_phone') as string)?.trim();
   const capacity       = parseCapacity(formData.get('capacity'));
   const hours          = (formData.get('hours') as string)?.trim();
-  const latRaw         = parseFloat(formData.get('latitude') as string);
-  const lngRaw         = parseFloat(formData.get('longitude') as string);
-  const latitude       = isNaN(latRaw) ? null : latRaw;
-  const longitude      = isNaN(lngRaw) ? null : lngRaw;
+  const latitude       = parseCoord(formData.get('latitude'), -90, 90);
+  const longitude      = parseCoord(formData.get('longitude'), -180, 180);
 
   if (!id || !name || !category || !address || !arrondissement || !contact_name) {
     return { error: 'Champs obligatoires manquants' };
   }
   if (!VALID_CATEGORIES.includes(category)) return { error: 'Catégorie invalide' };
+  if (capacity == null) return { error: 'Capacité invalide (entre 1 et 500)' };
+  if (latitude === 'invalid' || longitude === 'invalid') return { error: 'Coordonnées GPS invalides' };
+  const lenErr = fieldLengthError({
+    'Nom': [name, 150], 'Adresse': [address, 300], 'Contact': [contact_name, 100],
+    'Téléphone': [contact_phone, 30], 'Horaires': [hours, 100],
+  });
+  if (lenErr) return { error: lenErr };
 
   if (isDemoMode()) {
     const { MOCK_TIG_SITES, MOCK_CASES } = await import('@/lib/mock/data');
