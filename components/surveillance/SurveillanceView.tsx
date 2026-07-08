@@ -7,7 +7,7 @@ import { Search, Wifi, WifiOff, AlertTriangle, Battery, Maximize2, Download, Cir
 import type { TrackerMarker, MapGeofence } from '@/components/map/TrackingMap';
 import { RiskBadge } from '@/components/ui/StatusBadge';
 import AlertActions from '@/components/alerts/AlertActions';
-import { useAlertFeed } from '@/hooks/useAlertFeed';
+import { useRealtimeStream, type StreamAlert } from '@/hooks/useRealtimeStream';
 import type { RiskLevel } from '@/lib/supabase/types';
 
 const TrackingMap = dynamic(() => import('@/components/map/TrackingMap'), {
@@ -42,13 +42,13 @@ export default function SurveillanceView({
   canResolve?: boolean;
 }) {
   const [markers, setMarkers] = useState<TrackerMarker[]>(initialMarkers);
+  const [liveAlerts, setLiveAlerts] = useState<Record<string, AlertInfo>>(openAlerts);
   const [selected, setSelected] = useState<string | null>(null);
   const [focus, setFocus] = useState<[number, number] | null>(null);
   const [filter, setFilter] = useState<Filter>('all');
   const [sort, setSort] = useState<Sort>('priority');
   const [query, setQuery] = useState('');
   const [now, setNow] = useState(0);
-  const [connected, setConnected] = useState(false);
   const [trail, setTrail] = useState<[number, number][] | null>(null);
   const [night, setNight] = useState(false);
   const [showLabels, setShowLabels] = useState(false);
@@ -76,35 +76,58 @@ export default function SurveillanceView({
     return () => clearInterval(id);
   }, []);
 
-  // Live positions + connection status.
+  // Demo mode: simulator drives markers via re-render; mark connected.
+  const [demoConnected, setDemoConnected] = useState(false);
   useEffect(() => {
-    let cleanup: (() => void) | undefined;
-    import('@/lib/supabase/client').then(({ createClient, IS_DEMO_MODE }) => {
-      if (IS_DEMO_MODE) { setConnected(true); return; }
-      const supabase = createClient();
-      if (!supabase) return;
-      const stale = supabase.getChannels().find((c) => c.topic === 'realtime:surveillance-live');
-      if (stale) supabase.removeChannel(stale);
-      const channel = supabase.channel('surveillance-live')
-        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'positions' }, (payload) => {
-          const r = payload.new as { case_id: string; latitude: number; longitude: number; speed_kmh: number | null; recorded_at: string };
-          setMarkers((prev) => prev.map((m) => m.caseId === r.case_id ? { ...m, lat: r.latitude, lng: r.longitude, speedKmh: r.speed_kmh ?? m.speedKmh, online: true, lastSeenMs: Date.parse(r.recorded_at), lastUpdate: new Date(r.recorded_at).toLocaleTimeString('fr-FR', { timeZone: 'Africa/Ouagadougou', hour: '2-digit', minute: '2-digit' }) } : m));
-        })
-        .subscribe((s) => setConnected(s === 'SUBSCRIBED'));
-      cleanup = () => { supabase.removeChannel(channel); };
+    import('@/lib/supabase/client').then(({ IS_DEMO_MODE }) => {
+      if (IS_DEMO_MODE) setDemoConnected(true);
     });
-    return () => { cleanup?.(); };
   }, []);
 
-  // E — react to a new violation: focus the map + flash banner (sound is global).
-  useAlertFeed(useCallback((alert) => {
-    if (!['GEOFENCE_EXIT', 'CURFEW_VIOLATION', 'TAMPER_DETECTED', 'PANIC_BUTTON'].includes(alert.alert_type)) return;
-    setMarkers((prev) => prev.map((m) => m.caseId === alert.case_id ? { ...m, status: 'alert' } : m));
-    const m = markers.find((x) => x.caseId === alert.case_id);
-    if (m) { setSelected(m.caseId); setFocus([m.lat, m.lng]); }
-    setFlash(`Nouvelle violation — ${m?.label ?? alert.case_id.slice(0, 8)}`);
-    setTimeout(() => setFlash(null), 6000);
-  }, [markers]));
+  // Unified SSE stream: live positions, new violations, alert state changes.
+  // Replaces the RLS-gated postgres_changes channel that stayed silent in prod.
+  const { connected: sseConnected } = useRealtimeStream({
+    onPosition: useCallback((r: { case_id: string; latitude: number; longitude: number; speed_kmh: number | null; recorded_at: string }) => {
+      setMarkers((prev) => prev.map((m) => m.caseId === r.case_id
+        ? {
+            ...m, lat: r.latitude, lng: r.longitude,
+            speedKmh: r.speed_kmh ?? m.speedKmh, online: true,
+            lastSeenMs: Date.parse(r.recorded_at),
+            lastUpdate: new Date(r.recorded_at).toLocaleTimeString('fr-FR', { timeZone: 'Africa/Ouagadougou', hour: '2-digit', minute: '2-digit' }),
+          }
+        : m));
+    }, []),
+    onAlert: useCallback((alert: StreamAlert) => {
+      // Track EVERY open alert for the side panel; violations also focus the map.
+      setLiveAlerts((prev) => prev[alert.case_id] ? prev : {
+        ...prev,
+        [alert.case_id]: { id: alert.id, alert_type: alert.alert_type, status: alert.status ?? 'NEW', assigned_to: alert.assigned_to ?? null, severity: alert.severity, description: alert.description },
+      });
+      if (!['GEOFENCE_EXIT', 'BLE_EXIT', 'CURFEW_VIOLATION', 'TAMPER_DETECTED', 'PANIC_BUTTON'].includes(alert.alert_type)) return;
+      setMarkers((prev) => {
+        const m = prev.find((x) => x.caseId === alert.case_id);
+        if (m) { setSelected(m.caseId); setFocus([m.lat, m.lng]); setFlash(`Nouvelle violation — ${m.label}`); }
+        else setFlash(`Nouvelle violation — ${alert.case_number ?? alert.case_id.slice(0, 8)}`);
+        setTimeout(() => setFlash(null), 6000);
+        return prev.map((x) => x.caseId === alert.case_id ? { ...x, status: 'alert' as const } : x);
+      });
+    }, []),
+    onAlertUpdate: useCallback((alert: StreamAlert) => {
+      setLiveAlerts((prev) => {
+        const cur = prev[alert.case_id];
+        if (!cur || cur.id !== alert.id) return prev;
+        if (alert.is_resolved) {
+          const next = { ...prev };
+          delete next[alert.case_id];
+          // Alert closed → marker leaves the "alert" visual state.
+          setMarkers((ms) => ms.map((m) => m.caseId === alert.case_id && m.status === 'alert' ? { ...m, status: 'active' as const } : m));
+          return next;
+        }
+        return { ...prev, [alert.case_id]: { ...cur, status: alert.status ?? cur.status, assigned_to: alert.assigned_to ?? cur.assigned_to } };
+      });
+    }, []),
+  });
+  const connected = sseConnected || demoConnected;
 
   const isStale = useCallback((m: TrackerMarker) => m.lastSeenMs != null && now - m.lastSeenMs >= STALE_MS, [now]);
 
@@ -209,7 +232,11 @@ export default function SurveillanceView({
       <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
         {KPIS.map((k) => (
           <button key={k.key} onClick={() => setFilter(k.key)} data-tip={`Filtrer : ${k.label.toLowerCase()}`}
-            className={`rounded-xl border px-3 py-2 text-center transition ${filter === k.key ? 'border-gray-900 bg-gray-50' : 'border-gray-100 bg-white hover:bg-gray-50'}`}>
+            className={`rounded-xl border px-3 py-2 text-center transition ${
+              night
+                ? (filter === k.key ? 'border-gray-400 bg-gray-800' : 'border-gray-700 bg-gray-900 hover:bg-gray-800')
+                : (filter === k.key ? 'border-gray-900 bg-gray-50' : 'border-gray-100 bg-white hover:bg-gray-50')
+            }`}>
             <p className={`text-xl font-bold ${k.cls}`}>{k.n}</p>
             <p className="text-[10px] text-gray-500">{k.label}</p>
           </button>
@@ -219,7 +246,7 @@ export default function SurveillanceView({
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-4 h-[calc(100vh-13rem)]">
         {/* Map */}
         <div ref={mapBox} className="relative rounded-2xl overflow-hidden border border-gray-100 shadow-sm min-h-[360px] bg-gray-900">
-          <TrackingMap markers={markers} geofences={geofences} focus={focus} selectedId={selected} onMarkerClick={(id) => focusOn(markers.find((m) => m.caseId === id) ?? { caseId: id } as TrackerMarker)} extraTrail={trail} showLabels={showLabels} />
+          <TrackingMap markers={markers} geofences={geofences} focus={focus} selectedId={selected} onMarkerClick={(id) => { const m = markers.find((x) => x.caseId === id); if (m) focusOn(m); }} extraTrail={trail} showLabels={showLabels} />
           <div className="absolute top-3 right-3 z-[1000] flex items-center gap-2">
             <span data-tip={connected ? 'Flux temps réel connecté' : 'Temps réel déconnecté'} className={`flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-medium shadow bg-white ${connected ? 'text-emerald-600' : 'text-gray-400'}`}>
               <CircleDot className={`w-3 h-3 ${connected ? 'text-emerald-500' : 'text-gray-300'}`} /> {connected ? 'Live' : 'Hors-ligne'}
@@ -268,10 +295,10 @@ export default function SurveillanceView({
                 <a href={`https://www.google.com/maps?q=${selectedMarker.lat},${selectedMarker.lng}`} target="_blank" rel="noopener noreferrer" data-tip="Ouvrir dans Google Maps (itinéraire routier)" className="inline-flex items-center gap-0.5 text-xs text-blue-600 hover:underline"><ExternalLink className="w-3 h-3" /> Google Maps</a>
               </div>
               {/* E — open alert: acknowledge / resolve from here */}
-              {canResolve && openAlerts[selectedMarker.caseId] && (
+              {canResolve && liveAlerts[selectedMarker.caseId] && (
                 <div className={`mt-2 pt-2 border-t ${night ? 'border-gray-700' : 'border-gray-100'}`}>
-                  <p className="text-[11px] text-red-500 mb-1">Alerte ouverte : {openAlerts[selectedMarker.caseId].alert_type}</p>
-                  <AlertActions alertId={openAlerts[selectedMarker.caseId].id} status={openAlerts[selectedMarker.caseId].status} assignedTo={openAlerts[selectedMarker.caseId].assigned_to} users={operationals} />
+                  <p className="text-[11px] text-red-500 mb-1">Alerte ouverte : {liveAlerts[selectedMarker.caseId].alert_type}</p>
+                  <AlertActions alertId={liveAlerts[selectedMarker.caseId].id} status={liveAlerts[selectedMarker.caseId].status} assignedTo={liveAlerts[selectedMarker.caseId].assigned_to} users={operationals} />
                 </div>
               )}
             </div>
