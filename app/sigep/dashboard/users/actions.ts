@@ -2,8 +2,29 @@
 
 import { revalidatePath } from 'next/cache';
 import { getSession } from '@/lib/auth/session';
-import { canViewUsers, canManageAllUsers, canManageOwnAgents } from '@/lib/auth/permissions';
+import { canViewUsers, canManageAllUsers, canManageOwnAgents, PERMISSIONS } from '@/lib/auth/permissions';
 import type { UserRole } from '@/lib/supabase/types';
+
+// Filter arbitrary client-supplied strings down to real catalog permissions.
+function sanitizePermissions(raw: string[]): string[] {
+  const valid = new Set(Object.keys(PERMISSIONS));
+  return [...new Set(raw.filter((p) => valid.has(p)))];
+}
+
+// Institutional lockout guard: the LAST active SUPER_ADMIN can never be
+// deactivated or deleted — otherwise nobody can administer the platform.
+async function isLastActiveSuperAdmin(userId: string): Promise<boolean> {
+  const { createAdminClient } = await import('@/lib/supabase/admin');
+  const sb = createAdminClient();
+  if (!sb) return true; // fail safe: block the operation
+  const { data: t } = await sb.from('users').select('role, is_active').eq('id', userId).maybeSingle();
+  const target = t as { role?: UserRole; is_active?: boolean } | null;
+  if (target?.role !== 'SUPER_ADMIN' || target?.is_active === false) return false;
+  const { count } = await sb.from('users')
+    .select('id', { count: 'exact', head: true })
+    .eq('role', 'SUPER_ADMIN').eq('is_active', true);
+  return (count ?? 0) <= 1;
+}
 
 const isDemoMode = () =>
   !process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -56,8 +77,9 @@ export async function createUserAction(
   const jurisdiction = (formData.get('jurisdiction') as string)?.trim() || null;
   const phone = (formData.get('phone') as string)?.trim() || null;
   const access_scope = (formData.get('access_scope') as 'FULL' | 'RESTRICTED') || null;
-  // Granular permissions for ADMIN accounts (checkboxes → repeated "permissions" fields).
-  const permissions = role === 'ADMIN' ? (formData.getAll('permissions') as string[]) : [];
+  // Granular permissions for ADMIN accounts (checkboxes → repeated "permissions"
+  // fields), validated against the catalog — forged values are dropped.
+  const permissions = role === 'ADMIN' ? sanitizePermissions(formData.getAll('permissions') as string[]) : [];
 
   if (!full_name || !email || !password || !role) {
     return { error: 'Veuillez remplir tous les champs obligatoires' };
@@ -96,6 +118,13 @@ export async function createUserAction(
   const { createAdminClient } = await import('@/lib/supabase/admin');
   const supabase = createAdminClient();
   if (!supabase) return { error: 'Base de données indisponible' };
+
+  // Badge uniqueness — was demo-only, production allowed duplicates.
+  if (badge_number) {
+    const { count: badgeCount } = await supabase.from('users')
+      .select('id', { count: 'exact', head: true }).eq('badge_number', badge_number);
+    if (badgeCount && badgeCount > 0) return { error: 'Ce numéro de badge est déjà utilisé' };
+  }
 
   const { data: authData, error: authErr } = await supabase.auth.admin.createUser({
     email,
@@ -178,6 +207,8 @@ export async function toggleUserActiveAction(formData: FormData): Promise<void> 
   const next_active = formData.get('next_active') === 'true';
   if (!user_id || user_id === session.id) return; // cannot toggle self
   if (!(await canManageTarget(session, user_id))) return;
+  // Never deactivate the last active SUPER_ADMIN — total admin lockout.
+  if (!next_active && !isDemoMode() && await isLastActiveSuperAdmin(user_id)) return;
 
   if (isDemoMode()) {
     const { MOCK_USERS } = await import('@/lib/mock/data');
@@ -210,14 +241,16 @@ export async function updateUserPermissionsAction(formData: FormData): Promise<v
   const session = await getSession();
   if (!session || !canManageAllUsers(session.role)) return;
   const user_id = formData.get('user_id') as string;
-  const permissions = formData.getAll('permissions') as string[];
+  const permissions = sanitizePermissions(formData.getAll('permissions') as string[]);
   if (!user_id) return;
 
   if (isDemoMode()) { revalidatePath('/sigep/dashboard/users'); return; }
   const { createAdminClient } = await import('@/lib/supabase/admin');
   const supabase = createAdminClient();
   if (!supabase) return;
-  await supabase.from('users').update({ permissions, updated_at: new Date().toISOString() }).eq('id', user_id);
+  // Granular permissions only apply to ADMIN accounts — scope the update.
+  await supabase.from('users').update({ permissions, updated_at: new Date().toISOString() })
+    .eq('id', user_id).eq('role', 'ADMIN');
   const { writeAudit } = await import('@/lib/audit/log');
   await writeAudit({ userId: session.id, action: 'UPDATE_PERMISSIONS', tableName: 'users', recordId: user_id, newData: { permissions } });
   revalidatePath('/sigep/dashboard/users');
@@ -269,6 +302,11 @@ export async function deleteUserAction(formData: FormData): Promise<{ error?: st
     if (i !== -1) MOCK_USERS.splice(i, 1);
     revalidatePath('/sigep/dashboard/users');
     return;
+  }
+
+  // Never delete the last active SUPER_ADMIN — total admin lockout.
+  if (await isLastActiveSuperAdmin(user_id)) {
+    return { error: 'Impossible de supprimer le dernier SUPER_ADMIN actif de la plateforme.' };
   }
 
   const { createAdminClient } = await import('@/lib/supabase/admin');

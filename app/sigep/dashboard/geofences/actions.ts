@@ -9,6 +9,37 @@ function isDemoMode() {
   return !process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 }
 
+// ── Geometry validation (was absent: radius 0/negative, arbitrary JSON and
+// out-of-range coordinates were accepted into the enforcement pipeline) ──
+function circleError(lat: number, lon: number, r: number): string | null {
+  if (!Number.isFinite(lat) || lat < -90 || lat > 90) return 'Latitude invalide';
+  if (!Number.isFinite(lon) || lon < -180 || lon > 180) return 'Longitude invalide';
+  if (!Number.isFinite(r) || r < 10 || r > 100_000) return 'Rayon invalide (entre 10 m et 100 km)';
+  return null;
+}
+
+function parseRing(raw: string): { ring?: number[][]; error?: string } {
+  let coords: unknown;
+  try { coords = JSON.parse(raw); } catch { return { error: 'Données du polygone invalides' }; }
+  if (!Array.isArray(coords) || coords.length < 3) return { error: 'Polygone : minimum 3 points' };
+  if (coords.length > 500) return { error: 'Polygone trop complexe (max 500 points)' };
+  for (const p of coords) {
+    if (!Array.isArray(p) || p.length < 2 || !Number.isFinite(p[0]) || !Number.isFinite(p[1])) {
+      return { error: 'Point de polygone invalide' };
+    }
+    if (p[0] < -180 || p[0] > 180 || p[1] < -90 || p[1] > 90) return { error: 'Coordonnées hors limites' };
+  }
+  return { ring: coords as number[][] };
+}
+
+const HM_RE = /^\d{1,2}:\d{2}$/;
+function windowError(start: string | null, end: string | null): string | null {
+  if ((start && !end) || (!start && end)) return 'Fenêtre horaire incomplète (début ET fin requis)';
+  if (start && !HM_RE.test(start)) return 'Heure de début invalide (HH:MM)';
+  if (end && !HM_RE.test(end)) return 'Heure de fin invalide (HH:MM)';
+  return null;
+}
+
 export async function createGeofenceAction(
   _: { error: string } | null,
   formData: FormData,
@@ -34,22 +65,21 @@ export async function createGeofenceAction(
   let center_lon: number | null    = null;
   let radius_m:   number | null    = null;
 
+  const wErr = windowError(active_start, active_end);
+  if (wErr) return { error: wErr };
+
   if (shape_type === 'CIRCLE') {
     center_lat = parseFloat(formData.get('center_lat') as string);
     center_lon = parseFloat(formData.get('center_lon') as string);
     radius_m   = parseInt(formData.get('radius_m') as string, 10);
-    if (isNaN(center_lat) || isNaN(center_lon) || isNaN(radius_m)) {
-      return { error: 'Coordonnées du cercle invalides' };
-    }
+    const cErr = circleError(center_lat, center_lon, radius_m);
+    if (cErr) return { error: cErr };
   } else {
     const raw = formData.get('coordinates') as string;
     if (!raw) return { error: 'Polygone non dessiné sur la carte' };
-    try {
-      const coords: number[][] = JSON.parse(raw);
-      area = { type: 'Polygon', coordinates: [coords] };
-    } catch {
-      return { error: 'Données du polygone invalides' };
-    }
+    const parsed = parseRing(raw);
+    if (parsed.error || !parsed.ring) return { error: parsed.error ?? 'Polygone invalide' };
+    area = { type: 'Polygon', coordinates: [parsed.ring] };
   }
 
   const newGeo: Geofence = {
@@ -116,13 +146,15 @@ export async function updateGeofenceAction(
     const lat = parseFloat(formData.get('center_lat') as string);
     const lon = parseFloat(formData.get('center_lon') as string);
     const r   = parseInt(formData.get('radius_m') as string, 10);
-    if (isNaN(lat) || isNaN(lon) || isNaN(r)) return { error: 'Cercle invalide' };
+    const cErr = circleError(lat, lon, r);
+    if (cErr) return { error: cErr };
     update.center_lat = lat; update.center_lon = lon; update.radius_m = r;
   } else {
     const raw = formData.get('coordinates') as string;
     if (!raw) return { error: 'Polygone non tracé' };
-    try { update.area = { type: 'Polygon', coordinates: [JSON.parse(raw)] }; }
-    catch { return { error: 'Polygone invalide' }; }
+    const parsed = parseRing(raw);
+    if (parsed.error || !parsed.ring) return { error: parsed.error ?? 'Polygone invalide' };
+    update.area = { type: 'Polygon', coordinates: [parsed.ring] };
   }
 
   if (isDemoMode()) {
