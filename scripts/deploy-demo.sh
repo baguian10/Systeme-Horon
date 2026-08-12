@@ -9,10 +9,14 @@
 # banner, the demo homepage block and the demo page titles. Nothing to toggle by
 # hand, and no separate fork to keep in sync.
 #
-# Two things must NOT leak from the real deployment into the demo, hence the
-# explicit config below:
-#   • the cron jobs declared in vercel.json  → vercel.demo.json omits them
-#   • the local .env.local                   → gitignored, never uploaded
+# The one thing that must not follow the code onto the demo is the pair of cron
+# jobs declared in vercel.json: they poll the tracker fleet and send measure
+# reminders, which is meaningless on an instance with no backend.
+#
+# `vercel --local-config` does NOT help here — it only changes which file the
+# CLI reads locally, while the build still picks up the vercel.json sitting at
+# the root of the uploaded sources. So the file is physically swapped for the
+# duration of the deploy, and restored by an EXIT trap even on failure or Ctrl-C.
 #
 # Usage:  bash scripts/deploy-demo.sh
 set -euo pipefail
@@ -22,8 +26,23 @@ export VERCEL_PROJECT_ID="prj_s2PtSv0lui48aQoxIHCUN3bGgDAI"   # sigep-presentati
 
 cd "$(dirname "$0")/.."
 
+restore() {
+  if [ -f vercel.json.real ]; then
+    mv -f vercel.json.real vercel.json
+    echo "   vercel.json restauré (avec les crons)"
+  fi
+}
+trap restore EXIT
+
+echo "→ Substitution de vercel.json par vercel.demo.json (sans crons)…"
+cp -f vercel.json vercel.json.real
+cp -f vercel.demo.json vercel.json
+
 echo "→ Déploiement de la démonstration (projet sigep-presentation)…"
-vercel --prod --yes --local-config vercel.demo.json
+vercel --prod --yes
+
+restore
+trap - EXIT
 
 echo
 echo "→ Vérifications :"
@@ -32,10 +51,9 @@ for path in "/" "/sigep/dashboard/tig-sites" "/sigep/dashboard/cases/c-0001"; do
   printf '   %-40s HTTP %s\n' "$path" "$code"
 done
 
-home=$(curl -s https://sigep-presentation.vercel.app/)
-echo "$home" | grep -q "Environnement de" \
+curl -s https://sigep-presentation.vercel.app/ | grep -q "Environnement de" \
   && echo "   bandeau DÉMONSTRATION                    présent" \
-  || echo "   bandeau DÉMONSTRATION                    ABSENT — vérifier que le projet n'a pas de variables Supabase"
+  || echo "   bandeau DÉMONSTRATION                    ABSENT — le projet a-t-il reçu des variables Supabase ?"
 
 curl -s https://sigep-presentation.vercel.app/sigep/dashboard/cases/c-0001 | grep -q "Suivi TIG" \
   && echo "   panneau Suivi TIG                        présent" \

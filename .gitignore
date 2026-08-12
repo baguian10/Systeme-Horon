@@ -42,3 +42,6 @@ next-env.d.ts
 
 # Supabase CLI local state (project refs, pooler URL)
 supabase/.temp/
+
+# Sauvegarde temporaire créée par scripts/deploy-demo.sh
+vercel.json.real
