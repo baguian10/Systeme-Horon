@@ -4,46 +4,113 @@
 <meta charset="utf-8">
 <title>SIGEP · Système Horon — Dossier de présentation au Gouvernement</title>
 <style>
-  @page { size: A4; margin: 20mm 18mm 18mm 18mm; }
+  @page { size: A4; margin: 18mm 16mm 16mm 16mm; }
   * { box-sizing: border-box; }
-  body { font-family: Georgia, "Times New Roman", serif; color: #1f2937; font-size: 11pt; line-height: 1.62; margin: 0; }
+  body { font-family: Georgia, "Times New Roman", serif; color: #1f2937; font-size: 10.5pt; line-height: 1.6; margin: 0; }
   h1 { font-family: "Segoe UI", Arial, sans-serif; font-size: 20pt; color: #064e3b; margin: 0 0 6px; }
-  h2 { font-family: "Segoe UI", Arial, sans-serif; font-size: 15.5pt; color: #065f46; margin: 26px 0 10px; padding-bottom: 5px; border-bottom: 3px solid; border-image: linear-gradient(to right, #ef2b2d 33%, #eab308 33% 66%, #009e49 66%) 1; page-break-after: avoid; }
-  h3 { font-family: "Segoe UI", Arial, sans-serif; font-size: 12.5pt; color: #047857; margin: 16px 0 6px; page-break-after: avoid; }
+  h2 { font-family: "Segoe UI", Arial, sans-serif; font-size: 15pt; color: #065f46; margin: 0 0 12px; padding-bottom: 6px; border-bottom: 3px solid; border-image: linear-gradient(to right, #ef2b2d 33%, #eab308 33% 66%, #009e49 66%) 1; page-break-after: avoid; page-break-before: always; display: flex; align-items: center; gap: 10px; }
+  h2 .secnum { flex: 0 0 auto; width: 27px; height: 27px; border-radius: 8px; background: #064e3b; color: #fff; font-size: 13pt; font-weight: 800; display: flex; align-items: center; justify-content: center; line-height: 1; }
+  h2.nonum { page-break-before: avoid; }
+  h2.nonum .secnum { display: none; }
+  h2 .sect { flex: 1; }
+  /* En bref */
+  .enbref { display:flex; gap:11px; align-items:flex-start; background:#f0fdf4; border:1px solid #a7f3d0; border-left:5px solid #059669; border-radius:8px; padding:9px 13px; margin:0 0 14px; page-break-inside:avoid; }
+  .enbref .k { flex:0 0 auto; font-family:"Segoe UI",Arial,sans-serif; font-size:7.5pt; font-weight:800; letter-spacing:1.5px; color:#047857; background:#d1fae5; border-radius:4px; padding:3px 7px; margin-top:1px; }
+  .enbref .v { flex:1; font-family:"Segoe UI",Arial,sans-serif; font-size:9.5pt; color:#065f46; line-height:1.55; text-align:left; }
+  .enbref .v b { color:#064e3b; }
+  h3 { font-family: "Segoe UI", Arial, sans-serif; font-size: 12pt; color: #047857; margin: 16px 0 6px; page-break-after: avoid; }
+  h4 { font-family: "Segoe UI", Arial, sans-serif; font-size: 10.5pt; color: #0f766e; margin: 12px 0 4px; page-break-after: avoid; }
   p { margin: 7px 0; text-align: justify; }
-  ul, ol { margin: 7px 0 7px 22px; padding: 0; } li { margin: 4px 0; text-align: justify; }
-  table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 10pt; font-family: "Segoe UI", Arial, sans-serif; page-break-inside: avoid; }
-  th, td { border: 1px solid #94a3b8; padding: 7px 9px; text-align: left; vertical-align: top; }
+  ul, ol { margin: 7px 0 7px 20px; padding: 0; } li { margin: 4px 0; text-align: justify; }
+  table { width: 100%; border-collapse: collapse; margin: 11px 0; font-size: 9.3pt; font-family: "Segoe UI", Arial, sans-serif; page-break-inside: avoid; }
+  th, td { border: 1px solid #94a3b8; padding: 6px 8px; text-align: left; vertical-align: top; }
   th { background: #064e3b; color: #fff; font-weight: 600; }
   tr:nth-child(even) td { background: #f8fafc; }
-  .cover { text-align: center; padding-top: 40mm; page-break-after: always; }
+  .cover { text-align: center; padding-top: 8mm; page-break-after: always; }
   .cover .rep { font-family: "Segoe UI", Arial, sans-serif; font-size: 12pt; letter-spacing: 3px; color: #334155; }
   .cover .devise { font-size: 10pt; color: #64748b; font-style: italic; margin-top: 2px; }
-  .cover .flag { width: 150px; height: 10px; margin: 18px auto; display: flex; border-radius: 5px; overflow: hidden; }
+  .cover .flag { width: 150px; height: 9px; margin: 10px auto; display: flex; border-radius: 5px; overflow: hidden; }
   .cover .flag div { flex: 1; }
   .cover .star { color:#eab308; font-size: 20pt; margin-top:-14px; }
-  .cover h1 { font-size: 27pt; margin: 26px 0 10px; }
-  .cover .sub { font-family: "Segoe UI", Arial, sans-serif; font-size: 13.5pt; color: #475569; line-height: 1.7; }
-  .cover .dest { margin-top: 26mm; font-family: "Segoe UI", Arial, sans-serif; font-size: 11pt; color: #334155; line-height: 2; }
-  .cover .conf { margin-top: 14mm; display:inline-block; border: 2px solid #b91c1c; color:#b91c1c; padding: 4px 18px; font-family:"Segoe UI",Arial,sans-serif; font-size: 10pt; letter-spacing: 2px; font-weight: 700; }
-  .lead { font-size: 12pt; color: #334155; }
-  .box { border: 1px solid #d1d5db; border-left: 5px solid #10b981; background: #f0fdf4; padding: 10px 14px; margin: 12px 0; border-radius: 4px; page-break-inside: avoid; }
+  .cover h1 { font-size: 25pt; margin: 12px 0 6px; }
+  .cover .sub { font-family: "Segoe UI", Arial, sans-serif; font-size: 13pt; color: #475569; line-height: 1.7; }
+  .cover .coverimg { margin: 10px auto 6px; width: 68mm; }
+  .cover .coverimg img { width: 100%; display:block; border-radius: 8px; }
+  .cover .coverimg .c { font-family:"Segoe UI",Arial,sans-serif; font-size: 8pt; color:#64748b; margin-top:4px; }
+  .cover .dest { margin-top: 6mm; font-family: "Segoe UI", Arial, sans-serif; font-size: 10.5pt; color: #334155; line-height: 1.9; }
+  .cover .conf { margin-top: 5mm; display:inline-block; border: 2px solid #b91c1c; color:#b91c1c; padding: 4px 18px; font-family:"Segoe UI",Arial,sans-serif; font-size: 9.5pt; letter-spacing: 2px; font-weight: 700; }
+  .lead { font-size: 11.5pt; color: #334155; }
+  .box { border: 1px solid #d1d5db; border-left: 5px solid #10b981; background: #f0fdf4; padding: 9px 13px; margin: 11px 0; border-radius: 4px; page-break-inside: avoid; }
   .box-gold { border-left-color: #eab308; background: #fefce8; }
   .box-red { border-left-color: #ef4444; background: #fef2f2; }
-  .keyfig { display:flex; gap:12px; margin: 14px 0; page-break-inside: avoid; }
-  .keyfig div { flex:1; border:1.5px solid #10b981; border-radius: 10px; padding: 10px; text-align:center; background:#f0fdf4; }
-  .keyfig .n { font-family:"Segoe UI",Arial,sans-serif; font-size: 17pt; font-weight: 800; color:#064e3b; }
-  .keyfig .l { font-size: 9pt; color:#475569; font-family:"Segoe UI",Arial,sans-serif; }
-  .fig { margin: 14px 0; text-align: center; page-break-inside: avoid; }
-  .fig .cap { font-size: 9pt; color: #64748b; margin-top: 5px; font-style: italic; }
+  .box-blue { border-left-color: #3b82f6; background: #eff6ff; }
+  .keyfig { display:flex; gap:10px; margin: 13px 0; page-break-inside: avoid; }
+  .keyfig div { flex:1; border:1.5px solid #10b981; border-radius: 10px; padding: 9px; text-align:center; background:#f0fdf4; }
+  .keyfig .n { font-family:"Segoe UI",Arial,sans-serif; font-size: 16pt; font-weight: 800; color:#064e3b; }
+  .keyfig .l { font-size: 8.5pt; color:#475569; font-family:"Segoe UI",Arial,sans-serif; line-height:1.35; }
+  .fig { margin: 13px 0; text-align: center; page-break-inside: avoid; }
+  .fig .cap { font-size: 8.5pt; color: #64748b; margin-top: 5px; font-style: italic; font-family:"Segoe UI",Arial,sans-serif; }
+  .fig img { max-width: 100%; display:block; margin: 0 auto; border-radius: 6px; }
+  .fig.framed img { border: 1px solid #cbd5e1; box-shadow: 0 1px 4px rgba(0,0,0,.10); }
+  .fig.sheet img { border: 1px solid #dbeafe; }
+  .photos { display:flex; gap:9px; margin: 13px 0; page-break-inside: avoid; }
+  .photos > figure { flex:1; margin:0; text-align:center; }
+  .photos img { width:100%; display:block; border-radius:6px; border:1px solid #e2e8f0; }
+  .photos figcaption { font-size:8pt; color:#64748b; font-style:italic; margin-top:4px; font-family:"Segoe UI",Arial,sans-serif; line-height:1.35; }
   .section { page-break-before: always; }
-  .sig { margin-top: 40px; display:flex; justify-content: space-between; gap: 30px; }
+  .sig { margin-top: 34px; display:flex; justify-content: space-between; gap: 16px; page-break-inside: avoid; }
   .sig div { flex:1; text-align:center; }
-  .sig .line { border-top: 1.5px solid #334155; margin-top: 60px; padding-top: 6px; font-size: 10pt; }
-  .toc ol { font-size: 11pt; line-height: 2; }
+  .sig .line { border-top: 1.5px solid #334155; margin-top: 55px; padding-top: 6px; font-size: 9.5pt; }
+  .toc ol { font-size: 10.5pt; line-height: 1.85; }
+  .toc ol ol { font-size: 9.5pt; color:#475569; line-height:1.5; margin-top:2px; }
+  .toc .subtoc { font-size: 8.5pt; color:#64748b; line-height:1.5; margin: 1px 0 3px; font-family:"Segoe UI",Arial,sans-serif; }
+  .toc .tocannex { margin-top: 14px; padding-top: 10px; border-top: 1px solid #cbd5e1; font-family:"Segoe UI",Arial,sans-serif; font-size: 10pt; color:#334155; line-height:1.9; }
+  h2.annexe .secnum { background:#92400e; }
+  h2.annexe { color:#92400e; }
   .no-print { background:#064e3b; color:#fff; padding:10px 16px; font-size:10pt; font-family:"Segoe UI",Arial,sans-serif; }
   @media print { .no-print { display:none; } }
-  .hyp { font-size: 9pt; color:#92400e; font-style: italic; }
+  .hyp { font-size: 8.5pt; color:#92400e; font-style: italic; }
+  .access { border: 2px solid #064e3b; border-radius: 12px; background: #f0fdf4; padding: 13px 15px; margin: 14px 0; display: flex; gap: 15px; align-items: center; page-break-inside: avoid; }
+  .access .qr { width: 29mm; flex-shrink: 0; }
+  .access .qr img { width: 100%; display: block; }
+  .access .txt { flex: 1; font-family: "Segoe UI", Arial, sans-serif; }
+  .access .lbl { font-size: 8pt; letter-spacing: 2px; color: #047857; font-weight: 700; }
+  .access .url { font-size: 12pt; font-weight: 800; color: #064e3b; word-break: break-all; margin: 3px 0 5px; }
+  .access .note { font-size: 9pt; color: #334155; line-height: 1.6; }
+  .access .qrcap { font-size: 7.5pt; color: #64748b; text-align: center; margin-top: 3px; font-family:"Segoe UI",Arial,sans-serif; }
+  .duo { display:flex; gap:9px; margin:13px 0; page-break-inside: avoid; }
+  .duo > div { flex:1; border:1px solid #cbd5e1; border-radius:10px; padding:9px 8px; text-align:center; font-family:"Segoe UI",Arial,sans-serif; background:#f8fafc; }
+  .duo img { width: 23mm; display:block; margin: 0 auto 5px; }
+  .duo .t { font-size:9.5pt; font-weight:700; color:#064e3b; }
+  .duo .u { font-size:8pt; color:#047857; word-break:break-all; margin-top:2px; }
+  .duo .d { font-size:8pt; color:#475569; margin-top:4px; line-height:1.45; }
+  .presente { margin-top: 6mm; font-family:"Segoe UI",Arial,sans-serif; }
+  .presente .t { font-size: 8pt; letter-spacing: 2.5px; color:#64748b; }
+  .presente .e { font-size: 12.5pt; font-weight: 800; color:#064e3b; letter-spacing: 1px; margin-top: 4px; }
+  .presente .d { font-size: 9pt; color:#475569; font-style: italic; margin-top: 2px; }
+  .presente .p { font-size: 9.5pt; color:#334155; line-height: 1.7; margin-top: 8px; }
+  .card { display:flex; gap:13px; margin: 13px 0; page-break-inside: avoid; }
+  .card > div { flex:1; border:1.5px solid #10b981; border-radius:10px; padding:11px 13px; background:#f0fdf4; font-family:"Segoe UI",Arial,sans-serif; }
+  .card .nom { font-size:11.5pt; font-weight:800; color:#064e3b; }
+  .card .role { font-size:9pt; color:#047857; font-weight:600; margin-top:2px; }
+  .card .loc { font-size:8.5pt; color:#64748b; font-style:italic; margin-top:2px; }
+  .card .ct { font-size:9pt; color:#334155; margin-top:7px; line-height:1.65; border-top:1px solid #bbf7d0; padding-top:6px; }
+  /* Scénarios */
+  .scen { border:1.5px solid #cbd5e1; border-radius:12px; margin:14px 0; page-break-inside:avoid; overflow:hidden; }
+  .scen .h { background:#064e3b; color:#fff; font-family:"Segoe UI",Arial,sans-serif; padding:7px 13px; font-size:10.5pt; font-weight:700; }
+  .scen .h span { font-weight:400; color:#a7f3d0; font-size:9pt; }
+  .scen .b { padding:10px 13px; }
+  .scen table { margin:0; font-size:9pt; }
+  .scen th { background:#047857; }
+  .scen td:first-child { width:24mm; font-weight:600; color:#064e3b; white-space:nowrap; }
+  .verdict { background:#ecfdf5; border-top:1px solid #a7f3d0; padding:8px 13px; font-family:"Segoe UI",Arial,sans-serif; font-size:9.2pt; color:#065f46; }
+  .verdict b { color:#064e3b; }
+  /* Étapes numérotées */
+  .steps { counter-reset: st; margin:12px 0; padding:0; list-style:none; }
+  .steps > li { counter-increment: st; position:relative; padding-left:30px; margin:9px 0; text-align:justify; }
+  .steps > li::before { content: counter(st); position:absolute; left:0; top:1px; width:21px; height:21px; border-radius:50%; background:#064e3b; color:#fff; font-family:"Segoe UI",Arial,sans-serif; font-size:9.5pt; font-weight:700; display:flex; align-items:center; justify-content:center; }
+  .spec { font-family:"Segoe UI",Arial,sans-serif; font-size:9pt; }
+  .tagline { font-family:"Segoe UI",Arial,sans-serif; font-size:8.5pt; letter-spacing:2px; color:#047857; font-weight:700; margin-top:14px; }
 </style>
 </head>
 <body>
@@ -56,11 +123,15 @@
   <div class="devise">La Patrie ou la Mort, nous Vaincrons</div>
   <div class="flag"><div style="background:#ef2b2d"></div><div style="background:#009e49"></div></div>
   <div class="star">★</div>
-  <div class="rep" style="font-size:10.5pt; letter-spacing:1.5px; margin-top:10px">MINISTÈRE DE LA JUSTICE ET DES DROITS HUMAINS</div>
+  <div class="rep" style="font-size:10pt; letter-spacing:1.5px; margin-top:8px">MINISTÈRE DE LA JUSTICE ET DES DROITS HUMAINS</div>
   <h1>SIGEP · Système Horon</h1>
   <div class="sub">
     La surveillance électronique au service de la Justice burkinabè<br>
-    <b>Dossier de présentation du projet au Gouvernement</b>
+    <b>Dossier de présentation détaillé du projet au Gouvernement</b>
+  </div>
+  <div class="coverimg">
+    <img src="assets/photo-porte-cheville.jpg" alt="Bracelet HORON X porté à la cheville">
+    <div class="c">Le bracelet HORON X en situation de port — discret, étanche, inviolable.</div>
   </div>
   <div class="dest">
     À l'attention de Son Excellence Monsieur le Président du Faso,<br>
@@ -68,130 +139,422 @@
     et des membres du Gouvernement
   </div>
   <div class="conf">CONFIDENTIEL — DOCUMENT DE TRAVAIL GOUVERNEMENTAL</div>
+  <div class="presente">
+    <div class="t">PROJET PRÉSENTÉ PAR</div>
+    <div class="e">BEWI'S EXECUTION AND TECH</div>
+    <div class="d">Systèmes de localisation GPS &amp; développement de systèmes informatiques</div>
+    <div class="p">
+      <b>BAGUIAN Ezechiel Igor</b> — Ingénieur en développement de systèmes d'automatisation (New York, États-Unis)<br>
+      <b>OUEDRAOGO Donald</b> — Ingénieur des mines (Ouagadougou, Burkina Faso)
+    </div>
+  </div>
 </div>
 
 <!-- ═══════════════ SOMMAIRE ═══════════════ -->
 <div class="toc" style="page-break-after: always;">
-  <h2>Sommaire</h2>
+  <h2 class="nonum"><span class="sect">Sommaire</span></h2>
   <ol>
     <li>Résumé à l'attention des décideurs</li>
     <li>Le problème que nous résolvons</li>
-    <li>La solution : le bracelet électronique expliqué simplement</li>
-    <li>Le dispositif SIGEP : deux visages, un système</li>
-    <li>Le site public : informer et rassurer les citoyens</li>
+    <li>Le matériel : le bracelet HORON X et son écosystème<div class="subtoc">Le traceur de cheville · Le bracelet renforcé anti-coupe · L'étanchéité IP68 · L'autonomie et la base de recharge · Les communications · Le bouton SOS et l'appel vocal · Le Beacon d'assignation à domicile · Tableau récapitulatif des équipements</div></li>
+    <li>Ce que le juge peut ordonner : les six types de mesures</li>
+    <li>Les critères d'éligibilité proposés</li>
+    <li>Le programme TIG : enregistrement, cumul automatique des heures, remise au juge</li>
+    <li>Le cycle de vie complet d'un dossier, du prononcé à l'archivage</li>
+    <li>Scénarios concrets : cinq situations réelles de bout en bout</li>
     <li>La plateforme institutionnelle : qui fait quoi</li>
     <li>Comment le système veille, alerte et fait remonter</li>
+    <li>L'agenda des obligations, le journal de comportement et les révocations</li>
+    <li>La gestion du parc de bracelets</li>
+    <li>Les rapports officiels remis à la Justice</li>
+    <li>Le site public : informer et rassurer les citoyens</li>
     <li>Les garanties : sécurité, traçabilité, souveraineté, droits</li>
     <li>Les bénéfices, partie par partie</li>
     <li>Le modèle économique : un dispositif qui s'autofinance</li>
+    <li>La gestion des risques du déploiement</li>
     <li>Feuille de route de déploiement</li>
+    <li>Les indicateurs d'évaluation du pilote</li>
+    <li>Ce que font les autres pays</li>
+    <li>Le porteur du projet : Bewi's Execution and Tech</li>
     <li>Conclusion et engagement</li>
   </ol>
+  <div class="tocannex"><b>Annexe A</b> — Glossaire du dispositif<br><b>Annexe B</b> — Canevas d'articles réglementaires</div>
 </div>
 
 <!-- ═══════════════ 1. RÉSUMÉ ═══════════════ -->
-<h2>1. Résumé à l'attention des décideurs</h2>
-<p class="lead"><b>SIGEP (Système Horon)</b> est une plateforme burkinabè, déjà construite et opérationnelle, qui permet de faire exécuter certaines peines et mesures judiciaires <b>hors des murs de la prison</b>, grâce à un bracelet électronique porté à la cheville. La personne reste chez elle, garde son travail et sa famille ; la Justice, elle, sait à chaque minute où elle se trouve et est alertée immédiatement au moindre écart.</p>
+<h2><span class="secnum">1</span><span class="sect">Résumé à l'attention des décideurs</span></h2>
+<div class="enbref"><div class="k">EN BREF</div><div class="v">SIGEP est une plateforme burkinabè <b>déjà construite et opérationnelle</b> qui fait exécuter certaines peines hors de la prison, sous bracelet électronique — avec preuve, contrôle continu et alerte immédiate au moindre écart.</div></div>
+<p class="lead"><b>SIGEP (Système Horon)</b> est une plateforme burkinabè, <b>déjà construite et opérationnelle</b>, qui permet de faire exécuter certaines peines et mesures judiciaires <b>hors des murs de la prison</b>, grâce à un bracelet électronique porté à la cheville. La personne reste chez elle, garde son travail et sa famille ; la Justice, elle, sait à chaque minute où elle se trouve, mesure ce qu'elle accomplit, et est alertée immédiatement au moindre écart.</p>
 <div class="keyfig">
   <div><div class="n">24 h/24</div><div class="l">position vérifiée en continu, alerte en moins d'une minute</div></div>
-  <div><div class="n">−70 %*</div><div class="l">de coût par personne par rapport à la détention (voir §10, hypothèses)</div></div>
+  <div><div class="n">−70 %*</div><div class="l">de coût par personne par rapport à la détention (voir §17)</div></div>
   <div><div class="n">0 F CFA</div><div class="l">de charge salariale pour l'État à terme : le dispositif s'autofinance</div></div>
   <div><div class="n">100 %</div><div class="l">des actions tracées dans un journal d'audit inviolable</div></div>
 </div>
-<p>Ce document présente : le problème carcéral auquel le pays fait face ; le fonctionnement du dispositif, expliqué pour être compris <b>sans aucune connaissance en informatique</b> ; le rôle de chaque institution (juge, administration pénitentiaire, forces de sécurité, équipe SIGEP, Ministère) ; les garanties de sécurité et de respect des droits ; et enfin le <b>modèle économique</b> par lequel les contributions des porteurs solvables financent le dispositif et allègent durablement le budget de l'État.</p>
-<div class="box-gold box"><b>Ce que nous demandons au Gouvernement :</b> l'adoption du cadre réglementaire du placement sous surveillance électronique, la désignation des juridictions pilotes, et l'autorisation de lancement de la phase pilote décrite au §11. La plateforme, elle, est <b>déjà développée et fonctionnelle</b>.</div>
+<p>Ce dossier va volontairement <b>dans le détail</b>. Il décrit le matériel réellement utilisé, chaque type de mesure que le juge peut prononcer, le fonctionnement complet du <b>programme de Travail d'Intérêt Général</b> — de l'enregistrement du condamné sur un site agréé jusqu'à la <b>remise automatique du relevé d'heures au juge</b> —, le cycle de vie d'un dossier, cinq scénarios concrets de bout en bout, et le modèle économique par lequel les contributions des porteurs solvables financent le dispositif et allègent durablement le budget de l'État.</p>
+<div class="access">
+  <div class="qr"><img src="assets/qr-demo.png" alt="QR code d'accès à la démonstration en ligne"><div class="qrcap">Scannez</div></div>
+  <div class="txt">
+    <div class="lbl">ESSAYER LE SYSTÈME MAINTENANT</div>
+    <div class="url">sigep-presentation.vercel.app</div>
+    <div class="note">Une <b>version de démonstration complète et gratuite</b> du Système Horon est en ligne, accessible depuis n'importe quel ordinateur ou téléphone. Elle reproduit l'intégralité du dispositif décrit dans ce document — site public, tableau de bord, cartes de suivi en temps réel, sites TIG, alertes, dossiers, rapports — à partir de <b>données entièrement fictives</b> : aucune donnée personnelle réelle n'y est manipulée. <b>Aucun identifiant n'est nécessaire</b> ; une visite guidée accompagne le visiteur. Une <b>vidéo de présentation</b> est également disponible sur <b>tinyurl.com/SigepHoron</b>.</div>
+  </div>
+</div>
+<div class="box-gold box"><b>Ce que nous demandons au Gouvernement :</b> l'adoption du cadre réglementaire du placement sous surveillance électronique, la désignation des juridictions pilotes, l'agrément des premiers sites de Travail d'Intérêt Général, et l'autorisation de lancement de la phase pilote décrite au §19. La plateforme, elle, est <b>déjà développée et fonctionnelle</b>.</div>
 
 <!-- ═══════════════ 2. PROBLÈME ═══════════════ -->
-<div class="section"></div>
-<h2>2. Le problème que nous résolvons</h2>
+<h2><span class="secnum">2</span><span class="sect">Le problème que nous résolvons</span></h2>
+<div class="enbref"><div class="k">EN BREF</div><div class="v">Prisons surpeuplées, coût élevé, détention souvent évitable — et des peines alternatives qui existent en droit mais que <b>personne ne peut aujourd'hui contrôler ni prouver</b>.</div></div>
 <p>Comme la plupart des pays de la sous-région, le Burkina Faso fait face à une équation pénitentiaire difficile :</p>
 <ul>
   <li><b>Des prisons surpeuplées.</b> Les maisons d'arrêt accueillent bien au-delà de leur capacité. La surpopulation dégrade les conditions de détention, complique la mission des gardes pénitentiaires et expose l'État à des critiques sur le plan des droits humains.</li>
   <li><b>Un coût élevé et croissant pour l'État.</b> Chaque personne détenue doit être nourrie, logée, gardée, soignée — chaque jour, à la charge exclusive du contribuable.</li>
-  <li><b>Une part importante de détention évitable.</b> Une fraction significative des personnes incarcérées sont en <b>détention provisoire</b> (en attente de jugement) ou condamnées à de <b>courtes peines</b> pour des faits sans violence. Pour elles, la prison coûte cher, brise l'emploi et la famille, et favorise la récidive au contact de la délinquance endurcie.</li>
+  <li><b>Une part importante de détention évitable.</b> Une fraction significative des personnes incarcérées sont en <b>détention provisoire</b> ou condamnées à de <b>courtes peines</b> pour des faits sans violence. Pour elles, la prison coûte cher, brise l'emploi et la famille, et favorise la récidive au contact de la délinquance endurcie.</li>
+  <li><b>Des peines alternatives qui existent en droit mais pas en fait.</b> Le Travail d'Intérêt Général est prévu, mais faute d'outil de contrôle, <b>personne ne peut prouver que les heures ont réellement été effectuées</b>. Le juge prononce une mesure qu'il ne peut ni suivre ni vérifier — il finit par préférer la prison, qui, elle, est vérifiable.</li>
   <li><b>La prison fabrique de la récidive.</b> Un père de famille incarcéré six mois pour un délit mineur perd souvent son travail, parfois son foyer. À sa sortie, la tentation de la récidive est plus forte qu'à son entrée.</li>
 </ul>
-<div class="box"><b>La question posée n'est pas « punir ou ne pas punir ».</b> Elle est : <i>pour les profils qui ne présentent pas de danger, existe-t-il un moyen de faire exécuter la décision de justice de manière certaine, contrôlée et moins coûteuse que la prison ?</i> La réponse, éprouvée dans de nombreux pays (France, Sénégal, Côte d'Ivoire en projet, Afrique du Sud, Kenya…), est la surveillance électronique. SIGEP est la version burkinabè, conçue par des Burkinabè, adaptée à nos réalités.</div>
+<div class="box"><b>La question posée n'est pas « punir ou ne pas punir ».</b> Elle est : <i>pour les profils qui ne présentent pas de danger, existe-t-il un moyen de faire exécuter la décision de justice de manière <b>certaine, contrôlée et prouvable</b>, et moins coûteuse que la prison ?</i> La réponse, éprouvée dans de nombreux pays, est la surveillance électronique adossée à un système de gestion. SIGEP est la version burkinabè, conçue par des Burkinabè, adaptée à nos réalités.</div>
 
-<!-- ═══════════════ 3. LA SOLUTION ═══════════════ -->
-<div class="section"></div>
-<h2>3. La solution : le bracelet électronique expliqué simplement</h2>
-<p>Le principe tient en quatre étapes que tout citoyen peut comprendre :</p>
-<div class="fig">
-<svg width="660" height="150" viewBox="0 0 660 150" xmlns="http://www.w3.org/2000/svg" style="max-width:100%">
-  <defs><marker id="a" markerWidth="9" markerHeight="9" refX="8" refY="3.5" orient="auto"><path d="M0,0 L8,3.5 L0,7 z" fill="#064e3b"/></marker></defs>
-  <g font-family="Segoe UI, Arial" text-anchor="middle">
-    <rect x="8" y="26" width="148" height="96" rx="12" fill="#ecfdf5" stroke="#10b981" stroke-width="2"/>
-    <circle cx="82" cy="52" r="15" fill="#064e3b"/><text x="82" y="58" font-size="14" fill="#fff" font-weight="bold">1</text>
-    <text x="82" y="86" font-size="10.5" font-weight="bold" fill="#065f46">Le juge décide</text>
-    <text x="82" y="101" font-size="8.5" fill="#334155">zones autorisées, horaires,</text>
-    <text x="82" y="113" font-size="8.5" fill="#334155">interdictions, durée</text>
-    <rect x="176" y="26" width="148" height="96" rx="12" fill="#ecfdf5" stroke="#10b981" stroke-width="2"/>
-    <circle cx="250" cy="52" r="15" fill="#064e3b"/><text x="250" y="58" font-size="14" fill="#fff" font-weight="bold">2</text>
-    <text x="250" y="86" font-size="10.5" font-weight="bold" fill="#065f46">Le bracelet est posé</text>
-    <text x="250" y="101" font-size="8.5" fill="#334155">à la cheville, inviolable,</text>
-    <text x="250" y="113" font-size="8.5" fill="#334155">étanche, batterie longue durée</text>
-    <rect x="344" y="26" width="148" height="96" rx="12" fill="#ecfdf5" stroke="#10b981" stroke-width="2"/>
-    <circle cx="418" cy="52" r="15" fill="#064e3b"/><text x="418" y="58" font-size="14" fill="#fff" font-weight="bold">3</text>
-    <text x="418" y="86" font-size="10.5" font-weight="bold" fill="#065f46">SIGEP veille 24 h/24</text>
-    <text x="418" y="101" font-size="8.5" fill="#334155">position reçue chaque minute,</text>
-    <text x="418" y="113" font-size="8.5" fill="#334155">comparée aux règles du juge</text>
-    <rect x="512" y="26" width="140" height="96" rx="12" fill="#fef2f2" stroke="#ef4444" stroke-width="2"/>
-    <circle cx="582" cy="52" r="15" fill="#b91c1c"/><text x="582" y="58" font-size="14" fill="#fff" font-weight="bold">4</text>
-    <text x="582" y="86" font-size="10.5" font-weight="bold" fill="#b91c1c">Écart = alerte</text>
-    <text x="582" y="101" font-size="8.5" fill="#334155">sirène, SMS, intervention ;</text>
-    <text x="582" y="113" font-size="8.5" fill="#334155">tout est enregistré</text>
-    <line x1="156" y1="74" x2="174" y2="74" stroke="#064e3b" stroke-width="2.5" marker-end="url(#a)"/>
-    <line x1="324" y1="74" x2="342" y2="74" stroke="#064e3b" stroke-width="2.5" marker-end="url(#a)"/>
-    <line x1="492" y1="74" x2="510" y2="74" stroke="#064e3b" stroke-width="2.5" marker-end="url(#a)"/>
-  </g>
-</svg>
-<div class="cap">Figure 1 — Le placement sous surveillance électronique en quatre étapes.</div>
+<!-- ═══════════════ 3. LE MATÉRIEL ═══════════════ -->
+<h2><span class="secnum">3</span><span class="sect">Le matériel : le bracelet HORON X et son écosystème</span></h2>
+<div class="enbref"><div class="k">EN BREF</div><div class="v">Trois équipements : le <b>traceur de cheville HORON X</b> (IP68, anti-coupe, 5 à 10 jours d'autonomie, SOS et appel vocal), sa <b>base de recharge</b> à batterie intégrée, et le <b>Beacon</b> qui atteste la présence au domicile.</div></div>
+<p class="lead">Le dispositif repose sur trois équipements physiques : le <b>traceur de cheville HORON X</b>, la <b>base de recharge à batterie intégrée</b> et le <b>Beacon d'assignation à domicile</b>. Ils sont présentés ci-après avec leurs caractéristiques réelles.</p>
+
+<div class="photos">
+  <figure><img src="assets/photo-tracker.jpg" alt="Traceur HORON X"><figcaption>Le traceur HORON X et son bracelet.</figcaption></figure>
+  <figure><img src="assets/photo-bracelet-ouvert.jpg" alt="Bracelet ouvert, contacts de charge"><figcaption>Bracelet ouvert : verrou métallique et contacts de charge magnétiques.</figcaption></figure>
+  <figure><img src="assets/photo-porte-cheville.jpg" alt="Bracelet porté"><figcaption>Porté à la cheville, sous le vêtement : la dignité du porteur est préservée.</figcaption></figure>
 </div>
-<h3>Ce que le bracelet sait faire</h3>
+
+<h3>3.1 Le traceur de cheville : ce qu'il sait faire</h3>
 <ul>
-  <li><b>Dire où il est</b>, par satellite (GPS) et réseau téléphonique, chaque minute.</li>
-  <li><b>Détecter qu'on tente de l'enlever</b> : toute ouverture ou retrait du corps déclenche instantanément une alerte de sabotage au niveau maximal.</li>
-  <li><b>Confirmer la présence à la maison</b> grâce à un petit boîtier fixe posé au domicile (une « balise ») : même quand le signal satellite est brouillé par les murs, la Justice sait de façon fiable si la personne est chez elle — essentiel pour les couvre-feux et assignations à résidence.</li>
-  <li><b>Appeler à l'aide</b> : un bouton d'urgence permet au porteur de signaler un danger ; certains modèles surveillent aussi des constantes de santé.</li>
-  <li><b>Être rechargé à domicile</b> comme un téléphone ; le système prévient avant que la batterie ne soit faible.</li>
+  <li><b>Dire où il est en permanence</b>, par satellite (GPS haute sensibilité) et par le réseau téléphonique 3G/4G, à un rythme paramétrable par le centre national.</li>
+  <li><b>Détecter qu'on tente de l'enlever ou de le couper</b> : toute ouverture, découpe ou retrait forcé déclenche instantanément une alerte de sabotage au niveau maximal.</li>
+  <li><b>Confirmer la présence au domicile</b>, en dialoguant en Bluetooth avec le Beacon posé chez le porteur — même quand le signal satellite est dégradé par les murs.</li>
+  <li><b>Appeler à l'aide</b> : un bouton SOS, un haut-parleur et un microphone permettent au porteur de signaler un danger et de parler directement au centre de surveillance.</li>
+  <li><b>Se recharger à domicile</b> sur sa base, sans être retiré, grâce à des contacts magnétiques et à une batterie externe intégrée à la base.</li>
+  <li><b>Signaler lui-même ses faiblesses</b> : batterie basse, perte de réseau, perte de contact avec le Beacon — chacun de ces états remonte au centre comme un événement à traiter.</li>
 </ul>
-<h3>Ce que le juge peut ordonner, concrètement</h3>
-<table>
-  <tr><th>Mesure</th><th>Traduction dans SIGEP</th></tr>
-  <tr><td>« Il doit rester dans son quartier »</td><td>Zone autorisée dessinée sur la carte : en sortir déclenche l'alerte.</td></tr>
-  <tr><td>« Interdiction d'approcher le domicile de la victime »</td><td>Zone interdite : y entrer déclenche l'alerte — protection active des victimes.</td></tr>
-  <tr><td>« À la maison de 21 h à 6 h »</td><td>Couvre-feu contrôlé par la balise domicile, jour par jour.</td></tr>
-  <tr><td>« 120 heures de travaux d'intérêt général »</td><td>Site TIG agréé + pointage des heures effectuées, avancement visible en temps réel.</td></tr>
-  <tr><td>« Audience le 15 du mois, visite sociale chaque semaine »</td><td>Agenda des obligations, rappels automatiques la veille, constat présence/absence — chaque absence non justifiée est consignée au dossier.</td></tr>
+
+<h3>3.2 Un bracelet renforcé, conçu pour dissuader le sabotage</h3>
+<div class="fig sheet"><img src="assets/hx-anticoupe.jpg" alt="Bracelet renforcé anti-coupe HORON X">
+<div class="cap">Figure 1 — Le bracelet associe un TPU haute résistance à une <b>bande d'acier inoxydable intégrée</b> : il résiste à la pince, à la scie et au couteau. Le verrouillage empêche tout démontage.</div></div>
+
+<h3>3.3 Une résistance à toute épreuve : certification IP68</h3>
+<p>Le porteur ne doit pas avoir à « faire attention » à son bracelet : il doit pouvoir travailler, se laver, être surpris par la pluie, marcher dans la poussière ou dans la boue. C'est une condition de l'acceptabilité de la mesure autant qu'une condition de fiabilité de la preuve.</p>
+<div class="fig sheet"><img src="assets/hx-ip68.jpg" alt="Résistance IP68 du HORON X">
+<div class="cap">Figure 2 — Norme IP68 : totalement étanche (immersion jusqu'à 1,5 m), anti-poussière, résistant aux chocs et aux chutes.</div></div>
+<div class="photos" style="width:60%; margin-left:auto; margin-right:auto;">
+  <figure><img src="assets/photo-immersion.jpg" alt="Test d'immersion en eau chaude"><figcaption>Essai réel d'immersion prolongée en eau à 42,2 °C — le traceur reste en fonction (voyants actifs).</figcaption></figure>
+</div>
+
+<h3>3.4 L'autonomie et la recharge : aucune interruption de surveillance</h3>
+<div class="fig sheet"><img src="assets/hx-autonomie.jpg" alt="Autonomie du HORON X">
+<div class="cap">Figure 3 — Batterie 4 000 mAh, autonomie de 5 à 10 jours en utilisation normale : peu de recharges, donc peu d'occasions de rupture de suivi.</div></div>
+<div class="fig sheet"><img src="assets/hx-recharge-auto.jpg" alt="Recharge automatique sur base">
+<div class="cap">Figure 4 — La recharge s'effectue <b>sans retirer le bracelet</b> : le porteur pose sa cheville sur la base, les contacts magnétiques s'alignent seuls, la charge démarre.</div></div>
+<div class="fig sheet"><img src="assets/hx-powerbank.jpg" alt="Base de recharge 6000 mAh">
+<div class="cap">Figure 5 — La base de recharge embarque sa propre batterie de <b>6 000 mAh</b>, soit 2 à 3 recharges complètes du traceur sans prise de courant. Décisif dans les zones à électricité intermittente.</div></div>
+
+<h3>3.5 Les communications : rester joignable en toutes circonstances</h3>
+<div class="fig sheet"><img src="assets/hx-communication.jpg" alt="Communications du HORON X">
+<div class="cap">Figure 6 — Quatre canaux complémentaires : réseau mobile 3G/4G pour la transmission, GPS pour la position, Bluetooth BLE 4.2 pour le dialogue avec le Beacon domicile, carte nano SIM pour la connectivité nationale.</div></div>
+<div class="fig sheet"><img src="assets/hx-gps.jpg" alt="Localisation GPS en temps réel">
+<div class="cap">Figure 7 — De la cheville jusqu'à l'écran du magistrat : position collectée, transmise, contrôlée, affichée — et conservée comme historique de trajets consultable.</div></div>
+
+<h3>3.6 Le bouton SOS et l'appel vocal : la surveillance protège aussi le porteur</h3>
+<p>C'est un point souvent négligé et pourtant capital pour l'acceptation sociale de la mesure : le bracelet n'est pas seulement un outil de contrôle <i>sur</i> la personne, c'est aussi un outil de protection <i>pour</i> elle. Un porteur agressé, victime d'un malaise ou menacé peut appuyer trois secondes sur le bouton SOS : le centre reçoit l'alerte avec la position exacte et peut <b>parler directement</b> à la personne.</p>
+<div class="fig sheet"><img src="assets/hx-sos.jpg" alt="Bouton SOS et appel vocal">
+<div class="cap">Figure 8 — Bouton SOS, haut-parleur et microphone intégrés : communication vocale bidirectionnelle entre le porteur et le centre de surveillance.</div></div>
+
+<h3>3.7 Le Beacon d'assignation à domicile</h3>
+<p>Le GPS dit où l'on est <i>à l'extérieur</i>. Il est moins précis à l'intérieur d'un bâtiment. Or l'assignation à résidence et le couvre-feu se jouent précisément à l'intérieur. Le Beacon résout ce problème : posé au domicile et alimenté par une simple prise, il dialogue en Bluetooth avec le bracelet. Tant que le bracelet « voit » le Beacon, la Justice sait de façon fiable que la personne est chez elle. Dès qu'il ne le voit plus pendant la plage protégée, l'alerte part.</p>
+<div class="fig sheet"><img src="assets/hx-beacon.jpg" alt="Beacon HORON X d'assignation à domicile">
+<div class="cap">Figure 9 — Le Beacon HORON X : portée jusqu'à 30 m en intérieur, alimentation secteur USB-C, à poser ou à fixer au mur, installation en quelques minutes.</div></div>
+
+<h3>3.8 Tableau récapitulatif des équipements</h3>
+<table class="spec">
+  <tr><th style="width:26%">Caractéristique</th><th>Traceur de cheville HORON X</th><th>Base de recharge</th><th>Beacon domicile</th></tr>
+  <tr><td><b>Fonction</b></td><td>Localisation, détection de sabotage, alerte, communication vocale</td><td>Recharge sans retrait du bracelet + réserve d'énergie</td><td>Définition et contrôle de la zone « domicile »</td></tr>
+  <tr><td><b>Batterie</b></td><td>4 000 mAh — autonomie 5 à 10 jours</td><td>6 000 mAh — 2 à 3 recharges complètes</td><td>Alimentation secteur 5 V / 1 A (USB-C)</td></tr>
+  <tr><td><b>Liaisons</b></td><td>GPS haute sensibilité · 3G/4G · Bluetooth BLE 4.2 · nano SIM</td><td>Contacts à broches magnétiques · entrée/sortie 5 V / 2 A USB-C</td><td>Bluetooth Low Energy 2,4 GHz — portée jusqu'à 30 m en intérieur</td></tr>
+  <tr><td><b>Résistance</b></td><td>IP68 — étanche (immersion 1,5 m), anti-poussière, anti-choc</td><td>Boîtier ABS ignifuge · protections surcharge, surchauffe, court-circuit</td><td>Usage intérieur · −10 °C à +45 °C</td></tr>
+  <tr><td><b>Sécurité</b></td><td>Bracelet TPU + <b>bande d'acier intégrée</b> anti-coupe · verrouillage anti-démontage · détection d'ouverture</td><td>Charge contrôlée</td><td>Communication chiffrée avec le traceur</td></tr>
+  <tr><td><b>Interface</b></td><td>Bouton SOS · haut-parleur · microphone · LED d'état (réseau, GPS, batterie)</td><td>4 LEDs de niveau (25 / 50 / 75 / 100 %)</td><td>LED bicolore bleu / blanc</td></tr>
+  <tr><td><b>Format</b></td><td>Porté à la cheville, sous le vêtement</td><td>83 × 61 × 22 mm — env. 130 g</td><td>Ø 70 mm × 22 mm — env. 70 g</td></tr>
 </table>
 
-<!-- ═══════════════ 4. DEUX VISAGES ═══════════════ -->
-<div class="section"></div>
-<h2>4. Le dispositif SIGEP : deux visages, un système</h2>
-<p>SIGEP se compose de deux ensembles distincts et complémentaires :</p>
+<!-- ═══════════════ 4. LES MESURES ═══════════════ -->
+<h2><span class="secnum">4</span><span class="sect">Ce que le juge peut ordonner : les six types de mesures</span></h2>
+<div class="enbref"><div class="k">EN BREF</div><div class="v">Six types de mesures — assignation, détention à domicile, TIG, couvre-feu, interdiction de zone, liberté surveillée. Le juge exprime son intention en une phrase ; le système la transforme en règle appliquée automatiquement, minute par minute.</div></div>
+<p>SIGEP ne réinvente pas le droit : il donne à chaque mesure existante un moyen de contrôle. Le magistrat choisit un <b>type de mesure</b>, puis en règle les paramètres. Le système traduit ces paramètres en règles qu'il applique automatiquement, minute après minute.</p>
 <table>
-  <tr><th></th><th>Site public d'information</th><th>Plateforme institutionnelle sécurisée</th></tr>
-  <tr><td><b>Pour qui ?</b></td><td>Tout citoyen, la presse, les familles, les partenaires</td><td>Uniquement le personnel habilité : juges, agents, administration</td></tr>
-  <tr><td><b>Contenu</b></td><td>Présentation du dispositif, pédagogie, questions fréquentes, cadre légal, contact</td><td>Dossiers, cartes de suivi en temps réel, alertes, rapports, gestion du parc</td></tr>
-  <tr><td><b>Données personnelles</b></td><td><b>Aucune.</b> Rien de nominatif n'y figure jamais</td><td>Protégées, chiffrées, à accès contrôlé et journalisé</td></tr>
-  <tr><td><b>Accès</b></td><td>Libre, sans compte</td><td>Compte nominatif + mot de passe + double authentification</td></tr>
+  <tr><th style="width:26%">Type de mesure</th><th>Ce que le juge paramètre</th><th>Ce que le système contrôle en continu</th></tr>
+  <tr><td><b>Assignation à domicile</b></td><td>Adresse du domicile, plage de présence obligatoire, durée</td><td>Présence effective au domicile via le Beacon ; alerte à toute sortie non autorisée</td></tr>
+  <tr><td><b>Détention à domicile</b></td><td>Domicile, régime permanent ou plages de sortie autorisées (travail, soins)</td><td>Présence permanente, tolérances horaires, toute sortie hors fenêtre autorisée</td></tr>
+  <tr><td><b>Travail d'Intérêt Général</b></td><td>Nombre d'heures ordonnées, site d'accueil agréé, périmètre du site</td><td>Présence sur le site, <b>cumul automatique des heures effectuées</b>, avancement en % (voir §6)</td></tr>
+  <tr><td><b>Couvre-feu</b></td><td>Jours de la semaine concernés (du lundi au dimanche, à la carte) et plage horaire début–fin</td><td>Présence au domicile pendant la plage, jour par jour ; alerte de violation de couvre-feu</td></tr>
+  <tr><td><b>Interdiction de zone</b></td><td>Un ou plusieurs périmètres interdits (domicile de la victime, quartier, établissement)</td><td>Toute entrée dans un périmètre interdit — <b>l'alerte part avant le contact, pas après le drame</b></td></tr>
+  <tr><td><b>Liberté surveillée</b></td><td>Périmètre de vie autorisé, obligations de présentation, visites</td><td>Maintien dans le périmètre, respect de l'agenda des obligations</td></tr>
 </table>
 
-<!-- ═══════════════ 5. SITE PUBLIC ═══════════════ -->
-<h2>5. Le site public : informer et rassurer les citoyens</h2>
-<p>La réussite d'une politique de surveillance électronique dépend aussi de son <b>acceptation sociale</b>. Le site public y pourvoit :</p>
-<ul>
-  <li><b>Expliquer</b> ce qu'est le bracelet, qui peut en bénéficier, ce qu'il permet et ce qu'il interdit — en langage simple, accessible depuis n'importe quel téléphone.</li>
-  <li><b>Rassurer</b> : non, le bracelet ne « punit » pas la famille ; oui, la personne peut travailler ; non, personne d'autre que la Justice n'accède aux positions.</li>
-  <li><b>Valoriser l'action du Gouvernement</b> : une vitrine moderne qui montre un État qui innove, humanise l'exécution des peines et protège les victimes.</li>
-  <li><b>Orienter</b> : comment une famille peut se renseigner, comment un avocat dépose une demande de placement, où s'adresser.</li>
-</ul>
-<div class="box">Une <b>version de démonstration</b> du dispositif complet est d'ores et déjà consultable en ligne par les autorités, avec données fictives, pour toucher du doigt chaque écran décrit dans ce document.</div>
+<h3>4.1 Les périmètres : comment une phrase du juge devient une règle appliquée</h3>
+<p>Le magistrat n'a pas à savoir dessiner une carte. Il exprime son intention en langage courant — « il doit rester dans l'arrondissement de Baskuy », « interdiction d'approcher le domicile de la plaignante ». Le système enregistre cette <b>demande de périmètre</b>, l'administration en réalise le tracé technique, et le périmètre ne devient <b>actif</b> qu'une fois validé. Le juge garde la décision, l'administration exécute le tracé, la trace de qui a fait quoi est conservée.</p>
+<p>Chaque périmètre possède ses propres caractéristiques :</p>
+<table>
+  <tr><th style="width:30%">Paramètre</th><th>Options disponibles</th></tr>
+  <tr><td><b>Nature</b></td><td><b>Zone autorisée</b> (le porteur doit y rester) ou <b>zone interdite</b> (le porteur ne doit pas y entrer)</td></tr>
+  <tr><td><b>Forme</b></td><td><b>Polygone</b> dessiné librement sur la carte, ou <b>cercle</b> défini par un centre et un rayon en mètres</td></tr>
+  <tr><td><b>Technologie</b></td><td><b>Zone GPS</b> (extérieur, grande échelle) ou <b>périmètre domicile Bluetooth</b> (intérieur, quelques dizaines de mètres)</td></tr>
+  <tr><td><b>Horaires d'activation</b></td><td>Permanente, ou active seulement entre deux heures — par exemple une zone TIG active de 07 h 00 à 17 h 00 et un périmètre domicile actif de 20 h 00 à 06 h 00</td></tr>
+</table>
+<div class="fig framed"><img src="assets/app-conditions.jpg" alt="Écran de définition des conditions et des périmètres">
+<div class="cap">Figure 10 — Écran réel : définition du couvre-feu jour par jour, des obligations, et des périmètres du dossier. Ici deux périmètres coexistent — un « Périmètre domicile » Bluetooth actif de 20 h à 06 h et une « Zone TIG » GPS active de 07 h à 17 h.</div></div>
+<div class="box"><b>Le point important pour un magistrat :</b> plusieurs règles peuvent coexister sur un même dossier et se relayer dans la journée. Une personne peut être <i>obligée d'être au travail d'intérêt général le matin</i>, <i>libre de circuler dans son arrondissement l'après-midi</i>, <i>obligée d'être chez elle la nuit</i>, et <i>interdite en permanence d'un quartier précis</i>. Le système applique les quatre règles simultanément, sans intervention humaine.</div>
 
-<!-- ═══════════════ 6. QUI FAIT QUOI ═══════════════ -->
-<div class="section"></div>
-<h2>6. La plateforme institutionnelle : qui fait quoi</h2>
+<!-- ═══════════════ 5. LE TIG ═══════════════ -->
+<h2><span class="secnum">5</span><span class="sect">Les critères d'éligibilité proposés</span></h2>
+<div class="enbref"><div class="k">EN BREF</div><div class="v">Le dispositif ne s'adresse pas à tout le monde. Cette grille propose au Gouvernement <b>qui peut</b> en bénéficier, <b>qui en est exclu</b>, et selon quelle méthode d'appréciation — condition de la sécurité publique et de l'acceptation sociale de la mesure.</div></div>
+
+<p>Aucune politique de surveillance électronique ne survit à un fait divers causé par un placement mal ciblé. La sélection des profils est donc la première garantie du dispositif. Nous proposons ci-après une grille de travail, qu'il appartient au Gouvernement et au législateur d'arrêter définitivement.</p>
+
+<h3>Profils prioritairement éligibles</h3>
+<table>
+  <tr><th style="width:34%">Profil</th><th>Justification</th></tr>
+  <tr><td><b>Courtes peines sans violence</b> (vol simple, infractions économiques, délits routiers hors homicide, infractions à la police des étrangers)</td><td>La détention y coûte cher, désinsère et ne protège personne. C'est le gisement principal de désengorgement.</td></tr>
+  <tr><td><b>Condamnés à un travail d'intérêt général</b></td><td>La mesure existe en droit mais reste inappliquée faute de contrôle. Le dispositif la rend enfin exécutable et prouvable.</td></tr>
+  <tr><td><b>Détention provisoire évitable</b> (prévenus non dangereux présentant des garanties de représentation)</td><td>Alternative directe à une détention qui n'est ni une peine ni une condamnation, et qui pèse lourdement sur les effectifs carcéraux.</td></tr>
+  <tr><td><b>Fins de peine et libérations conditionnelles</b></td><td>Sas de réinsertion contrôlé : la sortie n'est plus brutale, elle est accompagnée et surveillée.</td></tr>
+  <tr><td><b>Personnes vulnérables</b> (état de santé incompatible avec la détention, femmes enceintes ou allaitantes, personnes âgées, mineurs selon le régime applicable)</td><td>Réponse humanitaire et conforme aux standards internationaux, sans renoncer au contrôle.</td></tr>
+  <tr><td><b>Port volontaire</b> à la demande du prévenu ou du condamné</td><td>Matérialise la bonne foi, évite la détention provisoire, et constitue une recette pour le dispositif (§17).</td></tr>
+</table>
+
+<h3>Profils exclus par principe</h3>
+<div class="box-red box">
+<b>Ne devraient pas être éligibles :</b> les auteurs de <b>crimes de sang</b> ; les faits de <b>terrorisme</b> et d'atteinte à la sûreté de l'État ; les <b>violences sexuelles graves</b> ; le <b>grand banditisme</b> et la criminalité organisée ; les personnes ayant déjà <b>saboté un dispositif</b> ou violé de façon répétée une mesure antérieure ; les personnes <b>sans domicile stable</b> ou sans lieu d'assignation identifiable, dès lors que la mesure repose sur un point d'ancrage.
+</div>
+<p><b>Une exception à réserver :</b> l'interdiction d'approcher une victime peut, elle, être utile même pour des profils plus lourds, en complément d'une autre mesure — la zone d'exclusion protège la victime sans se substituer à la sanction principale.</p>
+
+<h3>Comment l'éligibilité est appréciée</h3>
+<ol class="steps">
+  <li><b>Critère légal.</b> Le quantum de la peine et la nature de l'infraction ouvrent ou ferment l'accès à la mesure — c'est au texte réglementaire de le fixer (voir annexe : canevas d'articles).</li>
+  <li><b>Critère matériel.</b> Existence d'un domicile ou d'un lieu d'assignation identifiable, d'une alimentation électrique pour le Beacon, et d'une couverture réseau suffisante. Ces trois points sont vérifiés lors de la visite préalable.</li>
+  <li><b>Critère de risque.</b> Le dossier reçoit un <b>niveau de risque</b> — faible, moyen ou élevé — qui détermine la fréquence des visites de terrain et la sévérité du paramétrage (couvre-feu, périmètres, obligations).</li>
+  <li><b>Critère social.</b> Emploi, charges de famille, insertion — éléments déjà appréciés par le magistrat, que le dispositif documente ensuite tout au long de la mesure.</li>
+  <li><b>Réversibilité.</b> Un placement n'est jamais définitif : le manquement grave ouvre la procédure de révocation et le retour en détention. Le condamné le sait dès la pose du bracelet.</li>
+</ol>
+<div class="box"><b>Le principe directeur :</b> la surveillance électronique n'est pas une faveur, c'est un <b>mode d'exécution</b>. Elle ne réduit pas la peine, elle en change le lieu — en la rendant contrôlable, utile à la collectivité et moins destructrice pour la famille.</div>
+
+<h2><span class="secnum">6</span><span class="sect">Le programme TIG : enregistrement, cumul automatique des heures, remise au juge</span></h2>
+<div class="enbref"><div class="k">EN BREF</div><div class="v">Le module qui change le plus la pratique judiciaire : le condamné est <b>enregistré sur un site agréé</b>, chaque séance est pointée et signée, les heures sont <b>cumulées automatiquement</b>, et le juge est <b>notifié le jour même où la peine est accomplie</b>.</div></div>
+<p class="lead">C'est le module que ce dossier détaille le plus, car c'est celui qui change le plus profondément la pratique judiciaire. Aujourd'hui, un juge qui prononce 120 heures de travail d'intérêt général n'a aucun moyen fiable de savoir si elles ont été faites. Avec SIGEP, <b>chaque heure est enregistrée, signée, cumulée automatiquement, et le juge est averti dès que la peine est accomplie</b>.</p>
+
+<h3>6.1 Le répertoire national des sites agréés</h3>
+<p>Avant tout placement, l'État constitue son répertoire des structures habilitées à accueillir des personnes en TIG. Chaque site est enregistré dans le système avec sa fiche complète :</p>
+<table>
+  <tr><th style="width:30%">Information enregistrée</th><th>Utilité opérationnelle</th></tr>
+  <tr><td><b>Nom de la structure</b></td><td>Identification dans les décisions et les rapports</td></tr>
+  <tr><td><b>Catégorie</b> : mairie/administration, hôpital et santé, école et éducation, ONG et associatif, espace vert, autre</td><td>Permet d'orienter le condamné vers un travail adapté à son profil, et de piloter la politique d'insertion par secteur</td></tr>
+  <tr><td><b>Adresse et arrondissement</b></td><td>Affectation de proximité : on n'envoie pas un condamné de Bogodogo travailler à l'autre bout de la ville</td></tr>
+  <tr><td><b>Responsable et téléphone</b></td><td>Interlocuteur identifié, joignable, qui répond de la présence effective</td></tr>
+  <tr><td><b>Capacité d'accueil</b> (de 1 à 500 places)</td><td>Empêche la saturation d'un site : le système <b>refuse</b> une affectation au-delà de la capacité</td></tr>
+  <tr><td><b>Occupation actuelle</b></td><td>Visible en permanence : le juge voit les places libres avant de décider</td></tr>
+  <tr><td><b>Horaires d'ouverture</b></td><td>Base du contrôle de présence et de la planification des séances</td></tr>
+  <tr><td><b>Coordonnées GPS</b></td><td>Permet de créer en un clic le périmètre de surveillance du site</td></tr>
+  <tr><td><b>Statut actif / suspendu</b></td><td>Un site peut être suspendu (travaux, manquement) sans perdre son historique</td></tr>
+</table>
+<div class="fig framed"><img src="assets/app-tig-sites.jpg" alt="Écran du répertoire des sites TIG agréés">
+<div class="cap">Figure 11 — Écran réel du répertoire : sites actifs, capacité totale, bénéficiaires en cours, <b>taux d'occupation national</b>, et pour chaque site sa jauge de remplissage et son lien direct « Créer la géofence pour ce site ».</div></div>
+<div class="box-blue box"><b>Un chiffre de pilotage inédit :</b> le <b>taux d'occupation national des sites TIG</b>. Le Ministère sait, en temps réel, si le pays dispose d'assez de places pour absorber davantage de peines alternatives — et où ouvrir de nouveaux partenariats. Cette donnée n'existe aujourd'hui nulle part.</div>
+
+<h3>6.2 L'enregistrement du condamné sur un site</h3>
+<p>Une fois la mesure prononcée, l'affectation du condamné à un site précis est un acte contrôlé. Le système <b>refuse</b> l'affectation dans quatre cas, et l'explique à l'agent :</p>
+<ul>
+  <li>si le dossier n'est <b>pas</b> une mesure de type TIG — on ne peut pas affecter à un site quelqu'un qui n'est pas condamné à un travail d'intérêt général ;</li>
+  <li>si le site choisi est <b>désactivé</b> ;</li>
+  <li>si le site est <b>complet</b> — le message indique le nombre de places occupées sur le nombre total ;</li>
+  <li>si l'agent n'a pas la <b>qualité</b> pour affecter : seuls le magistrat et la super-administration peuvent le faire.</li>
+</ul>
+<p>Le juge fixe ensuite le <b>nombre d'heures ordonnées</b> (de 1 à 9 999), qui devient l'objectif à atteindre. Ces deux actes — affectation et fixation des heures — sont inscrits au journal d'audit avec le nom de leur auteur et l'heure exacte.</p>
+
+<h3>6.3 Le pointage : comment une journée de travail devient une preuve</h3>
+<p>À chaque séance de travail, l'agent habilité ou le superviseur du site enregistre un <b>pointage</b>. C'est l'acte élémentaire du dispositif, et il est volontairement simple : trois champs.</p>
+<ol class="steps">
+  <li><b>La date de la séance.</b> Le système refuse toute date dans le futur et toute date antérieure au début de la mesure. Impossible d'antidater une présence.</li>
+  <li><b>Le nombre d'heures effectuées</b>, de 0,5 h à 24 h, par demi-heures. Les demi-journées sont donc comptabilisées exactement, sans arrondi défavorable au condamné.</li>
+  <li><b>Les notes du superviseur</b> : tâches réalisées, comportement, incidents. Ce champ libre devient une pièce du dossier de réinsertion.</li>
+</ol>
+<p>Le pointage est <b>signé</b> : l'identité de l'agent qui l'enregistre est attachée définitivement à l'enregistrement. Une règle simple ferme la porte à la fraude la plus évidente : <b>un seul pointage par dossier et par date</b>. On ne peut pas déclarer deux fois la même journée.</p>
+
+<h3>6.4 Le cumul automatique des heures — le cœur du système</h3>
+<p>C'est ici que SIGEP se distingue d'un simple registre papier. À chaque pointage enregistré ou supprimé, le système ne se contente pas d'ajouter ou de retrancher : <b>il recalcule intégralement le total à partir de l'ensemble des séances réellement enregistrées</b>, puis inscrit ce total sur le dossier.</p>
+<div class="box"><b>Pourquoi ce détail compte-t-il ?</b> Parce qu'un compteur qui s'incrémente peut dériver : une erreur, une panne au mauvais moment, une suppression mal gérée, et le total ne correspond plus à la réalité des séances. En recalculant depuis la source, le total affiché est <b>toujours exactement la somme des pointages existants</b>. Il ne peut pas mentir. C'est cette propriété qui rend le chiffre <b>opposable devant un tribunal</b>.</div>
+<p>Le dossier affiche en permanence :</p>
+<ul>
+  <li>le <b>total accompli sur le total ordonné</b> — par exemple « 84 h / 120 h » ;</li>
+  <li>le <b>pourcentage d'avancement</b> et une barre de progression qui change de couleur selon l'avancement ;</li>
+  <li>le <b>nombre de séances</b> et leur cumul ;</li>
+  <li>l'<b>historique daté et détaillé</b> de chaque séance, avec les notes du superviseur.</li>
+</ul>
+<div class="fig framed"><img src="assets/app-tig-panneau.jpg" alt="Panneau de suivi TIG d'un dossier">
+<div class="cap">Figure 12 — Écran réel du panneau « Suivi TIG » d'un dossier : site d'exécution affecté, <b>120 heures ordonnées</b> par le juge, avancement <b>32 h / 120 h (27 %)</b> calculé automatiquement, et le relevé des 6 séances déjà pointées avec leur durée et les observations du superviseur. Le bouton de téléchargement produit le relevé exportable remis à la Justice.</div></div>
+
+<h3>6.5 La remise au juge : la fin de peine ne dépend plus de personne</h3>
+<p>Au moment précis où le total des heures effectuées atteint le nombre d'heures ordonnées, le système <b>notifie automatiquement le magistrat responsable du dossier</b> : « TIG accompli — les heures sont complètes, action requise ». Le dossier affiche simultanément la mention <i>« TIG accompli — informez le juge pour clôturer le dossier »</i>.</p>
+<p>Deux précisions qui font la solidité juridique du dispositif :</p>
+<ul>
+  <li>La notification n'est envoyée <b>qu'une seule fois</b>, au franchissement du seuil. Le magistrat n'est pas noyé sous les rappels si des séances supplémentaires sont enregistrées après coup.</li>
+  <li>Le système <b>ne clôture jamais la mesure lui-même</b>. Il informe ; c'est le juge qui décide. La machine constate un fait, elle ne rend pas la justice.</li>
+</ul>
+<div class="box-gold box"><b>Ce que cela change concrètement pour un magistrat :</b> aujourd'hui, il prononce 120 heures et n'entend plus jamais parler du dossier — ni pour constater l'exécution, ni pour sanctionner l'inexécution. Avec SIGEP, il est prévenu le jour même où la peine est purgée, et il dispose du relevé complet, séance par séance, pour prononcer la clôture en audience.</div>
+
+<h3>6.6 Les verrous contre la complaisance et la fraude</h3>
+<table>
+  <tr><th style="width:38%">Risque</th><th>Verrou appliqué par le système</th></tr>
+  <tr><td>Déclarer des journées qui n'ont pas eu lieu</td><td>Un seul pointage par dossier et par date ; aucune date future ; aucune date antérieure au début de la mesure</td></tr>
+  <tr><td>Gonfler artificiellement une journée</td><td>Maximum 24 heures par séance ; toute valeur incohérente est rejetée</td></tr>
+  <tr><td>Effacer une mauvaise journée après coup</td><td>Un agent de terrain ne peut supprimer que <b>ses propres pointages, et uniquement ceux du jour même</b>. Au-delà, seul un magistrat ou la super-administration peut intervenir</td></tr>
+  <tr><td>Faire disparaître les traces</td><td>Chaque création, modification et suppression est inscrite au <b>journal d'audit</b> avec l'auteur, la date et le contenu — journal en lecture seule</td></tr>
+  <tr><td>Supprimer un site pour effacer son passé</td><td>Un site ne peut être supprimé s'il reste des dossiers actifs <b>ou si des pointages historiques le référencent</b>. La mémoire du dispositif est protégée</td></tr>
+  <tr><td>Désactiver un site en laissant des condamnés dans le vide</td><td>La désactivation est refusée tant que des bénéficiaires y sont affectés ; ils doivent être réaffectés d'abord</td></tr>
+  <tr><td>Surcharger un site complaisant</td><td>Contrôle de capacité à chaque affectation ; taux d'occupation visible de tous</td></tr>
+</table>
+
+<h3>6.7 Le contrôle physique de la présence sur le site</h3>
+<p>Le pointage déclare les heures ; le bracelet, lui, atteste la présence. Les deux se recoupent :</p>
+<ul>
+  <li>Le site TIG dispose de ses <b>coordonnées GPS</b> et peut se voir attribuer un <b>périmètre de surveillance</b> créé en un clic depuis sa fiche.</li>
+  <li>Ce périmètre peut n'être <b>actif que pendant les horaires du site</b> — par exemple 07 h 00 à 17 h 00. Le porteur est alors attendu à l'intérieur pendant ces heures.</li>
+  <li>Les séances de TIG figurent à l'<b>agenda des obligations</b> du dossier, avec rappel automatique la veille.</li>
+  <li>Lors d'une visite de contrôle, l'agent enregistre sa propre position GPS : la preuve que la visite a réellement eu lieu, et pas seulement été déclarée.</li>
+</ul>
+<p>Un superviseur qui signerait des heures pour une personne absente laisserait donc une contradiction visible entre son pointage et les positions enregistrées — contradiction qui apparaît dans le rapport de dossier individuel.</p>
+
+<h3>6.8 Le relevé remis à la Justice</h3>
+<p>Deux sorties sont disponibles à tout moment :</p>
+<ul>
+  <li>le <b>relevé de pointages exportable</b> (date, heures, notes du superviseur), directement exploitable en pièce jointe d'un rapport ;</li>
+  <li>le <b>rapport de dossier individuel</b> signé, qui rassemble l'historique complet du bénéficiaire : positions, alertes, <b>TIG effectués</b>, observations de terrain — avec référence unique horodatée et bloc de signature de l'émetteur, prêt pour l'audience (voir §13).</li>
+</ul>
+
+<h3>6.9 Ce que les structures d'accueil y gagnent</h3>
+<ul>
+  <li>Une <b>main-d'œuvre encadrée et tracée</b> pour les mairies, hôpitaux, écoles, espaces verts et ONG — entretien, jardinage, appui logistique, salubrité.</li>
+  <li>Un <b>interlocuteur clair</b> et une procédure simple : le responsable du site pointe les heures, rien de plus.</li>
+  <li>Une <b>protection juridique</b> : la structure n'a pas à attester par courrier ; c'est le système qui porte la preuve.</li>
+  <li>Une <b>visibilité</b> de sa contribution à la politique de réinsertion dans les statistiques nationales.</li>
+</ul>
+
+<!-- ═══════════════ 6. CYCLE DE VIE ═══════════════ -->
+<h2><span class="secnum">7</span><span class="sect">Le cycle de vie complet d'un dossier, du prononcé à l'archivage</span></h2>
+<div class="enbref"><div class="k">EN BREF</div><div class="v">Dix étapes, six états sans ambiguïté — du prononcé de la mesure jusqu'à l'archivage, en passant par la pose du bracelet, la vie de la mesure et, le cas échéant, la révocation.</div></div>
+<ol class="steps">
+  <li><b>Le juge crée le dossier.</b> Identité du bénéficiaire, numéro de dossier, base légale (article, référence d'ordonnance, date), niveau de risque, juridiction de rattachement. Le dossier est en attente : la mesure est décidée, le bracelet n'est pas encore posé.</li>
+  <li><b>Le juge fixe les conditions.</b> Type de mesure, durée ou caractère permanent, jours et heures de couvre-feu, heures de TIG et site d'accueil, périmètres demandés, obligations en texte libre.</li>
+  <li><b>L'administration pose le bracelet.</b> Pose physique à la cheville, association du bracelet et de sa carte SIM au dossier, vérification du port. Le matériel passe de l'état « en stock » à l'état « en service ».</li>
+  <li><b>L'administration installe le Beacon au domicile</b> et teste la liaison avant de quitter les lieux.</li>
+  <li><b>Les périmètres sont tracés et validés.</b> Les demandes du juge deviennent des zones actives.</li>
+  <li><b>La surveillance démarre.</b> Le dossier devient actif : positions collectées en continu, règles appliquées, agenda des obligations en service.</li>
+  <li><b>La vie de la mesure.</b> Pointages de TIG, visites de terrain, entrées au journal de comportement, obligations honorées ou manquées, alertes traitées, éventuelles suspensions temporaires.</li>
+  <li><b>En cas de manquement grave</b>, une procédure de révocation peut être ouverte : demande motivée, mise à l'étude, décision du juge. Une révocation approuvée met fin proprement à la surveillance et renvoie vers la détention.</li>
+  <li><b>La fin de mesure.</b> Terme atteint, TIG accompli ou décision de clôture : le dossier est clôturé, le bracelet récupéré, contrôlé, puis remis en stock pour être réutilisé.</li>
+  <li><b>L'archivage.</b> Le dossier clôturé est archivé : il n'apparaît plus dans l'activité courante mais reste consultable et produit ses statistiques. Aucune donnée judiciaire n'est perdue.</li>
+</ol>
+<div class="box"><b>Six états, jamais ambigus :</b> <i>en attente</i> · <i>actif</i> · <i>en violation</i> · <i>suspendu</i> · <i>clôturé</i> · <i>archivé</i>. À tout instant, chaque dossier du pays est dans un et un seul de ces états, et le passage d'un état à l'autre est journalisé.</div>
+
+<!-- ═══════════════ 7. SCÉNARIOS ═══════════════ -->
+<h2><span class="secnum">8</span><span class="sect">Scénarios concrets : cinq situations réelles de bout en bout</span></h2>
+<div class="enbref"><div class="k">EN BREF</div><div class="v">Cinq situations réelles déroulées minute par minute : les 120 heures de TIG, la sortie nocturne, la protection d'une victime, la tentative de sabotage, et la détention provisoire évitée.</div></div>
+<p>Les sections précédentes décrivent des mécanismes. Celle-ci les met en situation. Les noms et références sont fictifs ; les enchaînements sont exactement ceux que le système produit.</p>
+
+<div class="scen">
+  <div class="h">Scénario 1 — Les 120 heures de travail d'intérêt général <span>· le cas le plus fréquent</span></div>
+  <div class="b">
+    <p style="margin-top:0"><i>M. O., 34 ans, mécanicien, père de trois enfants, est condamné pour vol simple à 120 heures de travail d'intérêt général. Sans SIGEP, il aurait fait six mois de prison faute d'outil de contrôle — et perdu son atelier.</i></p>
+    <table>
+      <tr><th style="width:24%">Moment</th><th>Ce qui se passe dans le système</th></tr>
+      <tr><td>Jour 1 — Audience</td><td>Le juge crée le dossier, choisit la mesure « Travail d'Intérêt Général », saisit <b>120 heures ordonnées</b> et affecte le condamné à la <b>Mairie de l'Arrondissement de Baskuy</b>. Le système vérifie que le site est actif et qu'il reste des places : 2 occupées sur 6. Affectation acceptée et journalisée.</td></tr>
+      <tr><td>Jour 2 — Pose</td><td>Le bracelet est posé, le Beacon installé au domicile. Un périmètre GPS est créé autour de la mairie, <b>actif de 07 h 30 à 12 h 30</b>, horaires d'ouverture du site. Un périmètre domicile est activé de 20 h à 06 h.</td></tr>
+      <tr><td>Jours 3 à 60</td><td>À chaque séance, le responsable du site enregistre le pointage : date, heures, notes. « 4 h — entretien des espaces communs, ponctuel et appliqué ». Le total se recalcule à chaque fois : 4 h, 8 h, 12 h… La barre d'avancement passe du bleu à l'orange.</td></tr>
+      <tr><td>Jour 44</td><td>M. O. est absent sans justification. Aucun pointage n'est saisi ce jour-là. L'obligation figure à l'agenda comme <b>manquée</b> ; la journée n'est pas comptée. Le juge le voit dans le rapport mensuel de conformité.</td></tr>
+      <tr><td>Jour 61 — 15 h 20</td><td>Le pointage de l'après-midi porte le total à <b>120 h / 120 h</b>. Au moment exact du franchissement, le juge reçoit la notification : <b>« TIG accompli — les heures sont complètes. Action requise. »</b></td></tr>
+      <tr><td>Jour 63 — Audience</td><td>Le juge édite le <b>rapport de dossier individuel</b> : 31 séances datées, 120 heures, notes du superviseur, zéro sortie de périmètre, une absence justifiée. Il prononce la clôture. Le bracelet est retiré, contrôlé, remis en stock.</td></tr>
+    </table>
+  </div>
+  <div class="verdict"><b>Résultat :</b> une peine réellement exécutée et <b>prouvée</b> · un atelier et trois scolarités préservés · six mois de détention économisés à l'État · une mairie qui a bénéficié de 120 heures de travail · un dossier qui tient devant n'importe quelle contestation.</div>
+</div>
+
+<div class="scen">
+  <div class="h">Scénario 2 — L'assignation à domicile et la sortie nocturne</div>
+  <div class="b">
+    <p style="margin-top:0"><i>M. S. est assigné à résidence dans l'attente de son procès, avec obligation de présence de 20 h à 06 h.</i></p>
+    <table>
+      <tr><th style="width:24%">Moment</th><th>Ce qui se passe dans le système</th></tr>
+      <tr><td>23 h 14</td><td>Le bracelet cesse de « voir » le Beacon du domicile. Le système crée <b>une</b> alerte de sortie de zone, de gravité élevée : sirène sur les postes de garde, notification, SMS selon les préférences. La carte se centre automatiquement sur la position.</td></tr>
+      <tr><td>23 h 15</td><td>Un opérateur <b>prend</b> l'alerte. Tous les autres postes voient immédiatement qu'elle est prise en charge : pas de double intervention, pas d'alerte oubliée.</td></tr>
+      <tr><td>23 h 16 à 23 h 40</td><td>M. S. reste dehors. Le système <b>ne crée pas de nouvelle alerte</b> : c'est le même incident. Il ne noie pas les opérateurs sous les répétitions.</td></tr>
+      <tr><td>23 h 41</td><td>Une patrouille est envoyée. L'agent pointe son intervention sur le terrain ; sa <b>propre position GPS</b> est enregistrée avec le pointage — preuve que l'intervention a eu lieu.</td></tr>
+      <tr><td>00 h 05</td><td>M. S. est de retour à son domicile. L'incident est marqué comme terminé, <b>mais l'alerte reste ouverte</b> : sa clôture est un acte humain motivé, jamais un effacement automatique.</td></tr>
+      <tr><td>00 h 12</td><td>L'opérateur clôture avec le motif : « Intervention — retour au domicile constaté par patrouille ». Motif, auteur et heure sont inscrits définitivement.</td></tr>
+      <tr><td>Le lendemain</td><td>L'incident figure au dossier. Si M. S. ressort une autre nuit, ce sera un <b>nouvel</b> incident, distinct. Les incidents s'accumulent et alimentent, le cas échéant, une demande de révocation motivée par un nombre précis de violations.</td></tr>
+    </table>
+  </div>
+  <div class="verdict"><b>Résultat :</b> une violation détectée en moins d'une minute, une intervention prouvée, un incident documenté de façon incontestable — et une échelle de gradation qui permet de distinguer l'écart isolé de la récidive systématique.</div>
+</div>
+
+<div class="scen">
+  <div class="h">Scénario 3 — La protection active d'une victime</div>
+  <div class="b">
+    <p style="margin-top:0"><i>Dans une affaire de violences conjugales, le juge interdit à M. K. d'approcher le domicile de la plaignante.</i></p>
+    <table>
+      <tr><th style="width:24%">Moment</th><th>Ce qui se passe dans le système</th></tr>
+      <tr><td>À la décision</td><td>Le juge formule : « interdiction d'approcher le domicile de la plaignante ». L'administration trace un <b>périmètre d'exclusion circulaire</b> autour de l'adresse protégée, avec un rayon fixé par le magistrat. Le périmètre est <b>permanent</b>.</td></tr>
+      <tr><td>Semaines suivantes</td><td>M. K. circule librement partout ailleurs. Aucune alerte, aucune contrainte inutile : la mesure est ciblée, pas générale.</td></tr>
+      <tr><td>Un soir, 19 h 47</td><td>M. K. entre dans le périmètre interdit. L'alerte part <b>au franchissement de la limite</b> — c'est-à-dire <b>avant</b> qu'il n'atteigne le domicile.</td></tr>
+      <tr><td>19 h 48</td><td>Les forces de sécurité du secteur voient la zone clignoter sur la carte et disposent de la position exacte. L'intervention part immédiatement.</td></tr>
+      <tr><td>Suites</td><td>L'historique des infractions est exportable pour production en audience : date, heure, position, durée de la présence dans le périmètre interdit.</td></tr>
+    </table>
+  </div>
+  <div class="verdict"><b>Résultat :</b> la protection n'est plus une simple mention sur un jugement que personne ne peut faire respecter. Elle devient une <b>barrière active</b> : l'alerte précède le contact, elle ne le constate pas après coup.</div>
+</div>
+
+<div class="scen">
+  <div class="h">Scénario 4 — La tentative de sabotage du bracelet</div>
+  <div class="b">
+    <p style="margin-top:0"><i>M. D. tente de retirer son bracelet pour se rendre à un rendez-vous interdit.</i></p>
+    <table>
+      <tr><th style="width:24%">Moment</th><th>Ce qui se passe dans le système</th></tr>
+      <tr><td>21 h 30</td><td>Il attaque le bracelet à la pince. La <b>bande d'acier intégrée</b> résiste. La tentative est détectée par le capteur d'ouverture.</td></tr>
+      <tr><td>21 h 30 (immédiat)</td><td>Une alerte <b>« Sabotage détecté »</b> est émise au <b>niveau de gravité maximal</b> — le plus élevé de l'échelle du système : « Tentative de retrait du bracelet. Intervention requise. »</td></tr>
+      <tr><td>21 h 31</td><td>Le juge du dossier et les agents affectés sont notifiés. La position de M. D. est connue et suivie en continu ; le bracelet n'a pas été neutralisé.</td></tr>
+      <tr><td>22 h 00</td><td>Si personne n'a traité l'alerte au bout de <b>30 minutes</b>, un SMS part automatiquement au juge du dossier. Si rien n'est fait au bout de <b>2 heures</b>, la direction du dispositif est alertée à son tour.</td></tr>
+      <tr><td>Suites</td><td>Le sabotage est un manquement grave : il fonde une demande de révocation. Le coût de remplacement du matériel dégradé est adossé au dossier du porteur.</td></tr>
+    </table>
+  </div>
+  <div class="verdict"><b>Résultat :</b> deux barrières indépendantes — la résistance physique du bracelet et la détection électronique. Même une tentative <b>infructueuse</b> laisse une trace judiciaire. Et l'escalade automatique garantit qu'aucun incident grave ne peut « dormir » faute de réaction.</div>
+</div>
+
+<div class="scen">
+  <div class="h">Scénario 5 — La détention provisoire évitée, à la demande du prévenu</div>
+  <div class="b">
+    <p style="margin-top:0"><i>M. T., commerçant, est poursuivi pour une infraction économique. Le parquet requiert la détention provisoire. Il propose de porter volontairement le bracelet et d'en assumer le coût.</i></p>
+    <table>
+      <tr><th style="width:24%">Moment</th><th>Ce qui se passe dans le système</th></tr>
+      <tr><td>Demande</td><td>Le placement volontaire est ouvert en mesure de « liberté surveillée » : périmètre de vie autorisé, interdiction de quitter la commune, obligation de présentation.</td></tr>
+      <tr><td>Contribution</td><td>M. T. étant solvable, il acquitte la contribution pleine. Le barème d'équité (§17) est appliqué par le juge sur pièces — la <b>capacité de payer n'a joué aucun rôle dans la décision d'éligibilité</b>, seulement dans la répartition du coût.</td></tr>
+      <tr><td>Pendant l'instruction</td><td>Chaque audience et chaque convocation figurent à l'agenda du dossier, avec rappel automatique la veille. Chaque présence est constatée, chaque absence consignée.</td></tr>
+      <tr><td>Au procès</td><td>Le juge dispose d'un relevé de conformité de plusieurs mois : aucun écart, toutes les obligations honorées. Cet élément entre dans l'appréciation de la personnalité du prévenu.</td></tr>
+    </table>
+  </div>
+  <div class="verdict"><b>Résultat :</b> une place de détention libérée pour un profil dangereux · une entreprise et ses employés préservés · une recette pour le dispositif · et, pour le tribunal, un dossier de comportement objectif là où il n'aurait eu que des déclarations.</div>
+</div>
+
+<div class="fig sheet"><img src="assets/hx-scenario.jpg" alt="Scénario complet d'assignation à domicile">
+<div class="cap">Figure 13 — Le déroulé complet d'une assignation à domicile, de la décision judiciaire à l'alerte : décision, équipement du porteur, installation du Beacon, surveillance permanente, alerte en cas d'incident.</div></div>
+
+<!-- ═══════════════ 8. QUI FAIT QUOI ═══════════════ -->
+<h2><span class="secnum">9</span><span class="sect">La plateforme institutionnelle : qui fait quoi</span></h2>
+<div class="enbref"><div class="k">EN BREF</div><div class="v">Cinq espaces cloisonnés — juges, administration pénitentiaire, agents de terrain, équipe technique nationale, Ministère. Chacun ne voit que ce que sa mission exige, et tout ce que chacun fait est enregistré.</div></div>
 <p>Chaque institution dispose de <b>son propre espace</b>, limité à son rôle. Personne ne voit plus que ce que sa fonction exige ; tout ce que chacun fait est enregistré.</p>
 
 <div class="fig">
@@ -211,7 +574,7 @@
     <rect x="480" y="10" width="170" height="60" rx="10" fill="#d1fae5" stroke="#10b981" stroke-width="2"/>
     <text x="565" y="31" font-size="10.5" font-weight="bold" fill="#047857">AGENTS DE TERRAIN</text>
     <text x="565" y="46" font-size="8.5" fill="#334155">police, gendarmerie, agents SIGEP :</text>
-    <text x="565" y="58" font-size="8.5" fill="#334155">interventions et visites</text>
+    <text x="565" y="58" font-size="8.5" fill="#334155">interventions, visites, pointages TIG</text>
     <rect x="480" y="160" width="170" height="60" rx="10" fill="#ede9fe" stroke="#8b5cf6" stroke-width="2"/>
     <text x="565" y="181" font-size="10.5" font-weight="bold" fill="#6d28d9">MINISTÈRE / DIRECTION</text>
     <text x="565" y="196" font-size="8.5" fill="#334155">statistiques anonymisées,</text>
@@ -226,55 +589,89 @@
     <line x1="330" y1="185" x2="330" y2="163" stroke="#475569" stroke-width="1.8" marker-end="url(#b)"/>
   </g>
 </svg>
-<div class="cap">Figure 2 — Chaque institution accède au même système, chacune par la porte qui correspond à sa mission.</div>
+<div class="cap">Figure 14 — Chaque institution accède au même système, chacune par la porte qui correspond à sa mission.</div>
 </div>
 
-<h3>6.1 Côté juge — l'autorité qui décide</h3>
+<h3>9.1 Côté juge — l'autorité qui décide</h3>
 <ul>
-  <li>Crée le dossier du bénéficiaire avec son fondement légal (article, n° d'ordonnance) ; fixe la durée, le couvre-feu, les heures de TIG.</li>
-  <li>Exprime les périmètres en une phrase (« doit rester dans Bogodogo », « interdit d'approcher le domicile de la plaignante ») — le tracé technique précis est ensuite réalisé et validé par l'administration, puis appliqué automatiquement.</li>
-  <li>Planifie audiences et visites dans l'agenda ; <b>constate ou justifie les absences</b> ; est prévenu par SMS la veille de chaque obligation.</li>
-  <li>Reçoit les alertes concernant <b>ses seuls dossiers</b> ; si personne ne traite une alerte dans le délai fixé, il est relancé automatiquement par SMS.</li>
+  <li>Crée le dossier avec son fondement légal (article, référence d'ordonnance) ; fixe la durée, le couvre-feu jour par jour, les heures de TIG et le site d'accueil.</li>
+  <li>Exprime les périmètres en une phrase ; le tracé technique est réalisé et validé par l'administration, puis appliqué automatiquement.</li>
+  <li>Planifie audiences, séances de TIG et visites dans l'agenda ; <b>constate ou justifie les absences</b> ; est prévenu la veille de chaque obligation.</li>
+  <li>Reçoit les alertes concernant <b>ses seuls dossiers</b> ; si personne ne traite une alerte dans le délai fixé, il est relancé automatiquement.</li>
+  <li>Est <b>notifié automatiquement lorsque les heures de TIG sont accomplies</b>.</li>
   <li>Décide des révocations : demande motivée → instruction → décision. Une révocation approuvée arrête proprement la surveillance et renvoie vers la détention.</li>
   <li>Édite des rapports officiels signés (conformité, alertes, dossier individuel) prêts pour l'audience.</li>
   <li>Peut créer et superviser <b>ses propres agents de terrain</b>, avec une portée limitée à ses dossiers s'il le souhaite.</li>
 </ul>
-<h3>6.2 Côté administration pénitentiaire et greffe</h3>
+<h3>9.2 Côté administration pénitentiaire et greffe</h3>
 <ul>
-  <li>Reçoit la décision de placement ; procède à la <b>pose physique</b> du bracelet à la cheville et à l'enregistrement du matériel sur le dossier (numéro unique du bracelet, carte SIM).</li>
-  <li>Installe la balise domicile lors d'une visite au lieu d'assignation ; teste la liaison avant de quitter les lieux.</li>
+  <li>Reçoit la décision de placement ; procède à la <b>pose physique</b> du bracelet et à l'enregistrement du matériel sur le dossier (identifiant unique du bracelet, carte SIM, opérateur, date de mise en service).</li>
+  <li>Installe le Beacon lors d'une visite au lieu d'assignation ; teste la liaison avant de quitter les lieux.</li>
   <li>Gère le <b>magasin de bracelets</b> : stock, affectations, retours, maintenance, réforme — chaque bracelet a son cycle de vie tracé.</li>
-  <li>À la fin de mesure : récupère le bracelet, le contrôle, le remet en stock pour <b>réutilisation</b> (clef du modèle économique, §10).</li>
+  <li>À la fin de mesure : récupère le bracelet, le contrôle, le remet en stock pour <b>réutilisation</b> (clef du modèle économique, §17).</li>
 </ul>
-<h3>6.3 Côté forces de sécurité et agents de terrain</h3>
+<h3>9.3 Côté forces de sécurité et agents de terrain</h3>
 <ul>
   <li>Voient la carte de surveillance en temps réel de leur secteur ; une violation fait clignoter la zone et centre la carte automatiquement.</li>
-  <li>Traitent les alertes selon un circuit clair : <b>je vois → je prends → j'interviens → je résous avec motif</b>. Quand un agent « prend » une alerte, tous les autres le voient — pas de double intervention, pas d'alerte oubliée.</li>
-  <li>Disposent d'un <b>mode terrain sur téléphone</b>, qui fonctionne même sans réseau : liste des missions, itinéraires, notes. Le <b>pointage de visite enregistre la position GPS de l'agent lui-même</b> — la preuve que la visite a réellement eu lieu, opposable en justice.</li>
-  <li>Pointent les heures de TIG effectuées sur les sites agréés (mairies, hôpitaux, écoles…).</li>
+  <li>Traitent les alertes selon un circuit clair : <b>je vois → je prends → j'interviens → je résous avec motif</b>.</li>
+  <li>Disposent d'un <b>mode terrain sur téléphone</b>, qui fonctionne même sans réseau : liste des missions, itinéraires, notes. Le <b>pointage de visite enregistre la position GPS de l'agent lui-même</b> — preuve opposable que la visite a eu lieu.</li>
+  <li><b>Pointent les heures de TIG</b> effectuées sur les sites agréés, avec les notes du superviseur.</li>
 </ul>
-<h3>6.4 Côté équipe SIGEP (Super Administration) — l'exploitant</h3>
+<h3>9.4 Côté équipe SIGEP (Super Administration) — l'exploitant</h3>
 <ul>
   <li>Équipe technique nationale, garante du fonctionnement 24 h/24 : elle <b>exécute</b> les décisions de justice, elle n'en prend jamais.</li>
   <li>Crée les comptes de toutes les institutions ; applique les règles de sécurité (double authentification, motifs de désactivation, fins de mission automatiques, registre des connexions).</li>
-  <li>Trace et valide techniquement les périmètres demandés par les juges.</li>
-  <li>Supervise la santé du dispositif sur un <b>centre opérationnel</b> : chaque bracelet, chaque alerte, l'état des liaisons — avec un mode « salle de crise » pour mur d'écrans.</li>
+  <li>Trace et valide techniquement les périmètres demandés par les juges ; gère le <b>répertoire national des sites TIG</b>.</li>
+  <li>Supervise la santé du dispositif sur un <b>centre opérationnel</b>, avec un mode « salle de crise » pour mur d'écrans.</li>
   <li>Règle les paramètres nationaux : seuils de batterie, délais d'escalade, durées de conservation des données, passerelle SMS.</li>
-  <li>Est alertée automatiquement (SMS) si un maillon vital du système tombe.</li>
+  <li>Est alertée automatiquement si un maillon vital du système tombe.</li>
 </ul>
-<h3>6.5 Côté Ministère et direction stratégique</h3>
+<h3>9.5 Côté Ministère et direction stratégique</h3>
 <ul>
-  <li>Accès <b>exclusivement statistique et anonyme</b> : nombres de mesures, taux de conformité, répartition des alertes, tendances — jamais un nom, jamais une position individuelle.</li>
+  <li>Accès <b>exclusivement statistique et anonyme</b> : nombre de mesures, taux de conformité, répartition des alertes, <b>taux d'occupation des sites TIG</b>, tendances — jamais un nom, jamais une position individuelle.</li>
   <li>Rapport statistique national imprimable pour le Conseil des ministres, avec référence unique et signature de l'émetteur.</li>
 </ul>
+<div class="fig framed"><img src="assets/app-vue-ensemble.jpg" alt="Vue d'ensemble du tableau de bord national">
+<div class="cap">Figure 15 — Écran réel : la vue d'ensemble nationale — dossiers actifs, alertes en cours, bracelets en ligne, dossiers en violation, obligations du jour et alertes actives.</div></div>
+<div class="fig framed"><img src="assets/app-carte.jpg" alt="Carte de surveillance en temps réel">
+<div class="cap">Figure 16 — Écran réel : la carte de surveillance. Zones autorisées en bleu, zones interdites en rouge, position de chaque porteur, batterie, vitesse, dernière mise à jour. Trois vues : suivi temps réel, chaleur des violations, historique journalier.</div></div>
 
-<!-- ═══════════════ 7. COMMENT ÇA VEILLE ═══════════════ -->
-<div class="section"></div>
-<h2>7. Comment le système veille, alerte et fait remonter</h2>
+<!-- ═══════════════ 9. ALERTES ═══════════════ -->
+<h2><span class="secnum">10</span><span class="sect">Comment le système veille, alerte et fait remonter</span></h2>
+<div class="enbref"><div class="k">EN BREF</div><div class="v">Huit événements déclencheurs, une alerte par incident, une clôture toujours motivée par un humain, et une <b>escalade automatique</b> qui remonte la hiérarchie si personne ne réagit.</div></div>
 <p>Toute la crédibilité du dispositif tient en une promesse : <b>aucun écart ne passe inaperçu, et aucune alerte ne reste sans suite.</b> Voici comment cette promesse est tenue.</p>
-<h3>7.1 Une alerte par incident — ni silence, ni harcèlement</h3>
-<p>Quand un porteur sort de sa zone, <b>une</b> alerte est créée (sirène sur les postes, notification, SMS selon les préférences). Tant qu'il reste dehors, le système ne bombarde pas les opérateurs de répétitions inutiles : c'est <b>le même incident</b>. S'il rentre puis ressort, c'est un <b>nouvel incident</b> : nouvelle alerte. Et surtout : <b>la clôture d'une alerte est toujours un acte humain motivé</b> — jamais un effacement automatique. Chaque incident laisse une trace définitive.</p>
-<h3>7.2 L'escalade automatique — l'anti-négligence</h3>
+
+<h3>10.1 Les huit événements qui déclenchent une alerte</h3>
+<table>
+  <tr><th style="width:32%">Événement</th><th>Signification pour la Justice</th></tr>
+  <tr><td><b>Sortie de zone autorisée</b></td><td>Le porteur a quitté le périmètre où il devait rester, ou est entré dans un périmètre interdit</td></tr>
+  <tr><td><b>Perte du contact domicile</b></td><td>Le bracelet ne détecte plus le Beacon : la personne n'est plus chez elle pendant la plage protégée</td></tr>
+  <tr><td><b>Violation de couvre-feu</b></td><td>Absence du domicile pendant les heures ordonnées, jour concerné</td></tr>
+  <tr><td><b>Sabotage détecté</b></td><td>Tentative d'ouverture, de découpe ou de retrait du bracelet — gravité maximale</td></tr>
+  <tr><td><b>Bouton d'urgence</b></td><td>Le porteur appelle à l'aide ; le centre peut lui parler directement</td></tr>
+  <tr><td><b>Alerte de santé</b></td><td>Constante critique remontée par le dispositif</td></tr>
+  <tr><td><b>Batterie faible</b></td><td>Risque d'interruption de suivi : rappel au porteur avant la rupture</td></tr>
+  <tr><td><b>Perte de signal</b></td><td>Le bracelet ne communique plus : incident technique ou tentative de neutralisation</td></tr>
+</table>
+<div class="fig sheet"><img src="assets/hx-alertes.jpg" alt="Système d'alertes HORON X">
+<div class="cap">Figure 17 — Les événements détectés par le bracelet et leur trajet : détection → transmission par le réseau mobile → réception au centre de surveillance → intervention des équipes de terrain.</div></div>
+
+<h3>10.2 Une alerte par incident — ni silence, ni harcèlement</h3>
+<p>Quand un porteur sort de sa zone, <b>une</b> alerte est créée. Tant qu'il reste dehors, le système ne bombarde pas les opérateurs de répétitions inutiles : c'est <b>le même incident</b>. S'il rentre puis ressort, c'est un <b>nouvel incident</b> : nouvelle alerte. Et surtout : <b>la clôture d'une alerte est toujours un acte humain motivé</b> — jamais un effacement automatique.</p>
+
+<h3>10.3 Le circuit de traitement d'une alerte</h3>
+<table>
+  <tr><th style="width:22%">État</th><th>Ce qu'il signifie</th></tr>
+  <tr><td><b>Nouvelle</b></td><td>L'alerte vient d'être créée ; sirène et notification sur les postes de garde</td></tr>
+  <tr><td><b>Prise en compte</b></td><td>Un opérateur identifié l'a prise : tous les autres le voient — pas de double intervention, pas d'alerte orpheline</td></tr>
+  <tr><td><b>En cours de traitement</b></td><td>Une intervention est engagée sur le terrain</td></tr>
+  <tr><td><b>Résolue</b></td><td>Clôture motivée par un agent, avec l'une des quatre catégories : <b>écart justifié</b>, <b>fausse alerte</b>, <b>problème technique</b>, <b>intervention effectuée</b> — plus le motif rédigé</td></tr>
+</table>
+<p>Cette catégorisation n'est pas cosmétique : elle permet de distinguer, dans les statistiques nationales, les vraies violations des incidents techniques, et donc de mesurer honnêtement la fiabilité du dispositif.</p>
+<div class="fig framed"><img src="assets/app-alertes.jpg" alt="Écran de gestion des alertes">
+<div class="cap">Figure 18 — Écran réel du poste d'alertes : file d'attente, gravité, dossier concerné, prise en charge et résolution motivée.</div></div>
+
+<h3>10.4 L'escalade automatique — l'anti-négligence</h3>
 <div class="fig">
 <svg width="660" height="96" viewBox="0 0 660 96" xmlns="http://www.w3.org/2000/svg" style="max-width:100%">
   <defs><marker id="c" markerWidth="9" markerHeight="9" refX="8" refY="3.5" orient="auto"><path d="M0,0 L8,3.5 L0,7 z" fill="#b91c1c"/></marker></defs>
@@ -292,47 +689,147 @@
     <line x1="423" y1="49" x2="461" y2="49" stroke="#b91c1c" stroke-width="2.5" marker-end="url(#c)"/>
   </g>
 </svg>
-<div class="cap">Figure 3 — La chaîne d'escalade : une alerte ignorée remonte automatiquement la hiérarchie. Personne ne peut « laisser dormir » un incident.</div>
+<div class="cap">Figure 19 — Une alerte ignorée remonte automatiquement la hiérarchie. Personne ne peut « laisser dormir » un incident.</div>
 </div>
-<h3>7.3 La surveillance du surveillant</h3>
-<p>Le système se surveille lui-même : si la collecte des positions s'arrête (panne de liaison avec l'opérateur télécom, par exemple), <b>les écrans l'affichent en rouge immédiatement</b> et l'équipe SIGEP est prévenue par SMS. Le tableau de bord de chaque utilisateur porte une pastille d'état qui reflète la réalité — jamais un voyant vert de décoration.</p>
 
-<!-- ═══════════════ 8. GARANTIES ═══════════════ -->
-<div class="section"></div>
-<h2>8. Les garanties : sécurité, traçabilité, souveraineté, droits</h2>
+<h3>10.5 La surveillance du surveillant</h3>
+<p>Le système se surveille lui-même : si la collecte des positions s'arrête, <b>les écrans l'affichent en rouge immédiatement</b> et l'équipe nationale est prévenue. Le tableau de bord de chaque utilisateur porte une pastille d'état qui reflète la réalité — jamais un voyant vert de décoration.</p>
+<div class="fig framed"><img src="assets/app-salle-crise.jpg" alt="Mode salle de crise">
+<div class="cap">Figure 20 — Le mode « salle de crise » : affichage sur mur d'écrans pour un centre opérationnel national.</div></div>
+
+<!-- ═══════════════ 10. AGENDA / JOURNAL / RÉVOCATIONS ═══════════════ -->
+<h2><span class="secnum">11</span><span class="sect">L'agenda des obligations, le journal de comportement et les révocations</span></h2>
+<div class="enbref"><div class="k">EN BREF</div><div class="v">Les obligations sont planifiées et leur exécution constatée ; le comportement est consigné et sert aussi la réinsertion ; la révocation suit une procédure motivée, jamais un réflexe.</div></div>
+
+<h3>11.1 L'agenda : rendre les obligations opposables</h3>
+<p>Une mesure alternative ne se réduit pas à une position GPS : elle est faite d'obligations à honorer. SIGEP les planifie et en constate l'exécution.</p>
 <table>
-  <tr><th>Garantie</th><th>Comment elle est assurée</th></tr>
-  <tr><td><b>Accès fermé</b></td><td>Aucune inscription libre : chaque compte est créé nominativement par une autorité habilitée. Double authentification. Sessions expirées après inactivité. Comptes à durée de mission (détachements) désactivés automatiquement à échéance.</td></tr>
-  <tr><td><b>Traçabilité totale</b></td><td>Journal d'audit inviolable et en lecture seule : qui s'est connecté, qui a créé quoi, qui a résolu quelle alerte, qui a édité quel rapport, avec quel motif. L'auteur reste identifié même si son compte est supprimé plus tard.</td></tr>
-  <tr><td><b>Cloisonnement</b></td><td>Un juge ne voit que ses dossiers ; un agent, son secteur ; le Ministère, des chiffres anonymes. Le principe du « besoin d'en connaître » est appliqué écran par écran.</td></tr>
+  <tr><th style="width:32%">Type d'obligation</th><th>Exemple</th></tr>
+  <tr><td><b>Séance de travail d'intérêt général</b></td><td>« Mairie de Baskuy, mardi 08 h–12 h »</td></tr>
+  <tr><td><b>Contrôle de couvre-feu</b></td><td>« Vérification de présence au domicile, 22 h »</td></tr>
+  <tr><td><b>Convocation judiciaire</b></td><td>« Audience du 15 du mois, 09 h »</td></tr>
+  <tr><td><b>Visite de suivi</b></td><td>« Visite sociale hebdomadaire à domicile »</td></tr>
+</table>
+<p>Chaque obligation reçoit, après coup, l'une de trois issues : <b>honorée</b>, <b>manquée</b>, ou <b>excusée</b> (absence justifiée constatée par le magistrat). Un rappel automatique est envoyé la veille. Chaque absence non justifiée est consignée au dossier et pèse dans l'appréciation finale.</p>
+
+<h3>11.2 Le journal de comportement : la pièce de réinsertion</h3>
+<p>Les agents de suivi et les superviseurs de site consignent des observations qualifiées : <b>positive</b>, <b>neutre</b>, <b>négative</b> ou <b>incident</b>. Un condamné ponctuel, appliqué, bien intégré dans son site d'accueil accumule ainsi un dossier favorable objectif — utile pour un aménagement, une réduction ou une décision de clôture anticipée. La surveillance électronique ne sert pas qu'à sanctionner : <b>elle documente aussi les efforts</b>.</p>
+
+<h3>11.3 La révocation : une procédure, pas un réflexe</h3>
+<ol class="steps">
+  <li><b>Demande motivée.</b> Un agent ou un magistrat ouvre une demande de révocation, en exposant les motifs et en indiquant le <b>nombre de violations constatées</b> — chiffre issu des incidents réellement enregistrés, pas d'une appréciation.</li>
+  <li><b>Mise à l'étude.</b> La demande passe à l'instruction ; le dossier complet, l'historique des alertes et le relevé de TIG sont consultables.</li>
+  <li><b>Décision du juge.</b> Approbation ou rejet, avec décision motivée, auteur et date enregistrés.</li>
+  <li><b>Exécution.</b> Une révocation approuvée met fin proprement à la surveillance : arrêt du suivi, retrait du bracelet, renvoi vers la détention. Le dossier conserve toute sa mémoire.</li>
+</ol>
+
+<h3>11.4 Les requêtes institutionnelles : rien ne s'efface en silence</h3>
+<p>Certaines opérations sensibles ne peuvent pas être décidées seul. Elles passent par une <b>requête</b> motivée, soumise à décision et journalisée : suppression d'un dossier, archivage, réactivation, <b>prolongation de mesure</b>, <b>modification des conditions</b>, ou <b>transfert de juridiction</b>. Chaque requête porte son motif, son demandeur, sa décision et sa note de décision.</p>
+
+<!-- ═══════════════ 11. PARC ═══════════════ -->
+<h2><span class="secnum">12</span><span class="sect">La gestion du parc de bracelets</span></h2>
+<div class="enbref"><div class="k">EN BREF</div><div class="v">Chaque bracelet a une identité, un état de santé, un cycle de vie et un historique de maintenance — c'est ce suivi qui rend possible la <b>réutilisation</b>, clef du modèle économique.</div></div>
+<p>Un dispositif national ne vaut que si le matériel est suivi comme un actif de l'État. Chaque bracelet a une identité et une histoire.</p>
+<table>
+  <tr><th style="width:30%">Élément suivi</th><th>Détail</th></tr>
+  <tr><td><b>Identité du matériel</b></td><td>Identifiant unique de l'appareil, modèle, version du logiciel embarqué</td></tr>
+  <tr><td><b>Carte SIM</b></td><td>Numéro, opérateur (Orange, Moov, Telecel…), date de mise en service, état actif ou suspendu</td></tr>
+  <tr><td><b>État de santé</b></td><td>Niveau de batterie, qualité du signal, précision GPS, dernier contact, port effectif détecté</td></tr>
+  <tr><td><b>Cycle de vie</b></td><td>Quatre états : <b>en stock</b> · <b>en service</b> · <b>en maintenance</b> · <b>réformé</b> (avec date et motif de réforme)</td></tr>
+  <tr><td><b>Maintenance</b></td><td>Tickets typés : batterie, mise à jour logicielle, matériel, calibration, remplacement — avec priorité, agent affecté, date prévue, date de réalisation</td></tr>
+  <tr><td><b>Communication vocale</b></td><td>Numéros d'urgence configurés et liste blanche des appels autorisés — le porteur ne peut appeler que qui la Justice autorise</td></tr>
+  <tr><td><b>Événements</b></td><td>Historique complet des événements de l'appareil, consultable par bracelet</td></tr>
+</table>
+<div class="box"><b>Le lien avec le modèle économique :</b> c'est ce suivi qui rend possible la <b>réutilisation</b>. Un bracelet restitué, contrôlé et remis en stock repart sur un nouveau placement. Chaque réutilisation transforme un investissement déjà amorti en recette nette (§17).</div>
+
+<!-- ═══════════════ 12. RAPPORTS ═══════════════ -->
+<h2><span class="secnum">13</span><span class="sect">Les rapports officiels remis à la Justice</span></h2>
+<div class="enbref"><div class="k">EN BREF</div><div class="v">Quatre rapports officiels, chacun avec référence unique horodatée et signature de l'émetteur — et la liste des éditions elle-même conservée.</div></div>
+<table>
+  <tr><th style="width:30%">Rapport</th><th>Contenu et usage</th></tr>
+  <tr><td><b>Rapport de conformité mensuel</b></td><td>Synthèse du respect des conditions judiciaires pour tous les dossiers actifs de la période : taux de présence, infractions, alertes. Usage : pilotage d'un cabinet, revue mensuelle.</td></tr>
+  <tr><td><b>Rapport d'alertes et de violations</b></td><td>Liste chronologique de toutes les alertes déclenchées : sorties de périmètre, tentatives de sabotage, pertes de signal, avec leur traitement. Usage : production en audience, contradictoire.</td></tr>
+  <tr><td><b>Rapport de dossier individuel</b></td><td>Historique complet d'un bénéficiaire : positions, alertes, <b>heures de TIG effectuées séance par séance</b>, observations de terrain. Usage : décision de clôture, d'aménagement ou de révocation.</td></tr>
+  <tr><td><b>Rapport statistique national</b></td><td>Tableau de bord agrégé et anonyme pour le Ministère : mesures prononcées, taux de conformité, occupation des sites TIG, journées de détention évitées. Usage : Conseil des ministres, politique pénale.</td></tr>
+</table>
+<p>Chaque rapport édité porte une <b>référence unique horodatée</b>, le nom de son émetteur et un bloc de signature. La <b>liste des éditions</b> est elle-même conservée : qui a produit quel rapport, quand. Un rapport ne peut donc être ni contesté dans son origine, ni produit anonymement.</p>
+
+<!-- ═══════════════ 13. SITE PUBLIC ═══════════════ -->
+<h2><span class="secnum">14</span><span class="sect">Le site public : informer et rassurer les citoyens</span></h2>
+<div class="enbref"><div class="k">EN BREF</div><div class="v">Une vitrine citoyenne sans aucune donnée nominative, pour expliquer, rassurer et recruter des sites d'accueil TIG — plus trois accès ouverts aux autorités dès aujourd'hui.</div></div>
+<p>La réussite d'une politique de surveillance électronique dépend aussi de son <b>acceptation sociale</b>. Le site public y pourvoit :</p>
+<ul>
+  <li><b>Expliquer</b> ce qu'est le bracelet, qui peut en bénéficier, ce qu'il permet et ce qu'il interdit — en langage simple, accessible depuis n'importe quel téléphone.</li>
+  <li><b>Présenter le programme TIG</b> : à quoi il sert, quelles structures accueillent, comment une commune ou une école peut devenir site agréé.</li>
+  <li><b>Rassurer</b> : non, le bracelet ne « punit » pas la famille ; oui, la personne peut travailler ; non, personne d'autre que la Justice n'accède aux positions.</li>
+  <li><b>Valoriser l'action du Gouvernement</b> : une vitrine moderne qui montre un État qui innove, humanise l'exécution des peines et protège les victimes.</li>
+</ul>
+<div class="fig framed"><img src="assets/app-site-public.jpg" alt="Site public du Système Horon">
+<div class="cap">Figure 21 — Le site public citoyen : initiative, fonctionnement, programme TIG, statistiques, guide du bénéficiaire et foire aux questions. <b>Aucune donnée nominative n'y figure jamais.</b></div></div>
+
+<h3>14.1 Trois accès ouverts aux autorités dès aujourd'hui</h3>
+<p>Sans installation ni rendez-vous. Ils fonctionnent sur ordinateur comme sur téléphone : il suffit de scanner le code correspondant avec l'appareil photo du téléphone.</p>
+<div class="duo">
+  <div>
+    <img src="assets/qr-demo.png" alt="QR code de la démonstration SIGEP">
+    <div class="t">Démonstration complète</div>
+    <div class="u">sigep-presentation.vercel.app</div>
+    <div class="d">Le dispositif entier, site public <b>et</b> plateforme institutionnelle, avec des données fictives. Accès libre, sans identifiant, avec visite guidée. C'est l'adresse à utiliser pour évaluer le projet.</div>
+  </div>
+  <div>
+    <img src="assets/qr-site-public.png" alt="QR code du site public Système Horon">
+    <div class="t">Site public citoyen</div>
+    <div class="u">systeme-horon.vercel.app</div>
+    <div class="d">La vitrine destinée à la population : l'initiative, le fonctionnement, le programme TIG, les statistiques, le guide et la foire aux questions.</div>
+  </div>
+  <div>
+    <img src="assets/qr-video.png" alt="QR code de la vidéo de présentation">
+    <div class="t">Vidéo de présentation</div>
+    <div class="u">tinyurl.com/SigepHoron</div>
+    <div class="d">Une présentation filmée du dispositif, à regarder en quelques minutes depuis un téléphone — pour saisir l'essentiel sans lire l'intégralité du dossier.</div>
+  </div>
+</div>
+<div class="box">Ces adresses sont des environnements de démonstration hébergés à titre provisoire. Lors du déploiement, le dispositif sera publié sous un <b>nom de domaine national officiel</b> (par exemple en <b>.bf</b>), sur une infrastructure choisie avec les services de l'État (§15).</div>
+
+<div class="fig sheet"><img src="assets/hx-centre-controle.jpg" alt="Vue conceptuelle d'un centre de contrôle national">
+<div class="cap">Figure 22 — <i>Illustration de conception</i> : projection d'un centre de contrôle national à pleine charge — porteurs suivis, appareils en ligne, alertes actives, niveau de batterie moyen du parc. Les chiffres présentés sont une projection de dimensionnement, non des données réelles.</div></div>
+
+<!-- ═══════════════ 14. GARANTIES ═══════════════ -->
+<h2><span class="secnum">15</span><span class="sect">Les garanties : sécurité, traçabilité, souveraineté, droits</span></h2>
+<div class="enbref"><div class="k">EN BREF</div><div class="v">Accès fermé, journal d'audit inviolable, cloisonnement écran par écran, protection active des victimes, dignité du porteur, valeur probante des relevés et souveraineté des données.</div></div>
+<table>
+  <tr><th style="width:24%">Garantie</th><th>Comment elle est assurée</th></tr>
+  <tr><td><b>Accès fermé</b></td><td>Aucune inscription libre : chaque compte est créé nominativement par une autorité habilitée. Double authentification. Sessions expirées après inactivité. Comptes à durée de mission (détachements) désactivés automatiquement à échéance, avec motif de désactivation enregistré.</td></tr>
+  <tr><td><b>Traçabilité totale</b></td><td>Journal d'audit inviolable et en lecture seule : qui s'est connecté, qui a créé quoi, qui a affecté un site TIG, qui a saisi ou supprimé un pointage, qui a résolu quelle alerte, qui a édité quel rapport, avec quel motif. <b>L'auteur reste identifié même si son compte est supprimé plus tard.</b></td></tr>
+  <tr><td><b>Cloisonnement</b></td><td>Un juge ne voit que ses dossiers ; un agent, son secteur ou les dossiers qui lui sont assignés ; le Ministère, des chiffres anonymes. Le principe du « besoin d'en connaître » est appliqué écran par écran.</td></tr>
   <tr><td><b>Protection des victimes</b></td><td>Zones interdites actives : l'approche du domicile d'une victime déclenche l'alerte avant le contact, pas après le drame.</td></tr>
-  <tr><td><b>Dignité du porteur</b></td><td>Le bracelet est discret, porté sous le vêtement. Les positions ne sont accessibles qu'aux personnes habilitées, pour la seule finalité judiciaire. Durées de conservation encadrées et purge automatique.</td></tr>
-  <tr><td><b>Valeur probante</b></td><td>Rapports officiels à référence unique horodatée et bloc signature de l'émetteur ; historiques d'infractions exportables pour production en audience ; visites de terrain prouvées par la position GPS de l'agent.</td></tr>
+  <tr><td><b>Dignité du porteur</b></td><td>Le bracelet est discret, porté sous le vêtement, étanche et rechargeable sans retrait. Les positions ne sont accessibles qu'aux personnes habilitées, pour la seule finalité judiciaire. Durées de conservation encadrées et purge automatique.</td></tr>
+  <tr><td><b>Valeur probante</b></td><td>Rapports officiels à référence unique horodatée et bloc signature ; relevés de TIG recalculés depuis la source ; historiques d'infractions exportables ; visites de terrain prouvées par la position GPS de l'agent.</td></tr>
   <tr><td><b>Souveraineté des données</b></td><td>Plateforme conçue pour être hébergée à terme sur une <b>infrastructure nationale</b> ; procédure de migration documentée. Le Burkina Faso reste maître de ses données judiciaires.</td></tr>
   <tr><td><b>Continuité</b></td><td>Le mode terrain fonctionne sans réseau ; les données saisies se synchronisent automatiquement au retour de la connexion. Rien ne se perd.</td></tr>
 </table>
 
-<!-- ═══════════════ 9. BÉNÉFICES ═══════════════ -->
-<div class="section"></div>
-<h2>9. Les bénéfices, partie par partie</h2>
+<!-- ═══════════════ 15. BÉNÉFICES ═══════════════ -->
+<h2><span class="secnum">16</span><span class="sect">Les bénéfices, partie par partie</span></h2>
+<div class="enbref"><div class="k">EN BREF</div><div class="v">L'État économise, le juge dispose enfin d'un contrôle réel, le condamné garde emploi et famille, la victime est activement protégée, et les communes reçoivent des heures de travail utile.</div></div>
 <table>
-  <tr><th>Pour…</th><th>Bénéfices concrets</th></tr>
-  <tr><td><b>L'État et le contribuable</b></td><td>Désengorgement immédiat des prisons ; économie sur chaque journée de détention évitée (nourriture, garde, santé, entretien) ; dispositif qui tend vers l'<b>autofinancement</b> (§10) ; image d'un État moderne et respectueux des standards internationaux.</td></tr>
-  <tr><td><b>Les juges et le parquet</b></td><td>Une alternative crédible enfin dotée d'un <b>contrôle réel</b> : le juge ordonne, le système vérifie, les preuves s'accumulent d'elles-mêmes. Rapports prêts pour l'audience. Moins de détentions provisoires par défaut d'alternative.</td></tr>
-  <tr><td><b>Le bénéficiaire (la personne placée)</b></td><td>Garde son emploi, son toit, sa famille ; purge sa peine sans le traumatisme carcéral ni le contact criminogène ; conserve sa dignité ; ses efforts (TIG, obligations honorées) sont documentés et jouent en sa faveur.</td></tr>
+  <tr><th style="width:24%">Pour…</th><th>Bénéfices concrets</th></tr>
+  <tr><td><b>L'État et le contribuable</b></td><td>Désengorgement immédiat des prisons ; économie sur chaque journée de détention évitée ; dispositif qui tend vers l'<b>autofinancement</b> (§17) ; image d'un État moderne et respectueux des standards internationaux.</td></tr>
+  <tr><td><b>Les juges et le parquet</b></td><td>Une alternative crédible enfin dotée d'un <b>contrôle réel</b> : le juge ordonne, le système vérifie, les preuves s'accumulent d'elles-mêmes. Le TIG devient une peine <b>exécutable et prouvable</b>. Rapports prêts pour l'audience. Moins de détentions provisoires par défaut d'alternative.</td></tr>
+  <tr><td><b>Le bénéficiaire</b></td><td>Garde son emploi, son toit, sa famille ; purge sa peine sans le traumatisme carcéral ni le contact criminogène ; conserve sa dignité ; ses efforts (TIG accomplis, obligations honorées, journal favorable) sont documentés et jouent en sa faveur ; peut appeler à l'aide en cas de danger.</td></tr>
   <tr><td><b>Sa famille</b></td><td>Le revenu du foyer est préservé ; les enfants gardent leur père ou leur mère ; pas de stigmatisation de la visite en prison.</td></tr>
   <tr><td><b>Les victimes</b></td><td>Protection active par zones d'exclusion ; alerte immédiate en cas d'approche ; traçabilité utilisable en justice.</td></tr>
   <tr><td><b>L'administration pénitentiaire</b></td><td>Moins de surpopulation = détention plus sûre et plus digne pour ceux qui doivent y rester ; les gardes se concentrent sur les profils dangereux ; nouveau métier valorisant de « pose et suivi ».</td></tr>
-  <tr><td><b>La société</b></td><td>Moins de récidive (l'insertion est maintenue) ; des travaux d'intérêt général qui profitent aux mairies, écoles et centres de santé ; une justice visible et mesurable.</td></tr>
-  <tr><td><b>Les personnes en sursis ou en procédure</b></td><td>Possibilité <b>volontaire</b> de porter le bracelet pour matérialiser leur bonne foi, éviter la détention provisoire, prévenir la récidive et rassurer le tribunal.</td></tr>
+  <tr><td><b>Les communes et structures d'accueil</b></td><td>Une main-d'œuvre encadrée pour l'entretien, la salubrité, les espaces verts, l'appui aux écoles et aux centres de santé — sans charge administrative, la preuve étant portée par le système.</td></tr>
+  <tr><td><b>La société</b></td><td>Moins de récidive (l'insertion est maintenue) ; des travaux d'intérêt général qui profitent réellement au pays ; une justice visible et mesurable.</td></tr>
 </table>
 
-<!-- ═══════════════ 10. MODÈLE ÉCONOMIQUE ═══════════════ -->
-<div class="section"></div>
-<h2>10. Le modèle économique : un dispositif qui s'autofinance</h2>
+<!-- ═══════════════ 16. MODÈLE ÉCONOMIQUE ═══════════════ -->
+<h2><span class="secnum">17</span><span class="sect">Le modèle économique : un dispositif qui s'autofinance</span></h2>
+<div class="enbref"><div class="k">EN BREF</div><div class="v">Celui qui peut contribuer contribue ; l'indigent est pris en charge — et l'État y gagne dans tous les cas. Le dispositif est bénéficiaire dès l'année 1 et s'équilibre en année 3.</div></div>
 <p class="lead">L'idée directrice est simple : <b>celui qui a les moyens de contribuer au coût de sa propre surveillance contribue ; celui qui ne les a pas est pris en charge par l'État — et l'État y gagne quand même</b>, car la surveillance coûte plusieurs fois moins cher que la détention.</p>
 
-<h3>10.1 Le cycle de vie financier d'un bracelet</h3>
+<h3>18.1 Le cycle de vie financier d'un bracelet</h3>
 <div class="fig">
 <svg width="660" height="210" viewBox="0 0 660 210" xmlns="http://www.w3.org/2000/svg" style="max-width:100%">
   <defs><marker id="d" markerWidth="9" markerHeight="9" refX="8" refY="3.5" orient="auto"><path d="M0,0 L8,3.5 L0,7 z" fill="#064e3b"/></marker></defs>
@@ -360,10 +857,10 @@
     <text x="128" y="130" font-size="8.5" fill="#64748b" transform="rotate(-62 128 130)">re-déploiement</text>
   </g>
 </svg>
-<div class="cap">Figure 4 — Un bracelet acheté une fois (175 000 F) génère une contribution de 200 000 F à chaque placement payant. Dès le premier porteur solvable, l'appareil est amorti ; chaque réutilisation est un excédent qui finance le dispositif.</div>
+<div class="cap">Figure 23 — Un bracelet acheté une fois (175 000 F) génère une contribution de 200 000 F à chaque placement payant. Dès le premier porteur solvable, l'appareil est amorti ; chaque réutilisation est un excédent qui finance le dispositif.</div>
 </div>
 
-<h3>10.2 Le barème d'équité — principe fondamental</h3>
+<h3>18.2 Le barème d'équité — principe fondamental</h3>
 <p>Pour être juste et constitutionnellement solide, la contribution est <b>proportionnée au niveau de vie</b>, apprécié par le juge sur pièces (comme pour l'aide juridictionnelle) :</p>
 <table>
   <tr><th>Profil du porteur</th><th>Contribution proposée</th><th>Qui paie le reste ?</th></tr>
@@ -373,16 +870,16 @@
 </table>
 <div class="box-red box"><b>Ligne rouge assumée :</b> la capacité de payer <b>n'influence jamais la décision judiciaire</b> (qui est éligible, qui ne l'est pas) — elle ne module que la <i>répartition du coût</i> d'une mesure déjà décidée par le juge selon les seuls critères de droit. Ce principe protège le dispositif de toute accusation de « justice à deux vitesses ».</div>
 
-<h3>10.3 Pourquoi l'État y gagne même quand il paie</h3>
+<h3>18.3 Pourquoi l'État y gagne même quand il paie</h3>
 <p>Comparons, pour une mesure de 12 mois, la détention et la surveillance électronique. <span class="hyp">Les montants de détention sont des hypothèses de travail à affiner avec les services compétents du Ministère ; la logique demeure quelle que soit la valeur exacte.</span></p>
 <table>
   <tr><th></th><th>Détention 12 mois</th><th>Bracelet 12 mois (porteur indigent, État payeur)</th><th>Bracelet 12 mois (porteur solvable)</th></tr>
   <tr><td>Coût direct pour l'État</td><td>Nourriture + garde + santé + entretien : <i>hypothèse 1 500 F/jour ≈</i> <b>547 500 F</b></td><td>Amortissement bracelet (réutilisé ~5 fois : 35 000 F) + exploitation ≈ <b>150 000 F</b></td><td><b>≈ 0 F</b> (contribution 200 000 F ≥ coûts)</td></tr>
   <tr><td>Recette pour le dispositif</td><td>0</td><td>0</td><td><b>+ 200 000 F</b></td></tr>
-  <tr><td>Effets induits</td><td>Emploi perdu, famille fragilisée, récidive favorisée, surpopulation</td><td colspan="2">Emploi conservé (impôts, consommation), famille stable, TIG au profit des communes, prison désengorgée</td></tr>
+  <tr><td>Effets induits</td><td>Emploi perdu, famille fragilisée, récidive favorisée, surpopulation</td><td colspan="2">Emploi conservé (impôts, consommation), famille stable, <b>heures de TIG au profit des communes</b>, prison désengorgée</td></tr>
 </table>
 
-<h3>10.4 Projection indicative sur trois ans</h3>
+<h3>18.4 Projection indicative sur trois ans</h3>
 <p><span class="hyp">Hypothèses affichées : parc initial de 500 bracelets ; montée en charge progressive ; durée moyenne de placement 8 mois (soit ~1,5 porteur par bracelet et par an) ; 60 % de porteurs contributifs à contribution moyenne pondérée de 150 000 F (plein tarif, réduits et gratuits confondus) ; équipe SIGEP de 25 agents à coût moyen chargé de 250 000 F/mois.</span></p>
 <table>
   <tr><th></th><th>Année 1 (pilote)</th><th>Année 2</th><th>Année 3</th></tr>
@@ -396,42 +893,229 @@
   <tr><td><b>Économie brute détention</b> <span class="hyp">(hyp. 1 500 F/j)</span></td><td><b>+ 270 M</b></td><td><b>+ 810 M</b></td><td><b>+ 1,62 Md</b></td></tr>
   <tr><td style="background:#ecfdf5"><b>Gain net global pour l'État</b></td><td style="background:#ecfdf5"><b>+ 175 M</b></td><td style="background:#ecfdf5"><b>+ 732 M</b></td><td style="background:#ecfdf5"><b>+ 1,6 Md F CFA</b></td></tr>
 </table>
-<div class="box"><b>Lecture :</b> même en étant volontairement prudents (40 % de porteurs pris en charge gratuitement, salaires confortables pour fidéliser l'équipe), le dispositif est <b>bénéficiaire pour l'État dès la première année</b> grâce aux détentions évitées, et <b>l'exploitation elle-même s'équilibre en année 3</b> : à partir de là, les agents du SIGEP ne pèsent plus sur le budget de l'État — ce sont les contributions des porteurs qui les rémunèrent, et chaque bracelet réutilisé accroît l'excédent.</div>
+<div class="box"><b>Lecture :</b> même en étant volontairement prudents (40 % de porteurs pris en charge gratuitement, salaires confortables pour fidéliser l'équipe), le dispositif est <b>bénéficiaire pour l'État dès la première année</b> grâce aux détentions évitées, et <b>l'exploitation elle-même s'équilibre en année 3</b>. À cela s'ajoute une valeur non chiffrée ici : les <b>centaines de milliers d'heures de travail d'intérêt général</b> effectivement réalisées au profit des mairies, écoles, hôpitaux et espaces publics.</div>
 
-<h3>10.5 Recettes complémentaires possibles</h3>
+<h3>18.5 Recettes complémentaires possibles</h3>
 <ul>
-  <li><b>Port volontaire</b> : personnes en sursis, en liberté provisoire ou en procédure qui demandent le bracelet pour attester leur bonne conduite et prévenir la récidive — contribution pleine.</li>
+  <li><b>Port volontaire</b> : personnes en sursis, en liberté provisoire ou en procédure qui demandent le bracelet pour attester leur bonne conduite — contribution pleine (voir scénario 5).</li>
   <li><b>Caution technologique</b> : le bracelet comme condition de mise en liberté provisoire, à la charge du demandeur.</li>
   <li><b>Frais de dégradation</b> : bracelet endommagé volontairement = remboursement au tarif de remplacement, adossé au dossier.</li>
   <li>À terme, <b>prestation sous-régionale</b> : mise à disposition de la plateforme (hébergée au Burkina) à des juridictions voisines.</li>
 </ul>
 
-<!-- ═══════════════ 11. FEUILLE DE ROUTE ═══════════════ -->
-<div class="section"></div>
-<h2>11. Feuille de route de déploiement</h2>
+<!-- ═══════════════ 17. FEUILLE DE ROUTE ═══════════════ -->
+<h2><span class="secnum">18</span><span class="sect">La gestion des risques du déploiement</span></h2>
+<div class="enbref"><div class="k">EN BREF</div><div class="v">Aucun projet d'État n'est sans risque. Ceux du Système Horon sont identifiés, hiérarchisés, et chacun dispose d'une parade <b>déjà prévue dans la conception</b> — pas d'une promesse à tenir plus tard.</div></div>
+
 <table>
-  <tr><th>Phase</th><th>Contenu</th><th>Durée indicative</th></tr>
-  <tr><td><b>0 — Cadre</b></td><td>Adoption du texte réglementaire (décret/arrêté d'application) ; convention avec un agrégateur SMS national ; arrêté de tarification et barème d'équité.</td><td>1 à 2 mois</td></tr>
-  <tr><td><b>1 — Pilote</b></td><td>2 juridictions pilotes (ex. Ouagadougou, Bobo-Dioulasso) ; 500 bracelets ; formation des juges, greffes, gardes et agents (le manuel complet et les guides par rôle existent déjà) ; cellule SIGEP de garde.</td><td>6 mois</td></tr>
-  <tr><td><b>2 — Évaluation</b></td><td>Rapport d'évaluation au Gouvernement : conformité, incidents, coûts réels constatés, ajustement du barème.</td><td>1 mois</td></tr>
-  <tr><td><b>3 — Extension</b></td><td>Généralisation progressive aux TGI ; montée du parc à 1 500 puis 3 000 bracelets ; rapatriement de l'hébergement sur infrastructure nationale.</td><td>Années 2–3</td></tr>
+  <tr><th style="width:22%">Risque</th><th style="width:12%">Probabilité</th><th style="width:12%">Impact</th><th>Parade prévue</th></tr>
+  <tr><td><b>Panne ou zone blanche du réseau mobile</b></td><td>Élevée</td><td>Moyen</td><td>Le bracelet <b>mémorise ses positions</b> et les transmet au retour du réseau. Une perte de signal prolongée est elle-même une alerte, traitée comme un incident. Le mode terrain des agents fonctionne hors connexion et se synchronise ensuite.</td></tr>
+  <tr><td><b>Coupure d'électricité au domicile</b></td><td>Élevée</td><td>Faible</td><td>Le bracelet a 5 à 10 jours d'autonomie et la base de recharge embarque <b>6 000 mAh</b>, soit 2 à 3 recharges complètes sans prise. Le Beacon, s'il s'éteint, produit une perte de contact identifiée comme technique, non comme violation.</td></tr>
+  <tr><td><b>Sabotage du bracelet</b></td><td>Moyenne</td><td>Élevé</td><td>Double barrière : <b>bande d'acier intégrée</b> contre la coupe, et détection immédiate au niveau de gravité maximal. Même une tentative infructueuse laisse une trace judiciaire et fonde une révocation.</td></tr>
+  <tr><td><b>Fuite en dehors du territoire</b></td><td>Faible</td><td>Élevé</td><td>Sélection stricte des profils (§5) ; alerte immédiate à la sortie du périmètre autorisé ; suivi de position en continu ; intervention des forces de sécurité avec la position exacte.</td></tr>
+  <tr><td><b>Alerte laissée sans traitement</b></td><td>Moyenne</td><td>Élevé</td><td><b>Escalade automatique</b> : relance du juge du dossier à 30 minutes, de la direction à 2 heures. Aucune alerte ne peut être fermée sans un motif écrit par un agent identifié.</td></tr>
+  <tr><td><b>Complaisance sur les heures de TIG</b></td><td>Moyenne</td><td>Moyen</td><td>Un pointage par dossier et par date, pas d'antidatage, recalcul du total depuis la source, suppression restreinte, journal d'audit, et recoupement avec les positions GPS du porteur et de l'agent.</td></tr>
+  <tr><td><b>Refus ou défaillance des sites d'accueil</b></td><td>Moyenne</td><td>Moyen</td><td>Conventionnement en phase 0 ; contrôle de capacité ; possibilité de suspendre un site sans perdre son historique ; taux d'occupation national visible pour anticiper les besoins.</td></tr>
+  <tr><td><b>Contestation juridique de la mesure</b></td><td>Moyenne</td><td>Élevé</td><td>Cadre réglementaire adopté <b>avant</b> tout placement ; barème d'équité qui n'influence jamais l'éligibilité ; journal d'audit et rapports signés garantissant le contradictoire ; durées de conservation encadrées.</td></tr>
+  <tr><td><b>Rupture d'approvisionnement (bracelets, cartes SIM)</b></td><td>Moyenne</td><td>Moyen</td><td>Parc géré comme un actif : stock, maintenance, réforme et <b>réutilisation</b> tracés. Montée en charge progressive (500 → 1 500 → 3 000) plutôt qu'un déploiement massif d'un seul tenant.</td></tr>
+  <tr><td><b>Dépendance à un hébergement étranger</b></td><td>Certaine au départ</td><td>Moyen</td><td>Migration vers une <b>infrastructure nationale</b> inscrite en phase 3, avec procédure documentée. Le Burkina Faso reste juridiquement maître de ses données judiciaires.</td></tr>
+  <tr><td><b>Rejet par l'opinion publique</b></td><td>Faible</td><td>Élevé</td><td>Site public pédagogique sans aucune donnée nominative ; communication sur la protection <b>active</b> des victimes ; démonstration ouverte aux médias et aux autorités.</td></tr>
+</table>
+<div class="box-gold box"><b>Le risque le plus souvent oublié — et déjà traité :</b> celui de la <b>négligence humaine</b>. Un dispositif technique parfait ne vaut rien si une alerte reste sans réponse un dimanche soir. C'est la raison d'être de l'escalade automatique et de la surveillance du système par lui-même : la machine ne se contente pas de surveiller les porteurs, <b>elle surveille aussi ceux qui les surveillent</b>.</div>
+
+<h2><span class="secnum">19</span><span class="sect">Feuille de route de déploiement</span></h2>
+<div class="enbref"><div class="k">EN BREF</div><div class="v">Quatre phases : cadre réglementaire et agrément des sites (1–2 mois), pilote sur deux juridictions (6 mois), évaluation (1 mois), extension nationale (années 2–3).</div></div>
+<table>
+  <tr><th style="width:18%">Phase</th><th>Contenu</th><th style="width:18%">Durée indicative</th></tr>
+  <tr><td><b>0 — Cadre</b></td><td>Adoption du texte réglementaire (décret/arrêté d'application) ; convention avec un agrégateur SMS national ; arrêté de tarification et barème d'équité ; <b>procédure d'agrément des sites TIG</b> et signature des premières conventions avec les mairies, hôpitaux et établissements scolaires.</td><td>1 à 2 mois</td></tr>
+  <tr><td><b>1 — Pilote</b></td><td>2 juridictions pilotes (ex. Ouagadougou, Bobo-Dioulasso) ; 500 bracelets ; constitution du répertoire des sites TIG et formation de leurs responsables au pointage ; formation des juges, greffes, gardes et agents (le manuel complet et les guides par rôle existent déjà) ; cellule SIGEP de garde.</td><td>6 mois</td></tr>
+  <tr><td><b>2 — Évaluation</b></td><td>Rapport d'évaluation au Gouvernement : conformité, incidents, <b>heures de TIG réellement accomplies</b>, coûts réels constatés, ajustement du barème.</td><td>1 mois</td></tr>
+  <tr><td><b>3 — Extension</b></td><td>Généralisation progressive aux TGI ; extension du répertoire des sites TIG à l'ensemble des communes ; montée du parc à 1 500 puis 3 000 bracelets ; rapatriement de l'hébergement sur infrastructure nationale.</td><td>Années 2–3</td></tr>
 </table>
 <div class="box-gold box"><b>Atout décisif :</b> il ne s'agit pas de financer une étude ni un développement — <b>la plateforme est construite, testée et démontrable aujourd'hui</b>, en français, adaptée aux juridictions et aux arrondissements du Burkina Faso, avec ses manuels de formation. La décision politique peut être suivie d'effets en quelques semaines.</div>
 
-<!-- ═══════════════ 12. CONCLUSION ═══════════════ -->
-<h2>12. Conclusion et engagement</h2>
-<p>Le Système Horon offre au Burkina Faso l'occasion de conjuguer ce que l'on oppose d'ordinaire : <b>la fermeté</b> (une surveillance continue, des preuves inaltérables, une escalade qui ne laisse rien passer) et <b>l'humanité</b> (des familles préservées, des emplois maintenus, une réinsertion réelle) ; <b>la rigueur budgétaire</b> (un dispositif qui s'autofinance et fait économiser des centaines de millions de journées de détention) et <b>l'innovation souveraine</b> (une solution conçue par des compétences nationales, dont les données resteront sur le sol burkinabè).</p>
-<p>« Horon » signifie <b>l'homme libre</b>. Ce projet propose précisément cela : que la dette envers la société se paie debout, au travail, en famille — sous l'œil vigilant et impartial de la Justice.</p>
-<p>Nous nous tenons à la disposition du Gouvernement pour une <b>démonstration en conditions réelles</b>, sur simple convocation.</p>
+<!-- ═══════════════ 18. PORTEUR ═══════════════ -->
+<h2><span class="secnum">20</span><span class="sect">Les indicateurs d'évaluation du pilote</span></h2>
+<div class="enbref"><div class="k">EN BREF</div><div class="v">Dix chiffres, produits automatiquement par le système, permettront au Gouvernement de décider de la généralisation <b>sur des faits et non sur des impressions</b>.</div></div>
 
-<div class="sig">
-  <div><div class="line">Le Porteur du projet SIGEP<br>Système Horon</div></div>
-  <div><div class="line">Pour le Ministère de la Justice<br>et des Droits Humains</div></div>
+<p>Le rapport d'évaluation prévu en phase 2 ne reposera pas sur des déclarations : tous les indicateurs ci-dessous sont calculés par la plateforme à partir des données réellement enregistrées, et sont exportables sous la signature de leur émetteur.</p>
+<table>
+  <tr><th style="width:6%">N°</th><th style="width:30%">Indicateur</th><th>Ce qu'il mesure et pourquoi il compte</th></tr>
+  <tr><td><b>1</b></td><td><b>Nombre de mesures prononcées</b></td><td>Adhésion réelle des magistrats au dispositif. Un dispositif que les juges n'utilisent pas ne sert à rien, quelle qu'en soit la qualité technique.</td></tr>
+  <tr><td><b>2</b></td><td><b>Taux de conformité</b></td><td>Part des dossiers sans violation sur la période. C'est l'indicateur central de crédibilité : il répond à la question « est-ce que ça tient ? ».</td></tr>
+  <tr><td><b>3</b></td><td><b>Journées de détention évitées</b></td><td>Somme des durées de placement. Base directe du calcul de l'économie budgétaire.</td></tr>
+  <tr><td><b>4</b></td><td><b>Heures de TIG réellement accomplies</b></td><td>Le chiffre inédit : la valeur de travail restituée à la collectivité, mairie par mairie, école par école. Aujourd'hui, ce chiffre n'existe nulle part.</td></tr>
+  <tr><td><b>5</b></td><td><b>Taux d'achèvement des TIG</b></td><td>Part des mesures menées jusqu'aux 100 % d'heures ordonnées. Mesure l'efficacité réelle de la peine alternative.</td></tr>
+  <tr><td><b>6</b></td><td><b>Délai moyen de prise en charge d'une alerte</b></td><td>Temps entre le déclenchement et la prise en compte par un opérateur. Mesure la réactivité de la chaîne humaine, pas seulement de la machine.</td></tr>
+  <tr><td><b>7</b></td><td><b>Répartition des alertes par cause</b></td><td>Sorties de zone, sabotages, batteries, pertes de signal. Permet de distinguer les <b>vraies violations</b> des <b>incidents techniques</b> — et donc de mesurer honnêtement la fiabilité du matériel.</td></tr>
+  <tr><td><b>8</b></td><td><b>Taux de révocation</b></td><td>Part des mesures interrompues pour manquement grave. Mesure la qualité de la sélection des profils (§5).</td></tr>
+  <tr><td><b>9</b></td><td><b>Taux d'occupation des sites TIG</b></td><td>Capacité d'absorption du pays. Indique s'il faut conventionner de nouvelles structures avant d'étendre le dispositif.</td></tr>
+  <tr><td><b>10</b></td><td><b>Coût réel par porteur et par mois</b></td><td>Confronte les hypothèses du modèle économique aux dépenses constatées, et permet d'ajuster le barème d'équité en connaissance de cause.</td></tr>
+</table>
+<div class="box"><b>Seuils de succès proposés pour la phase pilote (6 mois, 2 juridictions, 500 bracelets) :</b> au moins <b>400 mesures prononcées</b> · taux de conformité supérieur à <b>85 %</b> · délai moyen de prise en charge des alertes inférieur à <b>15 minutes</b> · taux d'achèvement des TIG supérieur à <b>75 %</b> · aucune évasion durable. Ces seuils sont proposés au Gouvernement comme base de discussion : c'est à l'autorité politique de fixer le niveau d'exigence.</div>
+
+<h2><span class="secnum">21</span><span class="sect">Ce que font les autres pays</span></h2>
+<div class="enbref"><div class="k">EN BREF</div><div class="v">La surveillance électronique n'est pas une expérimentation : elle est <b>installée en France</b>, <b>en service au Sénégal</b> et <b>en cours d'adoption</b> en Guinée et au Maroc. Le Burkina Faso peut arriver avec un dispositif déjà construit, là où d'autres ont attendu des années.</div></div>
+
+<table>
+  <tr><th style="width:12%">Pays</th><th style="width:41%">Où en est le dispositif</th><th>Enseignement pour le Burkina Faso</th></tr>
+  <tr><td><b>France</b></td><td><b>16 305 personnes</b> en détention à domicile sous surveillance électronique au 1<sup>er</sup> février 2025, en hausse de <b>5,9 %</b> sur un an. La mesure représente <b>43 %</b> des aménagements de peine en sortie de prison en 2025.</td><td>Le dispositif n'est pas marginal : c'est devenu la <b>première modalité d'aménagement de peine</b> d'un grand pays. La montée en charge est progressive et continue, jamais brutale.</td></tr>
+  <tr><td><b>Sénégal</b></td><td>Lois n° 2020-28 et n° 2020-29 du 27 juillet 2020 instaurant le placement sous surveillance électronique et l'assignation à résidence sous surveillance électronique. Application effective en <b>2023</b>, après l'ouverture d'un centre de surveillance électronique. Placements passés de <b>278 en octobre 2023 à 562 en janvier 2025</b>.</td><td>Deux leçons majeures. La première : <b>trois ans se sont écoulés entre la loi et son application</b>, faute d'outil opérationnel. La seconde : une fois le dispositif en service, le nombre de placements <b>double en quinze mois</b>. Le Burkina Faso peut éviter le premier écueil, puisque la plateforme existe déjà.</td></tr>
+  <tr><td><b>Guinée</b></td><td>Contrat d'introduction du bracelet électronique dans le système pénitentiaire signé le <b>13 août 2025</b>, avec livraison des premiers bracelets et installation d'un centre de contrôle annoncées sous six mois.</td><td>La sous-région bouge maintenant. Le Burkina Faso a l'occasion de ne pas être suiveur — et de disposer, avec une solution nationale, d'un actif qu'il pourra ensuite proposer à ses voisins.</td></tr>
+  <tr><td><b>Maroc</b></td><td>Dispositif annoncé opérationnel à compter d'<b>août 2025</b> par le ministère de la Justice.</td><td>La surveillance électronique s'impose comme le standard des réformes pénitentiaires en Afrique francophone.</td></tr>
+</table>
+<div class="box-gold box"><b>La leçon commune à tous ces pays :</b> ce n'est jamais le texte de loi qui bloque — c'est le <b>délai entre la loi et l'outil</b>. Le Sénégal a perdu trois ans à cette étape précise. Le Burkina Faso se présente aujourd'hui dans la situation inverse : <b>l'outil existe avant le texte</b>. La décision politique peut donc être suivie d'effets en quelques semaines, et non en quelques années.</div>
+<p class="hyp">Sources : Ministère de la Justice français, statistique mensuelle des personnes écrouées au 1<sup>er</sup> février 2025 et étude sur les aménagements de peine 2025 ; Journal officiel de la République du Sénégal n° 7342 du 27 juillet 2020 ; communication officielle du ministère de la Justice du Sénégal, janvier 2025 ; presse guinéenne et marocaine, août 2025. Ces éléments sont fournis à titre de comparaison et peuvent être actualisés à la demande des services du Ministère.</p>
+
+<h2><span class="secnum">22</span><span class="sect">Le porteur du projet : Bewi's Execution and Tech</span></h2>
+<div class="enbref"><div class="k">EN BREF</div><div class="v">Une entreprise burkinabè spécialisée en localisation GPS, deux porteurs — l'ingénierie et la présence permanente à Ouagadougou — et une plateforme financée sur fonds propres.</div></div>
+<p>Le Système Horon n'est pas une offre commerciale importée : il est conçu, développé et porté par <b>Bewi's Execution and Tech</b>, entreprise spécialisée dans les <b>systèmes de localisation GPS</b> et le <b>développement de systèmes informatiques</b>. La plateforme présentée dans ce dossier a été construite sur fonds propres, sans financement public, et est aujourd'hui démontrable en conditions réelles.</p>
+
+<h3>22.1 Les deux porteurs</h3>
+<div class="card">
+  <div>
+    <div class="nom">BAGUIAN Ezechiel Igor</div>
+    <div class="role">Ingénieur en développement de systèmes d'automatisation</div>
+    <div class="loc">New York, États-Unis d'Amérique</div>
+    <div class="ct">
+      Conception et développement de la plateforme SIGEP :<br>
+      architecture logicielle, suivi GPS temps réel, moteur d'alertes et d'escalade, module TIG, journal d'audit, sécurité des données.
+      <br><br>
+      ✉ baguian10@gmail.com<br>
+      ☎ +1 929 304 5119 (USA) · +226 70 79 46 00 (Burkina Faso)
+    </div>
+  </div>
+  <div>
+    <div class="nom">OUEDRAOGO Donald</div>
+    <div class="role">Ingénieur des mines</div>
+    <div class="loc">Ouagadougou, Burkina Faso</div>
+    <div class="ct">
+      Représentation nationale et déploiement terrain :<br>
+      relations institutionnelles, logistique du parc de bracelets, conventionnement des sites TIG, coordination des sites pilotes, suivi opérationnel au Burkina Faso.
+      <br><br>
+      ✉ fasoequipementstore@gmail.com<br>
+      ☎ +226 64 79 24 70
+    </div>
+  </div>
 </div>
 
-<p style="margin-top:34px; font-size:9pt; color:#64748b; border-top:1px solid #e2e8f0; padding-top:8px;">
-* Les montants marqués comme hypothèses de travail (coût journalier de détention, taux de contributeurs, effectifs) sont des ordres de grandeur volontairement prudents, destinés à illustrer la mécanique économique ; ils seront consolidés avec les services du Ministère lors de la phase 0. Les prix du bracelet (175 000 F CFA) et de la contribution de référence (200 000 F CFA) sont les paramètres proposés par le projet.
+<h3>22.2 Ce que cette combinaison apporte à l'État</h3>
+<ul>
+  <li><b>Une compétence technique de niveau international, au service du pays.</b> L'ingénierie du système est portée par une expertise acquise sur le marché américain de l'automatisation, appliquée ici à un besoin burkinabè.</li>
+  <li><b>Une présence permanente sur le territoire national.</b> Un des deux porteurs est établi à Ouagadougou : l'État a un interlocuteur physique, disponible, joignable, pour la formation, le déploiement et le suivi quotidien.</li>
+  <li><b>Une spécialité directement alignée sur le besoin.</b> La localisation GPS n'est pas un métier appris pour l'occasion : c'est le cœur d'activité de l'entreprise.</li>
+  <li><b>Aucun risque budgétaire d'amorçage.</b> Le développement est déjà financé et réalisé ; l'État n'est pas sollicité pour une étude, un prototype ou un cahier des charges.</li>
+</ul>
+
+<h3>22.3 Coordonnées officielles</h3>
+<table>
+  <tr><th>Entité / Personne</th><th>Qualité</th><th>Adresse électronique</th><th>Téléphone</th></tr>
+  <tr><td><b>Bewi's Execution and Tech</b></td><td>Entreprise porteuse — systèmes GPS et développement informatique</td><td>bewisexecution@gmail.com</td><td>—</td></tr>
+  <tr><td><b>BAGUIAN Ezechiel Igor</b></td><td>Ingénieur en développement de systèmes d'automatisation — concepteur de la plateforme</td><td>baguian10@gmail.com</td><td>+1 929 304 5119<br>+226 70 79 46 00</td></tr>
+  <tr><td><b>OUEDRAOGO Donald</b></td><td>Ingénieur des mines — représentant au Burkina Faso</td><td>fasoequipementstore@gmail.com</td><td>+226 64 79 24 70</td></tr>
+</table>
+<div class="access">
+  <div class="qr"><img src="assets/qr-demo.png" alt="QR code d'accès à la démonstration en ligne"><div class="qrcap">Scannez</div></div>
+  <div class="txt">
+    <div class="lbl">DÉMONSTRATION EN LIGNE · ACCÈS LIBRE</div>
+    <div class="url">sigep-presentation.vercel.app</div>
+    <div class="note">Disponible 24 h/24, sans installation et sans identifiant. Les services du Ministère peuvent explorer l'ensemble des écrans décrits dans ce dossier avant toute réunion, et vérifier par eux-mêmes que la plateforme existe et fonctionne.<br><br><b>Vidéo de présentation :</b> tinyurl.com/SigepHoron &nbsp;·&nbsp; <b>Site public :</b> systeme-horon.vercel.app</div>
+  </div>
+</div>
+<div class="box"><b>Disponibilité :</b> les porteurs du projet se tiennent à la disposition des services du Ministère de la Justice et des Droits Humains pour une <b>démonstration en conditions réelles</b> de la plateforme, une séance de travail technique ou une audition, sur simple convocation.</div>
+
+<!-- ═══════════════ 19. CONCLUSION ═══════════════ -->
+<h2><span class="secnum">23</span><span class="sect">Conclusion et engagement</span></h2>
+<div class="enbref"><div class="k">EN BREF</div><div class="v">SIGEP apporte ce qui manquait aux peines alternatives : <b>la preuve</b>. Sans elle, ce sont des intentions ; avec elle, ce sont des peines.</div></div>
+<p>Le Système Horon offre au Burkina Faso l'occasion de conjuguer ce que l'on oppose d'ordinaire : <b>la fermeté</b> (une surveillance continue, des preuves inaltérables, une escalade qui ne laisse rien passer) et <b>l'humanité</b> (des familles préservées, des emplois maintenus, une réinsertion réelle) ; <b>la rigueur budgétaire</b> (un dispositif qui s'autofinance et évite des centaines de milliers de journées de détention) et <b>l'innovation souveraine</b> (une solution conçue par des compétences nationales, dont les données resteront sur le sol burkinabè).</p>
+<p>Il apporte surtout une chose qui manquait : <b>la preuve</b>. Preuve qu'une personne était bien chez elle. Preuve qu'elle n'a pas approché sa victime. Et preuve, heure par heure, qu'elle a réellement accompli le travail que la société lui a demandé en réparation. Sans cette preuve, les peines alternatives restent des intentions. Avec elle, elles deviennent des peines.</p>
+<p>« Horon » signifie <b>l'homme libre</b>. Ce projet propose précisément cela : que la dette envers la société se paie debout, au travail, en famille — sous l'œil vigilant et impartial de la Justice.</p>
+<p>Nous nous tenons à la disposition du Gouvernement pour une <b>démonstration en conditions réelles</b>, sur simple convocation. En attendant, la plateforme peut être essayée immédiatement, sans rendez-vous et sans identifiant, à l'adresse <b>sigep-presentation.vercel.app</b>, et une vidéo de présentation est disponible sur <b>tinyurl.com/SigepHoron</b>.</p>
+
+<div class="sig">
+  <div><div class="line"><b>BAGUIAN Ezechiel Igor</b><br>Bewi's Execution and Tech<br><span style="font-size:8.5pt;color:#64748b">Porteur du projet SIGEP · Système Horon</span></div></div>
+  <div><div class="line"><b>OUEDRAOGO Donald</b><br>Bewi's Execution and Tech<br><span style="font-size:8.5pt;color:#64748b">Représentant au Burkina Faso</span></div></div>
+  <div><div class="line">Pour le Ministère de la Justice<br>et des Droits Humains<br><span style="font-size:8.5pt;color:#64748b">&nbsp;</span></div></div>
+</div>
+
+<p style="margin-top:30px; font-size:8.5pt; color:#64748b; border-top:1px solid #e2e8f0; padding-top:8px;">
+* Les montants marqués comme hypothèses de travail (coût journalier de détention, taux de contributeurs, effectifs) sont des ordres de grandeur volontairement prudents, destinés à illustrer la mécanique économique ; ils seront consolidés avec les services du Ministère lors de la phase 0. Les prix du bracelet (175 000 F CFA) et de la contribution de référence (200 000 F CFA) sont les paramètres proposés par le projet. Les caractéristiques techniques du matériel (figures 1 à 9) sont celles des fiches produit du HORON X. La figure 22 est une illustration de dimensionnement et ne représente pas des données d'exploitation réelles. Les captures d'écran présentées comme « écran réel » (figures 10, 11, 12, 15, 16, 18, 20 et 21) proviennent de la démonstration en ligne accessible à l'adresse indiquée dans ce dossier, alimentée par des données fictives.
 </p>
+
+
+<h2 class="annexe"><span class="secnum">A</span><span class="sect">Annexe A — Glossaire du dispositif</span></h2>
+<div class="enbref"><div class="k">EN BREF</div><div class="v">Les termes employés dans ce dossier, définis en langage courant, pour que chaque lecteur suive l'ensemble du document sans blocage.</div></div>
+<table>
+  <tr><th style="width:26%">Terme</th><th>Définition</th></tr>
+  <tr><td><b>Bracelet / traceur</b></td><td>Le boîtier porté à la cheville. Il donne la position, détecte les tentatives de retrait et permet d'appeler à l'aide.</td></tr>
+  <tr><td><b>Beacon</b></td><td>Petit boîtier posé au domicile du porteur et branché sur une prise. Le bracelet dialogue avec lui en Bluetooth : tant qu'il le « voit », la personne est chez elle.</td></tr>
+  <tr><td><b>Base de recharge</b></td><td>Support sur lequel le porteur pose sa cheville pour recharger le bracelet <b>sans le retirer</b>. Elle contient sa propre batterie de secours.</td></tr>
+  <tr><td><b>Périmètre (ou géofence)</b></td><td>Zone tracée sur la carte. <b>Autorisée</b> : le porteur doit y rester. <b>Interdite</b> : il ne doit pas y entrer. Un périmètre peut n'être actif qu'à certaines heures.</td></tr>
+  <tr><td><b>Couvre-feu</b></td><td>Obligation d'être au domicile pendant une plage horaire, certains jours de la semaine choisis par le juge.</td></tr>
+  <tr><td><b>Alerte</b></td><td>Événement signalé par le système : sortie de zone, sabotage, batterie faible, appel d'urgence… Elle est traitée par un agent identifié et clôturée avec un motif écrit.</td></tr>
+  <tr><td><b>Escalade</b></td><td>Mécanisme qui fait remonter automatiquement une alerte non traitée : au juge du dossier après 30 minutes, à la direction après 2 heures.</td></tr>
+  <tr><td><b>Pointage</b></td><td>Enregistrement d'une séance de travail d'intérêt général : date, nombre d'heures, observations du superviseur. Il est signé par l'agent qui le saisit.</td></tr>
+  <tr><td><b>Site TIG agréé</b></td><td>Structure habilitée à accueillir des personnes en travail d'intérêt général : mairie, hôpital, école, ONG, espace vert. Elle a une capacité d'accueil et un responsable identifié.</td></tr>
+  <tr><td><b>Heures ordonnées / heures accomplies</b></td><td>Le nombre d'heures fixé par le juge, et le total effectivement réalisé — recalculé automatiquement à partir de tous les pointages enregistrés.</td></tr>
+  <tr><td><b>Journal d'audit</b></td><td>Registre en lecture seule de tout ce qui est fait dans le système : qui s'est connecté, qui a créé, modifié ou supprimé quoi, avec quel motif et à quelle heure.</td></tr>
+  <tr><td><b>Révocation</b></td><td>Procédure par laquelle une mesure est interrompue pour manquement grave, et la personne renvoyée en détention. Elle suppose une demande motivée et une décision du juge.</td></tr>
+  <tr><td><b>Mode terrain</b></td><td>Application utilisée par les agents sur téléphone, qui fonctionne <b>même sans réseau</b> et se synchronise au retour de la connexion.</td></tr>
+  <tr><td><b>Cloisonnement</b></td><td>Principe selon lequel chaque utilisateur ne voit que ce que sa fonction exige : un juge ses dossiers, un agent son secteur, le Ministère des chiffres anonymes.</td></tr>
+  <tr><td><b>Barème d'équité</b></td><td>Grille qui module la contribution financière du porteur selon ses ressources — sans jamais influencer la décision judiciaire elle-même.</td></tr>
+</table>
+
+<h2 class="annexe"><span class="secnum">B</span><span class="sect">Annexe B — Canevas d'articles réglementaires</span></h2>
+<div class="enbref"><div class="k">EN BREF</div><div class="v">Une trame de décret d'application, proposée pour faire gagner à la phase 0 les <b>mois</b> que d'autres pays de la sous-région ont perdus entre le vote de la loi et sa mise en œuvre effective.</div></div>
+<div class="box-gold box"><b>Avertissement :</b> ce canevas est une <b>contribution technique</b> du porteur de projet, destinée à faciliter le travail des services compétents. Il ne prétend nullement se substituer au travail du législateur ni à celui de la Direction des affaires civiles et du sceau. Sa rédaction définitive relève de l'État.</div>
+
+<h3>Titre I — Objet et définitions</h3>
+<ul>
+  <li><b>Article 1</b> — Objet du décret : fixer les conditions d'application du placement sous surveillance électronique et les modalités d'exécution du travail d'intérêt général sous contrôle électronique.</li>
+  <li><b>Article 2</b> — Définitions : dispositif de surveillance électronique, boîtier de présence à domicile, périmètre autorisé, périmètre interdit, site agréé de travail d'intérêt général, centre national de surveillance.</li>
+</ul>
+
+<h3>Titre II — Champ d'application et éligibilité</h3>
+<ul>
+  <li><b>Article 3</b> — Mesures pouvant être exécutées sous surveillance électronique : assignation à domicile, détention à domicile, couvre-feu, interdiction de paraître, travail d'intérêt général, liberté surveillée, alternative à la détention provisoire.</li>
+  <li><b>Article 4</b> — Quantum de peine et natures d'infraction ouvrant droit à la mesure ; catégories exclues par principe.</li>
+  <li><b>Article 5</b> — Conditions matérielles préalables : lieu d'assignation identifiable, alimentation électrique, couverture réseau ; procédure de visite de faisabilité et de constat.</li>
+  <li><b>Article 6</b> — <b>Consentement du porteur</b> et information sur les obligations, les contrôles et les conséquences d'un manquement ; régime du placement volontaire à la demande de l'intéressé.</li>
+</ul>
+
+<h3>Titre III — Décision, pose et exécution</h3>
+<ul>
+  <li><b>Article 7</b> — Autorité compétente pour prononcer, modifier, suspendre et lever la mesure ; contenu obligatoire de la décision (durée, périmètres, horaires, obligations, heures de travail d'intérêt général le cas échéant).</li>
+  <li><b>Article 8</b> — Service chargé de la pose et du retrait du dispositif ; procès-verbal de pose et de restitution.</li>
+  <li><b>Article 9</b> — Obligations du porteur : port permanent, recharge, non-dégradation, présentation aux convocations, signalement des incidents.</li>
+  <li><b>Article 10</b> — Constatation des manquements, procédure contradictoire et <b>procédure de révocation</b>.</li>
+</ul>
+
+<h3>Titre IV — Travail d'intérêt général sous contrôle électronique</h3>
+<ul>
+  <li><b>Article 11</b> — <b>Agrément des sites d'accueil</b> : autorité compétente, critères, durée de l'agrément, retrait.</li>
+  <li><b>Article 12</b> — Convention type entre l'État et la structure d'accueil : encadrement, sécurité, assurance, désignation du superviseur habilité.</li>
+  <li><b>Article 13</b> — Modalités de <b>constatation des heures effectuées</b> : qui pointe, dans quel délai, avec quelle valeur probante ; interdiction de l'enregistrement rétroactif au-delà d'un délai fixé.</li>
+  <li><b>Article 14</b> — Conditions d'exécution : durée maximale journalière et hebdomadaire, repos, compatibilité avec l'emploi et la scolarité du condamné.</li>
+  <li><b>Article 15</b> — Constatation de l'accomplissement intégral des heures et <b>information de l'autorité judiciaire</b> aux fins de clôture.</li>
+</ul>
+
+<h3>Titre V — Données, sécurité et droits</h3>
+<ul>
+  <li><b>Article 16</b> — Finalités du traitement des données ; catégories de données traitées ; interdiction de tout usage étranger à la finalité judiciaire.</li>
+  <li><b>Article 17</b> — Personnes habilitées et <b>règle du besoin d'en connaître</b> ; journalisation obligatoire des accès et des actions.</li>
+  <li><b>Article 18</b> — <b>Durées de conservation</b> et purge automatique ; sort des données à la fin de la mesure et après archivage.</li>
+  <li><b>Article 19</b> — Droits de la personne placée : information, accès, rectification, voies de recours.</li>
+  <li><b>Article 20</b> — Localisation des données et <b>hébergement sur le territoire national</b> ; conditions d'une éventuelle infrastructure transitoire.</li>
+</ul>
+
+<h3>Titre VI — Organisation, financement et dispositions finales</h3>
+<ul>
+  <li><b>Article 21</b> — Création et missions du <b>centre national de surveillance électronique</b> ; permanence 24 heures sur 24 ; obligations de traitement des alertes et délais d'escalade.</li>
+  <li><b>Article 22</b> — <b>Contribution du porteur</b> : barème d'équité, modalités de recouvrement, exonération de plein droit pour les personnes indigentes, et <b>principe selon lequel la capacité contributive est sans effet sur l'éligibilité</b>.</li>
+  <li><b>Article 23</b> — Frais de dégradation volontaire du matériel.</li>
+  <li><b>Article 24</b> — Rapport annuel au Gouvernement et indicateurs de suivi obligatoires.</li>
+  <li><b>Article 25</b> — Dispositions transitoires : juridictions pilotes, durée de l'expérimentation, évaluation préalable à la généralisation.</li>
+</ul>
 
 </body>
 </html>
