@@ -10,11 +10,18 @@ import StatsStrip from '@/components/public/StatsStrip';
 import RevealSection from '@/components/public/RevealSection';
 import HeroContent from '@/components/public/HeroContent';
 import HeroSlideshow from '@/components/public/HeroSlideshow';
+import DemoHomeSection from '@/components/demo/DemoHomeSection';
+import { IS_DEMO_MODE } from '@/lib/demo-mode';
 
-export const metadata = {
-  title: "Système Horon — Justice Active & TIG · Burkina Faso",
-  description: "Programme national de surveillance électronique pour Travaux d'Intérêt Général : une alternative moderne et humaine à la détention provisoire.",
-};
+export const metadata = IS_DEMO_MODE
+  ? {
+      title: "SIGEP — Démonstration | Justice Active & TIG · Burkina Faso",
+      description: "Démonstration interactive du Système Intégré de Gestion des Peines et de surveillance électronique du Burkina Faso. Données fictives, à des fins de présentation.",
+    }
+  : {
+      title: "Système Horon — Justice Active & TIG · Burkina Faso",
+      description: "Programme national de surveillance électronique pour Travaux d'Intérêt Général : une alternative moderne et humaine à la détention provisoire.",
+    };
 
 const TIG_SECTORS = [
   { icon: <Shovel className="w-5 h-5" />,    label: 'Agriculture & environnement' },
@@ -65,6 +72,9 @@ export default function HomePage() {
           {/* Animated stats strip */}
           <StatsStrip />
         </section>
+
+        {/* ══ DÉMONSTRATION INTERACTIVE (déploiement de démo uniquement) ════════ */}
+        <DemoHomeSection />
 
         {/* ══ TIG SECTION ═══════════════════════════════════════════════════════ */}
         <section className="py-28 px-6 bg-white">

@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>SIGEP — Présentation</title>
+<style>
+  :root { --em:#10b981; --am:#f59e0b; --rd:#ef4444; --bg:#0b1220; --ink:#e5e7eb; --muted:#9ca3af; }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  html,body { height:100%; }
+  body { background:var(--bg); color:var(--ink); font-family:"Segoe UI",system-ui,-apple-system,sans-serif; overflow:hidden; }
+  .brandbar { position:fixed; top:0; left:0; right:0; height:5px; z-index:50;
+    background:linear-gradient(90deg,var(--em),var(--am),var(--rd)); }
+  .progress { position:fixed; bottom:0; left:0; height:3px; background:var(--em); width:0; z-index:50; transition:width .3s ease; }
+  .deck { height:100%; width:100%; position:relative; }
+  .slide { position:absolute; inset:0; display:none; flex-direction:column; justify-content:center;
+    padding:6vmin 9vmin; opacity:0; transition:opacity .35s ease; }
+  .slide.active { display:flex; opacity:1; }
+  .slide.center { align-items:center; text-align:center; }
+  h1 { font-size:7vmin; letter-spacing:-.02em; }
+  h2 { font-size:4.6vmin; line-height:1.12; letter-spacing:-.01em; margin-bottom:.5em; }
+  h3 { font-size:2.6vmin; font-weight:500; color:var(--muted); }
+  p, li { font-size:2.5vmin; line-height:1.5; }
+  ul { margin:.2em 0 0 1.1em; } li { margin:.35em 0; }
+  .kicker { color:var(--em); font-weight:800; text-transform:uppercase; letter-spacing:.2em; font-size:1.7vmin; margin-bottom:.6em; }
+  .pill { display:inline-block; background:rgba(245,158,11,.15); color:var(--am); border:1px solid rgba(245,158,11,.35);
+    border-radius:999px; padding:.35em 1em; font-size:1.5vmin; font-weight:700; letter-spacing:.14em; text-transform:uppercase; }
+  .slogan { color:var(--am); font-weight:800; }
+  .em { color:var(--em); } .rd { color:var(--rd); } .am { color:var(--am); } .muted { color:var(--muted); }
+  .big { font-size:3.6vmin; font-weight:800; line-height:1.15; }
+  .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:2vmin; margin-top:1.5vmin; width:100%; max-width:1100px; }
+  .card { background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.12); border-radius:16px; padding:2.2vmin 2.4vmin; font-size:2.1vmin; }
+  .card b { color:var(--em); display:block; margin-bottom:.25em; font-size:1.1em; }
+  .foot { position:fixed; bottom:14px; left:0; right:0; display:flex; align-items:center; justify-content:center; gap:14px; z-index:40; }
+  .dots { display:flex; gap:7px; }
+  .dot { width:8px; height:8px; border-radius:50%; background:#374151; border:none; cursor:pointer; padding:0; }
+  .dot.on { background:var(--em); width:22px; border-radius:5px; }
+  .hint { position:fixed; bottom:12px; right:18px; color:#4b5563; font-size:1.5vmin; z-index:40; }
+  .counter { position:fixed; bottom:12px; left:18px; color:#4b5563; font-size:1.5vmin; z-index:40; }
+</style>
+</head>
+<body>
+<div class="brandbar"></div>
+<div class="progress" id="prog"></div>
+<div class="deck" id="deck">
+
+  <section class="slide center">
+    <span class="pill">République du Burkina&nbsp;Faso</span>
+    <h1 style="margin:.25em 0 .1em;">SIGEP</h1>
+    <h3>Système Intégré de Gestion des Peines<br/>&amp; de surveillance électronique</h3>
+    <p class="slogan" style="margin-top:1.2em;">La peine maîtrisée, la dignité préservée.</p>
+  </section>
+
+  <section class="slide">
+    <div class="kicker">Le constat</div>
+    <h2>Une détention souvent disproportionnée</h2>
+    <ul>
+      <li>Des milliers de personnes en attente de jugement ou en courtes peines.</li>
+      <li>Détention <span class="rd">coûteuse</span> pour l'État, <span class="rd">éprouvante</span> pour les familles.</li>
+      <li>Réponse souvent disproportionnée face à des infractions mineures.</li>
+    </ul>
+    <p class="big" style="margin-top:.8em;">Protéger la société <span class="muted">et</span> <span class="em">préserver la dignité.</span></p>
+  </section>
+
+  <section class="slide">
+    <div class="kicker">Le besoin</div>
+    <h2>Des peines alternatives <span class="em">crédibles</span></h2>
+    <ul>
+      <li>Engagement national : peines alternatives &amp; Travaux d'Intérêt Général.</li>
+      <li>Une alternative n'est crédible que si elle est <b class="em">fiable, contrôlable, traçable</b>.</li>
+      <li>Il fallait un outil national de supervision en temps réel.</li>
+    </ul>
+    <p class="big" style="margin-top:.7em;">Cet outil, c'est le <span class="em">SIGEP</span>.</p>
+  </section>
+
+  <section class="slide">
+    <div class="kicker">La solution</div>
+    <h2>Une plateforme nationale de surveillance électronique</h2>
+    <div class="grid2">
+      <div class="card"><b>Le bracelet</b> Porté par la personne sous mesure — GPS, anti-sabotage, batterie suivie.</div>
+      <div class="card"><b>La plateforme</b> Utilisée par les magistrats et les agents pour superviser chaque mesure.</div>
+    </div>
+    <p style="margin-top:1em;">Position · zones autorisées · couvre-feu · intégrité du bracelet — suivis <b class="em">24h/24</b>.</p>
+  </section>
+
+  <section class="slide">
+    <div class="kicker">Fonctionnement — superviser</div>
+    <h2>Un poste de commandement unique</h2>
+    <div class="grid2">
+      <div class="card"><b>Carte vivante</b> Chaque personne surveillée, en direct.</div>
+      <div class="card"><b>Dossiers</b> Identité, magistrat, peine, bracelet.</div>
+      <div class="card"><b>Alertes</b> Sortie de zone, couvre-feu, sabotage — priorisées.</div>
+      <div class="card"><b>Intervention</b> Localiser, contacter, agir immédiatement.</div>
+    </div>
+  </section>
+
+  <section class="slide">
+    <div class="kicker">Fonctionnement — prouver</div>
+    <h2>Surveiller, mais aussi <span class="em">documenter</span></h2>
+    <ul>
+      <li><b class="em">Itinéraire journalier</b> rejoué minute par minute : déplacements, arrêts, zones.</li>
+      <li><b class="em">Rapport judiciaire</b> officiel généré en un clic — audience, parquet, Ministère.</li>
+      <li>Journal d'audit <b>inaltérable</b> de chaque action.</li>
+    </ul>
+  </section>
+
+  <section class="slide">
+    <div class="kicker">Les avantages</div>
+    <h2>Des bénéfices concrets</h2>
+    <div class="grid2">
+      <div class="card"><b>Pour la société</b> Sécurité publique garantie, surveillance sans faille.</div>
+      <div class="card"><b>Pour la personne</b> Liens familiaux et travail maintenus, réinsertion.</div>
+      <div class="card"><b>Pour l'État</b> Coût très inférieur à la détention, désengorgement.</div>
+      <div class="card"><b>Pour la justice</b> Traçabilité totale, données sous souveraineté nationale.</div>
+    </div>
+  </section>
+
+  <section class="slide center">
+    <div class="kicker">Portée &amp; impact</div>
+    <h2>Conçu au Burkina Faso,<br/>pour le Burkina Faso</h2>
+    <p class="big em">Déployable à l'échelle nationale, juridiction après juridiction.</p>
+    <p class="muted" style="margin-top:.6em;">Une justice qui réhabilite autant qu'elle protège.</p>
+  </section>
+
+  <section class="slide center" style="background:radial-gradient(circle at 70% 40%, rgba(16,185,129,.12), transparent 60%);">
+    <span class="pill">SIGEP</span>
+    <h2 style="margin:.35em 0;">Le SIGEP est <span class="em">prêt</span>.</h2>
+    <p>Faisons entrer la justice burkinabè dans une nouvelle ère —<br/>plus humaine, plus efficace, plus souveraine.</p>
+    <p class="slogan big" style="margin-top:.8em;">La peine maîtrisée, la dignité préservée.</p>
+  </section>
+
+  <section class="slide center">
+    <div class="kicker">Démonstration en ligne</div>
+    <h2>Voir le système en action</h2>
+    <p class="big"><a href="https://sigep-presentation.vercel.app" style="color:var(--em);text-decoration:none;">sigep-presentation.vercel.app</a></p>
+    <p class="muted" style="margin-top:.5em; font-size:2vmin;">Environnement de démonstration — données fictives.</p>
+  </section>
+
+</div>
+
+<div class="counter" id="counter">1 / 10</div>
+<div class="foot"><div class="dots" id="dots"></div></div>
+<div class="hint">← → · clic · Échap</div>
+
+<script>
+  var slides = Array.prototype.slice.call(document.querySelectorAll('.slide'));
+  var i = 0, prog = document.getElementById('prog'), counter = document.getElementById('counter');
+  var dotsWrap = document.getElementById('dots');
+  slides.forEach(function(_, k){
+    var b = document.createElement('button'); b.className = 'dot';
+    b.addEventListener('click', function(){ go(k); });
+    dotsWrap.appendChild(b);
+  });
+  var dots = Array.prototype.slice.call(document.querySelectorAll('.dot'));
+  function render(){
+    slides.forEach(function(s,k){ s.classList.toggle('active', k===i); });
+    dots.forEach(function(d,k){ d.classList.toggle('on', k===i); });
+    prog.style.width = (i/(slides.length-1)*100) + '%';
+    counter.textContent = (i+1) + ' / ' + slides.length;
+  }
+  function go(n){ i = Math.max(0, Math.min(slides.length-1, n)); render(); }
+  function next(){ go(i+1); } function prev(){ go(i-1); }
+  document.addEventListener('keydown', function(e){
+    if (e.key==='ArrowRight'||e.key==='PageDown'||e.key===' ') { e.preventDefault(); next(); }
+    else if (e.key==='ArrowLeft'||e.key==='PageUp') { e.preventDefault(); prev(); }
+    else if (e.key==='Home') go(0); else if (e.key==='End') go(slides.length-1);
+    else if (e.key==='Escape') { if (document.documentElement.requestFullscreen) document.documentElement.requestFullscreen().catch(function(){}); }
+  });
+  document.getElementById('deck').addEventListener('click', function(e){
+    if (e.target.tagName === 'A') return;
+    var mid = window.innerWidth/2; (e.clientX < mid*0.35) ? prev() : next();
+  });
+  render();
+</script>
+</body>
+</html>

@@ -7,8 +7,8 @@ import {
 import type { Case, Alert, AlertType, User, OverviewStats, UserRole, Position, Device, Geofence, TigSite, TigAttendance, RevocationRequest, JournalEntry, MaintenanceTick, AgendaObligation, MessageThread, Message, ViolationHeatPoint, CaseRequest } from '@/lib/supabase/types';
 import { isTraxbeanConfigured, getDeviceLocation } from '@/lib/traxbean/client';
 
-export const IS_DEMO_MODE =
-  !process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+export { IS_DEMO_MODE } from '@/lib/demo-mode';
+import { IS_DEMO_MODE } from '@/lib/demo-mode';
 
 export async function fetchCases(role: UserRole, userId: string): Promise<Case[]> {
   if (IS_DEMO_MODE) {
