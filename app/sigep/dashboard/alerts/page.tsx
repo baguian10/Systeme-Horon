@@ -7,6 +7,19 @@ import AlertsClient from '@/components/alerts/AlertsClient';
 export const metadata = { title: 'Alertes — SIGEP' };
 export const revalidate = 0;
 
+// Âge moyen des alertes ouvertes, en minutes.
+//
+// Isolé hors du composant : lire l'horloge pendant le rendu est un appel impur,
+// que la règle React interdit — deux rendus successifs donneraient des valeurs
+// différentes sans qu'aucune donnée n'ait changé. L'horloge n'est lue qu'une
+// fois ici, au lieu d'une fois par alerte dans la boucle précédente.
+function averageOpenAgeMinutes(alerts: { triggered_at: string }[]): number | null {
+  if (alerts.length === 0) return null;
+  const now = Date.now();
+  const totalMin = alerts.reduce((sum, a) => sum + (now - Date.parse(a.triggered_at)) / 60_000, 0);
+  return Math.round(totalMin / alerts.length);
+}
+
 export default async function AlertsPage() {
   const session = await getSession();
   if (!session) return null;
@@ -25,9 +38,7 @@ export default async function AlertsPage() {
   // KPIs (server-side, deterministic)
   const critical    = open.filter((a) => a.severity >= 4).length;
   const pendingAck  = open.filter((a) => a.status === 'NEW' || !a.status).length;
-  const avgAgeMin   = open.length
-    ? Math.round(open.reduce((s, a) => s + (Date.now() - Date.parse(a.triggered_at)) / 60_000, 0) / open.length)
-    : null;
+  const avgAgeMin   = averageOpenAgeMinutes(open);
   const avgAgeLabel = avgAgeMin === null ? '—'
     : avgAgeMin < 60 ? `${avgAgeMin}min`
     : `${Math.floor(avgAgeMin / 60)}h${avgAgeMin % 60 ? String(avgAgeMin % 60).padStart(2, '0') : ''}`;

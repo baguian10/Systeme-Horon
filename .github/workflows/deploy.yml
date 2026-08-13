@@ -23,7 +23,8 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          # Aligné sur nextjs-check.yml : undici@8 exige Node >= 22.19.
+          node-version: '22'
           cache: 'npm'
 
       - name: Install Vercel CLI

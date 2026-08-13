@@ -1,6 +1,6 @@
 'use client';
 
-import { Fragment, useState, useMemo, useEffect } from 'react';
+import { Fragment, useState, useMemo } from 'react';
 import Link from 'next/link';
 import { CheckCircle, MapPin } from 'lucide-react';
 import { AlertTypeBadge, SeverityDot } from '@/components/ui/StatusBadge';
@@ -84,7 +84,18 @@ export default function AlertsClient({
   const [deletingIds, setDeletingIds]     = useState<Set<string>>(new Set());
 
   // Reset to page 0 when filters change so the user never lands on an empty page.
-  useEffect(() => { setOpenPage(0); setResolvedPage(0); }, [search, filterType, filterSev, filterStatus]);
+  //
+  // Adjusted during render rather than in an effect: an effect would paint the
+  // stale page first, then correct it — a visible flash of an empty list. React
+  // re-renders immediately on this pattern, before the browser paints, so the
+  // user only ever sees page 0.
+  const filterKey = JSON.stringify([search, filterType, filterSev, filterStatus]);
+  const [lastFilterKey, setLastFilterKey] = useState(filterKey);
+  if (lastFilterKey !== filterKey) {
+    setLastFilterKey(filterKey);
+    setOpenPage(0);
+    setResolvedPage(0);
+  }
 
   function handleDelete(alertId: string) {
     if (!window.confirm('Supprimer définitivement cette alerte ?')) return;
