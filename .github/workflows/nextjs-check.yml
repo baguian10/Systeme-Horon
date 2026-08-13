@@ -22,7 +22,11 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          # undici@8 exige Node >= 22.19 et appelle util.markAsUncloneable,
+          # absent des Node 20 : sous Node 20 le build échoue à la collecte des
+          # pages sur « markAsUncloneable is not a function ». L'échec restait
+          # invisible tant que l'étape ESLint s'arrêtait avant le build.
+          node-version: '22'
           cache: 'npm'
 
       - name: Install dependencies
