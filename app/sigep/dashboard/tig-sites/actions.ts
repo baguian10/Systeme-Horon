@@ -383,7 +383,39 @@ export async function addTigAttendanceAction(formData: FormData): Promise<{ erro
       signed_by_id: session.id, supervisor_notes, created_by: session.id,
       created_at: new Date().toISOString(),
     });
-    if (c) c.tig_hours_completed = (c.tig_hours_completed ?? 0) + hours_worked;
+    // Recalcul depuis la source, comme en mode réel : le cumul est toujours la
+    // somme des séances pointées, jamais un compteur incrémenté. C'est ce qui
+    // rend les heures opposables — une séance corrigée ou supprimée ne peut pas
+    // laisser un total faux derrière elle.
+    const total = MOCK_TIG_ATTENDANCE
+      .filter((a) => a.case_id === case_id)
+      .reduce((acc, a) => acc + a.hours_worked, 0);
+    if (c) c.tig_hours_completed = total;
+
+    // Notification au juge au franchissement du seuil, et à ce moment seulement.
+    if (
+      c?.judge_id &&
+      c.tig_hours_ordered &&
+      total >= c.tig_hours_ordered &&
+      (total - hours_worked) < c.tig_hours_ordered
+    ) {
+      const { notifyJudgeTigCompleteDemo } = await import('@/lib/mock/notify');
+      notifyJudgeTigCompleteDemo({
+        caseId: case_id,
+        caseNumber: c.case_number,
+        individualName: c.individual?.full_name ?? '—',
+        judgeId: c.judge_id,
+        actorId: session.id,
+        totalHours: total,
+        orderedHours: c.tig_hours_ordered,
+      });
+      // La barre latérale (badge « non lu ») est rendue par la mise en page du
+      // tableau de bord : sans revalidation de la layout, le badge n'apparaît
+      // qu'à la navigation suivante.
+      revalidatePath('/sigep/dashboard', 'layout');
+      revalidatePath('/sigep/dashboard/messagerie');
+    }
+
     revalidatePath(`/sigep/dashboard/cases/${case_id}`);
     revalidatePath(`/sigep/dashboard/tig-sites/${tig_site_id}`);
     return { id: newId };
@@ -469,11 +501,16 @@ export async function deleteTigAttendanceAction(formData: FormData): Promise<{ e
         return { error: 'Vous ne pouvez supprimer que vos propres pointages du jour.' };
       }
     }
-    const hours = rec.hours_worked;
     const tigSiteId = rec.tig_site_id;
     MOCK_TIG_ATTENDANCE.splice(idx, 1);
     const c = MOCK_CASES.find((x) => x.id === case_id);
-    if (c) c.tig_hours_completed = Math.max(0, (c.tig_hours_completed ?? 0) - hours);
+    // Recalcul depuis la source, comme à l'ajout et comme en mode réel : jamais
+    // de décrément, sinon un total erroné pourrait survivre à la suppression.
+    if (c) {
+      c.tig_hours_completed = MOCK_TIG_ATTENDANCE
+        .filter((a) => a.case_id === case_id)
+        .reduce((acc, a) => acc + a.hours_worked, 0);
+    }
     revalidatePath(`/sigep/dashboard/cases/${case_id}`);
     if (tigSiteId) revalidatePath(`/sigep/dashboard/tig-sites/${tigSiteId}`);
     return;

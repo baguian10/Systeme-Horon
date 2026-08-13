@@ -88,6 +88,14 @@ export const MOCK_INDIVIDUALS: Individual[] = [
     address: 'Secteur 6, Arrondissement de Nongremassom, Ouagadougou',
     created_at: '2024-02-01T08:00:00Z',
   },
+  {
+    id: 'i-0005',
+    national_id: 'BFA-1990-2318',
+    full_name: 'Boukary Sanou',
+    date_of_birth: '1990-01-17',
+    address: 'Secteur 12, Arrondissement de Baskuy, Ouagadougou',
+    created_at: '2026-05-03T08:00:00Z',
+  },
 ];
 
 export const MOCK_DEVICES: Device[] = [
@@ -450,6 +458,36 @@ export const MOCK_CASES: Case[] = [
     geofences: [],
     last_position: null,
   },
+  // Scénario de démonstration du module TIG : 116 h accomplies sur les 120 h
+  // ordonnées. Une seule séance de 4 h suffit à franchir le seuil et à
+  // déclencher la notification au juge devant le visiteur — c'est l'argument
+  // central du dossier, et il n'était jusqu'ici pas atteignable en démonstration
+  // (le seul dossier TIG simulé était à 32 h, soit 88 h à saisir à la main).
+  // Pas de bracelet : le TIG en fin d'exécution se suit par le pointage signé,
+  // et cela évite d'affecter deux fois un appareil déjà rattaché à un dossier.
+  {
+    id: 'c-0005',
+    individual_id: 'i-0005',
+    judge_id: 'u-0003',
+    case_number: 'OUAG-2026-0112',
+    status: 'ACTIVE',
+    measure_kind: 'TIG' as const,
+    tig_site_id: 'ts-0003',
+    tig_hours_ordered: 120,
+    tig_hours_completed: 116,
+    court_order_date: '2026-05-03',
+    start_date: '2026-05-04T08:00:00Z',
+    end_date: null,
+    notes: 'Travaux d\'Intérêt Général — 120h. Site : Lycée Philippe Zinda Kaboré. Exécution en voie d\'achèvement.',
+    created_at: '2026-05-03T07:00:00Z',
+    updated_at: '2026-05-04T08:00:00Z',
+    individual: MOCK_INDIVIDUALS[4],
+    judge: MOCK_USERS[2],
+    device: undefined,
+    alert_count: 0,
+    geofences: [],
+    last_position: null,
+  },
 ];
 
 export const MOCK_TIG_SITES: TigSite[] = [
@@ -570,13 +608,16 @@ export const MOCK_TIG_SITES: TigSite[] = [
 export const MOCK_CASE_ASSIGNMENTS: CaseAssignment[] = [
   { case_id: 'c-0001', operational_id: 'u-0004', assigned_by: 'u-0003', assigned_at: '2024-03-02T10:00:00Z' },
   { case_id: 'c-0002', operational_id: 'u-0004', assigned_by: 'u-0003', assigned_at: '2024-03-06T11:00:00Z' },
+  // Sans cette affectation, l'agent qui enregistre le pointage ne verrait pas
+  // le dossier : fetchCases filtre le rôle OPERATIONAL sur ses affectations.
+  { case_id: 'c-0005', operational_id: 'u-0004', assigned_by: 'u-0003', assigned_at: '2026-05-04T09:00:00Z' },
 ];
 
 export const MOCK_STATS: OverviewStats = {
-  active_cases: 2,
+  active_cases: 3,
   active_alerts: 3,
   devices_online: 3,
-  monitored_individuals: 3,
+  monitored_individuals: 4,
   violation_cases: 1,
 };
 
@@ -1088,6 +1129,54 @@ export const MOCK_VIOLATION_HEATPOINTS: ViolationHeatPoint[] = [
   { lat: 12.3340, lng: -1.5385, intensity: 1, alert_type: 'BATTERY_LOW' },
 ];
 
+// Les 116 h déjà accomplies par Boukary Sanou (dossier c-0005), en séances de 8 h
+// sur les jours ouvrés. Générées plutôt qu'écrites une à une : l'historique reste
+// ainsi récent quel que soit le jour où la démonstration est ouverte, et le total
+// correspond toujours exactement à la somme des séances — le cumul étant recalculé
+// depuis cette source, jamais incrémenté.
+//
+// La série s'arrête l'avant-veille : la date du jour doit rester libre pour le
+// pointage que le visiteur enregistre lui-même (une seule séance par date et par
+// dossier). Tout est calculé en UTC, comme l'environnement d'exécution, pour que
+// le fuseau du serveur ne décale pas les dates.
+const NEAR_COMPLETION_NOTES = [
+  'Entretien des salles de classe et des abords.',
+  'Réfection de la clôture côté cour.',
+  'Peinture des préaux. Ponctuel.',
+  'Rangement de la bibliothèque scolaire.',
+  'Travaux de jardinage. Bonne attitude signalée.',
+];
+
+function buildNearCompletionSessions(): TigAttendance[] {
+  const sessions: TigAttendance[] = [];
+  const day = new Date();
+  day.setUTCDate(day.getUTCDate() - 2);
+  let remaining = 116;
+  let n = 0;
+  while (remaining > 0) {
+    const dow = day.getUTCDay();
+    if (dow !== 0 && dow !== 6) {
+      const hours = Math.min(8, remaining);
+      remaining -= hours;
+      n += 1;
+      const date = day.toISOString().slice(0, 10);
+      sessions.push({
+        id: `ta-1${String(n).padStart(3, '0')}`,
+        case_id: 'c-0005',
+        tig_site_id: 'ts-0003',
+        session_date: date,
+        hours_worked: hours,
+        signed_by_id: 'u-0004',
+        supervisor_notes: NEAR_COMPLETION_NOTES[n % NEAR_COMPLETION_NOTES.length],
+        created_by: 'u-0004',
+        created_at: `${date}T16:30:00Z`,
+      });
+    }
+    day.setUTCDate(day.getUTCDate() - 1);
+  }
+  return sessions;
+}
+
 export const MOCK_TIG_ATTENDANCE: TigAttendance[] = [
   {
     id: 'ta-0001',
@@ -1155,4 +1244,5 @@ export const MOCK_TIG_ATTENDANCE: TigAttendance[] = [
     created_by: 'u-0004',
     created_at: '2026-07-04T12:00:00Z',
   },
+  ...buildNearCompletionSessions(),
 ];
