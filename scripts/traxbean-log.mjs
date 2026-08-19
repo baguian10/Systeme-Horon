@@ -32,5 +32,5 @@ const json = await call('/admin/business/device/fetchDeviceLog',
 const lines = Array.isArray(json?.data) ? json.data : [];
 const hits = PATTERN ? lines.filter((l) => String(l).toUpperCase().includes(PATTERN.toUpperCase())) : lines;
 console.log(`\n${lines.length} ligne(s) sur ${MINUTES} min · ${hits.length} correspondance(s) pour « ${PATTERN} »\n`);
-for (const l of hits.slice(-40)) console.log(`   ${String(l).slice(0, 200)}`);
+for (const l of hits.slice(-40)) console.log(`   ${String(l)}`);
 console.log('');

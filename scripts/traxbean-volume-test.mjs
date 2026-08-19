@@ -62,12 +62,20 @@ async function tryCommand(label, content, waitMs = 20000) {
 
 console.log(`\n=== Sondage volume · bracelet ${IMEI} · niveau ${LEVEL} ===`);
 
-console.log('\n— Témoin de contrôle (commande documentée, doit répondre) —');
-const control = await tryCommand('deviceinfo (état du terminal)', '@deviceinfo@');
-if (!control.answered) await tryCommand('deviceinfo, forme SMS', '123456#deviceinfo#');
+if (!process.argv.includes('--sans-temoin')) {
+  console.log('\n— Témoin de contrôle (commande documentée, doit répondre) —');
+  const control = await tryCommand('deviceinfo (état du terminal)', '@deviceinfo@');
+  if (!control.answered) await tryCommand('deviceinfo, forme SMS', '123456#deviceinfo#');
+}
+
+// Série par défaut, ou liste passée en ligne de commande : --formes a,b,c
+const formsIdx = process.argv.indexOf('--formes');
+const FORMS = formsIdx > -1
+  ? process.argv[formsIdx + 1].split(',')
+  : ['@volume@=%L@', '@vol@=%L@', '@setvolume@=%L@', '@callvolume@=%L@', '@speaker@=%L@', '@VOLUME=%L@'];
 
 console.log('\n— Candidates volume —');
-for (const form of ['@volume@=%L@', '@vol@=%L@', '@setvolume@=%L@', '@callvolume@=%L@', '@speaker@=%L@', '@VOLUME=%L@']) {
+for (const form of FORMS) {
   await tryCommand(form, form.replace('%L', String(LEVEL)));
 }
 console.log('');
