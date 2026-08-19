@@ -19,15 +19,10 @@ export async function GET() {
   // Viewer-driven refresh: on Vercel Hobby per-minute cron is not allowed, so
   // pull a fresh Traxbean fix (and run the geofence/alert pipeline) on each map
   // poll. Keeps the map live while open without an external scheduler.
-  const base = process.env.NEXT_PUBLIC_SITE_URL;
-  const secret = process.env.CRON_SECRET;
-  if (base && process.env.NEXT_PUBLIC_SUPABASE_URL) {
-    try {
-      await fetch(`${base}/api/cron/poll-traxbean?secret=${secret ?? ''}`, { cache: 'no-store' });
-    } catch {
-      // best-effort — fall through to reading whatever is in the DB
-    }
-  }
+  // L'origine vient de la requête : NEXT_PUBLIC_SITE_URL peut désigner un autre
+  // hôte que celui qui sert la carte, et la collecte partait alors dans le vide.
+  const { triggerTraxbeanPoll, requestOrigin } = await import('@/lib/traxbean/trigger');
+  await triggerTraxbeanPoll(await requestOrigin(), 0); // la carte veut du frais à chaque passage
 
   const [cases, positions, geofencesRaw] = await Promise.all([
     fetchCases(session.role, session.id),

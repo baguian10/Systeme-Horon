@@ -1,4 +1,5 @@
 import { notFound, redirect } from 'next/navigation';
+import { after } from 'next/server';
 import Link from 'next/link';
 import {
   ArrowLeft, Wifi, WifiOff, Battery, Signal, MapPin, Clock, Radio,
@@ -17,6 +18,7 @@ import TestConnectionButton from '@/components/devices/TestConnectionButton';
 import ProvisionButton from '@/components/devices/ProvisionButton';
 import BleScanButton from '@/components/devices/BleScanButton';
 import BleHighAvailButton from '@/components/devices/BleHighAvailButton';
+import CallWhitelistPanel from '@/components/devices/CallWhitelistPanel';
 import MiniPositionMap from '@/components/devices/MiniPositionMapLoader';
 import AutoRefresh from '@/components/common/AutoRefresh';
 
@@ -64,6 +66,16 @@ export default async function DeviceDetailPage({ params }: { params: Promise<{ i
   const devices = await fetchAllDevices();
   const d = devices.find((x) => x.id === id);
   if (!d) notFound();
+
+  // Collecte déclenchée par la consultation : la fiche affichait l'état du
+  // dernier passage du collecteur, qui ne tourne qu'une fois par jour sur
+  // l'offre Vercel Hobby. Lancée APRÈS la réponse (`after`) pour ne pas retarder
+  // l'affichage — le rafraîchissement automatique de la page montre le résultat.
+  {
+    const { triggerTraxbeanPoll, requestOrigin } = await import('@/lib/traxbean/trigger');
+    const origin = await requestOrigin();
+    after(() => triggerTraxbeanPoll(origin));
+  }
 
   // Real telemetry: latest position, recent positions, recent events, linked beacon.
   let latest: Pos | null = null;
@@ -245,6 +257,16 @@ export default async function DeviceDetailPage({ params }: { params: Promise<{ i
                 {!d.case_id && <DeleteDeviceButton deviceId={d.id} imei={d.imei} />}
               </div>
             </div>
+          )}
+
+          {isHardwareAdmin && (
+            <CallWhitelistPanel
+              deviceId={d.id}
+              imei={d.imei}
+              whitelist={d.call_whitelist ?? []}
+              whitelistOnly={d.call_whitelist_only ?? false}
+              callEnabled={d.call_enabled ?? true}
+            />
           )}
 
           <div className={card}>

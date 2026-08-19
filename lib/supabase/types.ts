@@ -69,6 +69,7 @@ export interface Device {
   sos_numbers?: string[] | null;
   call_whitelist?: { name: string; phone: string }[] | null;
   call_enabled?: boolean | null;
+  call_whitelist_only?: boolean | null;  // IW BP84 : n'accepter que la liste blanche
   signal_strength_dbm: number | null;
   gps_accuracy_m: number | null;
   tamper_detected: boolean;

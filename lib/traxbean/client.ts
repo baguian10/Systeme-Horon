@@ -478,12 +478,22 @@ export async function setSosNumbers(imei: string, numbers: string[]): Promise<bo
 }
 
 // BP14 — white list of authorised contacts (Name|Phone) allowed to call/command.
+// Le protocole en accepte dix (et non cinq, comme le limitait cette fonction).
+export const WHITELIST_MAX = 10;
 export async function setWhitelist(imei: string, contacts: { name: string; phone: string }[]): Promise<boolean> {
   const pairs = contacts
     .filter((c) => c.phone?.trim())
-    .slice(0, 5)
+    .slice(0, WHITELIST_MAX)
     .map((c) => `${(c.name || '').trim()}|${c.phone.trim()}`);
   return sendIW(imei, `IWBP14,${imei},${cmdSerial()},${pairs.join(',')}#`);
+}
+
+// BP84 — interrupteur de la liste blanche. Sans lui, enregistrer des numéros ne
+// filtre RIEN : le protocole précise qu'avec l'interrupteur fermé n'importe quel
+// numéro peut appeler le bracelet, la liste ne servant qu'aux commandes SMS.
+// Ouvert, le bracelet ne répond plus qu'aux numéros enregistrés.
+export async function setWhitelistSwitch(imei: string, on: boolean): Promise<boolean> {
+  return sendIW(imei, `IWBP84,${imei},${cmdSerial()},${on ? 1 : 0}#`);
 }
 
 // BPPH — enable/disable inbound/outbound phone calls on the bracelet.
@@ -519,3 +529,4 @@ export async function getHomePresence(imei: string): Promise<HomePresence> {
     lastIndoorAt: scan.at,
   };
 }
+
