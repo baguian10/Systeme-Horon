@@ -17,6 +17,7 @@ import TestConnectionButton from '@/components/devices/TestConnectionButton';
 import ProvisionButton from '@/components/devices/ProvisionButton';
 import BleScanButton from '@/components/devices/BleScanButton';
 import BleHighAvailButton from '@/components/devices/BleHighAvailButton';
+import VolumeProbeButton from '@/components/devices/VolumeProbeButton';
 import MiniPositionMap from '@/components/devices/MiniPositionMapLoader';
 import AutoRefresh from '@/components/common/AutoRefresh';
 
@@ -238,6 +239,7 @@ export default async function DeviceDetailPage({ params }: { params: Promise<{ i
                 {(d.case_id || d.last_seen_at || d.is_online) && <DeviceCommandButtons imei={d.imei} />}
                 <BleScanButton imei={d.imei} />
                 <BleHighAvailButton imei={d.imei} active={d.ble_high_avail ?? false} />
+                <VolumeProbeButton imei={d.imei} />
                 <ProvisionButton imei={d.imei} />
                 <Link href={`/sigep/dashboard/devices/${d.id}/label`} target="_blank" className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700"><Tag className="w-3.5 h-3.5" /> Étiquette</Link>
                 <Link href={`/sigep/dashboard/devices/${d.id}/events`} className="inline-flex items-center gap-1 text-xs text-gray-500 hover:text-gray-700"><ClipboardList className="w-3.5 h-3.5" /> Journal complet</Link>

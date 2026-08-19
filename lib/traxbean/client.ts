@@ -519,3 +519,57 @@ export async function getHomePresence(imei: string): Promise<HomePresence> {
     lastIndoorAt: scan.at,
   };
 }
+
+// ── Volume du haut-parleur (non documenté) ──────────────────────────────────
+// Le protocole IW V3.02 n'expose AUCUNE commande de volume : ni en SMS, ni en
+// GPRS, ni en raccourci >*…*<. Le firmware en possède peut-être une malgré tout.
+//
+// BPSM relaie une chaîne de commande arbitraire au terminal, et celui-ci répond
+// EN TEXTE (IWAPSM,<serial>,<réponse>#) dans son journal. C'est ce qui rend le
+// sondage possible : on envoie plusieurs orthographes plausibles, chacune avec
+// son propre numéro de série, puis on lit le journal et on regarde lesquelles
+// ont provoqué une réponse. Une réponse = le firmware connaît la commande ;
+// aucune réponse = il l'a ignorée. Les raccourcis BP40 ne servent pas ici :
+// leur accusé IWAP40 vaut « reçu », jamais « compris ».
+export type VolumeProbe = { command: string; serial: string; sent: boolean; reply: string | null };
+
+// Orthographes candidates. Format GPRS @clé@=valeur@ — celui des commandes
+// documentées (@apn@=…, @setlocation@=…, @ip@=…, @sos=…).
+const VOLUME_FORMS = ['@volume@=%L@', '@vol@=%L@', '@setvolume@=%L@', '@callvolume@=%L@', '@speaker@=%L@', '@VOLUME=%L@'];
+
+// Sonde le bracelet avec chaque orthographe. `level` 1–9 (9 = maximum).
+// Une ligne par candidat : transmise ou non, et la réponse du terminal.
+export async function probeVolumeCommands(imei: string, level: number): Promise<VolumeProbe[]> {
+  const lvl = Math.max(1, Math.min(9, Math.round(Number(level) || 9)));
+  const targetId = await getTargetIdByImei(imei);
+  if (!targetId) return [];
+
+  const startTime = new Date(Date.now() - 60000).toISOString();
+  const base = Date.now();
+  const probes: VolumeProbe[] = [];
+
+  // Numéros de série distincts (base + index) : c'est la clé qui relie chaque
+  // réponse à sa commande — deux envois dans la même milliseconde la perdraient.
+  for (let i = 0; i < VOLUME_FORMS.length; i++) {
+    const command = VOLUME_FORMS[i].replace('%L', String(lvl));
+    const serial = String(base + i).slice(-6);
+    const sent = await traxbeanOk('business/target/sendCommand', {
+      targetId, imei, command: `IWBPSM,${imei},${serial},${command}#`,
+    });
+    probes.push({ command, serial, sent, reply: null });
+  }
+
+  // Laisser au bracelet le temps de répondre (réveil radio + aller-retour).
+  await new Promise((r) => setTimeout(r, 12000));
+
+  const lines = await traxbeanPost<string[]>('business/device/fetchDeviceLog', { imei, startTime });
+  if (Array.isArray(lines)) {
+    for (const p of probes) {
+      const hit = lines.find((l) => typeof l === 'string' && l.includes('APSM') && l.includes(p.serial));
+      if (!hit) continue;
+      const m = /APSM,\s*\d+\s*,\s*([^#]*)/.exec(hit);
+      p.reply = (m ? m[1] : hit).trim();
+    }
+  }
+  return probes;
+}
