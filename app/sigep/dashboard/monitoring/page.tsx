@@ -1,4 +1,5 @@
 import { redirect } from 'next/navigation';
+import { after } from 'next/server';
 import { fetchCases, fetchAlerts, fetchOperationalUsers, fetchRecentDeviceEvents, fetchLatestPositions, fetchGeofences } from '@/lib/mock/helpers';
 import { getSession } from '@/lib/auth/session';
 import type { LivePosition } from '@/hooks/usePositionFeed';
@@ -14,6 +15,15 @@ export default async function MonitoringPage() {
   const session = await getSession();
   if (!session) return null;
   if (session.role === 'STRATEGIC') redirect('/sigep/dashboard'); // aggregate only
+
+  // Même déclenchement que sur la fiche bracelet : la console affichait sinon
+  // le dernier état collecté, sans rapport avec l'instant présent. Lancé après
+  // la réponse ; le rafraîchissement de la page (30 s) montre le résultat.
+  {
+    const { triggerTraxbeanPoll, requestOrigin } = await import('@/lib/traxbean/trigger');
+    const origin = await requestOrigin();
+    after(() => triggerTraxbeanPoll(origin));
+  }
 
   const [cases, alerts, operationals, events, latestPositions, geofencesAll] = await Promise.all([
     fetchCases(session.role, session.id),

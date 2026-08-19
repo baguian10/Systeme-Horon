@@ -83,7 +83,7 @@ export default function CommsPanel({
                   <button onClick={() => setWl(wl.filter((_, j) => j !== i))} data-tip="Retirer ce contact de la liste blanche" className="px-2 text-gray-400 hover:text-red-500"><X className="w-4 h-4" /></button>
                 </div>
               ))}
-              {wl.length < 5 && (
+              {wl.length < 10 && ( /* le protocole BP14 accepte dix contacts */
                 <button onClick={() => setWl([...wl, { name: '', phone: '' }])} data-tip="Ajouter un contact autorisé à appeler le bracelet" className="inline-flex items-center gap-1 text-xs text-blue-600"><Plus className="w-3.5 h-3.5" /> Ajouter</button>
               )}
             </div>
