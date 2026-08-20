@@ -5,7 +5,7 @@ import Link from 'next/link';
 import {
   Wifi, WifiOff, RefreshCw, Battery,
   MapPin, Calendar, CheckCircle2, Clock, Send, Smartphone,
-  ChevronDown, ChevronUp, Shield, Route,
+  ChevronDown, ChevronUp, Shield, Route, Navigation,
 } from 'lucide-react';
 import { syncTerrainQueueAction, type TerrainQueuedAction } from './actions';
 
@@ -243,6 +243,16 @@ export default function TerrainApp({ initialData }: { initialData: InitialData }
         </div>
         <Smartphone className="w-4 h-4 text-gray-600 ml-auto" />
       </div>
+
+      {/* Escorte — partage de position pendant une intervention. Placé en tête :
+          c'est le geste qu'on cherche en partant, pas au fond d'un menu. */}
+      <a
+        href="/sigep/dashboard/terrain/escorte"
+        className="flex items-center gap-2 bg-white rounded-2xl border border-gray-100 px-4 py-3 text-sm font-semibold text-gray-800 hover:border-emerald-200"
+      >
+        <Navigation className="w-4 h-4 text-emerald-600" />
+        Escorte — partager ma position
+      </a>
 
       {/* Today's agenda strip */}
       {todayObs.length > 0 && (

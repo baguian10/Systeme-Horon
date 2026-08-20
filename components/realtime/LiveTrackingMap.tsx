@@ -192,16 +192,20 @@ function AnimatedMarker({ pos, icon, children }: { pos: LivePosition; icon: L.Di
   );
 }
 
+/** Agent partageant sa position depuis le terrain, pendant une escorte. */
+export interface AgentPin { userId: string; name: string; lat: number; lng: number; at: string }
+
 interface Props {
   positions: LivePosition[];
   geofences?: MapGeofenceLite[];
   /** External camera focus (crisis-room auto-cycle) — pans without locking. */
   focusCaseId?: string | null;
+  agents?: AgentPin[];
 }
 
 type TrailPoint = { lat: number; lng: number; ts: number };
 
-export default function LiveTrackingMap({ positions, geofences = [], focusCaseId = null }: Props) {
+export default function LiveTrackingMap({ positions, geofences = [], focusCaseId = null, agents = [] }: Props) {
   const [now, setNow] = useState(() => Date.now());
   const [followId, setFollowId] = useState<string | null>(null);
   const [trailMap, setTrailMap] = useState<Map<string, TrailPoint[]>>(new Map());
@@ -365,6 +369,35 @@ export default function LiveTrackingMap({ positions, geofences = [], focusCaseId
             />
           );
         })}
+
+        {/* Agents en escorte — repère distinct du porteur : c'est un
+            intervenant, pas une personne sous mesure, et rien ne doit permettre
+            de les confondre sur la carte. */}
+        {agents.map((a) => (
+          <Marker
+            key={`agent-${a.userId}`}
+            position={[a.lat, a.lng]}
+            icon={L.divIcon({
+              className: '',
+              html: `<div style="display:flex;align-items:center;gap:4px">
+                <div style="width:14px;height:14px;border-radius:3px;background:#2563eb;border:2px solid #fff;box-shadow:0 0 0 1px #1e40af"></div>
+                <span style="font-size:10px;font-weight:600;color:#1e40af;background:rgba(255,255,255,.85);padding:0 3px;border-radius:3px;white-space:nowrap">${a.name}</span>
+              </div>`,
+              iconSize: [14, 14],
+              iconAnchor: [7, 7],
+            })}
+          >
+            <Popup>
+              <div style={{ fontSize: 12 }}>
+                <div style={{ fontWeight: 700 }}>{a.name}</div>
+                <div style={{ color: '#64748b' }}>Agent en escorte</div>
+                <div style={{ color: '#94a3b8', fontSize: 11 }}>
+                  Position d&apos;il y a {Math.max(0, Math.round((now - Date.parse(a.at)) / 1000))} s
+                </div>
+              </div>
+            </Popup>
+          </Marker>
+        ))}
 
         {/* Trackers — gliding markers with heading, speed, staleness, follow ring. */}
         {positions.map((pos) => {

@@ -133,6 +133,9 @@ export default function MonitoringConsole({
   // la salle de crise sans moyen de le réduire : la carte est pourtant ce qu'on
   // regarde. Trois crans, mémorisés d'une session à l'autre.
   const [panel, setPanel] = useState<'large' | 'reduit' | 'masque'>('large');
+  // Agents en escorte — position courante de ceux qui partagent depuis le
+  // terrain, rafraîchie au même battement que les positions des bracelets.
+  const [agents, setAgents] = useState<{ userId: string; name: string; lat: number; lng: number; at: string }[]>([]);
   // Personne suivie : carte centrée sur elle, triage limité à son dossier.
   const [followCase, setFollowCase] = useState<string | null>(null);
   const [personQuery, setPersonQuery] = useState('');
@@ -241,6 +244,15 @@ export default function MonitoringConsole({
           return Array.from(byId.values());
         });
       } catch { /* le battement suivant réessaiera */ }
+
+      // Agents en escorte — même battement : ils bougent au moins aussi vite
+      // que les bracelets qu'ils vont rejoindre.
+      try {
+        const r = await fetch('/api/track/agent', { cache: 'no-store' });
+        if (!r.ok) return;
+        const d = await r.json() as { agents?: typeof agents };
+        if (!stopped && Array.isArray(d.agents)) setAgents(d.agents);
+      } catch { /* sans conséquence */ }
     }
     const id = setInterval(beat, 10_000);
     beat();
@@ -721,12 +733,27 @@ export default function MonitoringConsole({
               onClose={() => { setFollowCase(null); setPersonQuery(''); }}
               onLocate={locate}
               onIncident={openIncident}
+              escort={(() => {
+                // Agent le plus proche de la personne suivie : c'est ce que le
+                // centre veut savoir avant d'envoyer quelqu'un.
+                const p = livePos.find((x) => x.case_id === followCase);
+                if (!p || agents.length === 0) return null;
+                let best: { name: string; m: number } | null = null;
+                for (const a of agents) {
+                  const R = 6371000, rad = (d: number) => (d * Math.PI) / 180;
+                  const dLat = rad(a.lat - p.latitude), dLng = rad(a.lng - p.longitude);
+                  const h = Math.sin(dLat / 2) ** 2 + Math.cos(rad(p.latitude)) * Math.cos(rad(a.lat)) * Math.sin(dLng / 2) ** 2;
+                  const m = Math.round(2 * R * Math.asin(Math.sqrt(h)));
+                  if (!best || m < best.m) best = { name: a.name, m };
+                }
+                return best;
+              })()}
             />
           )}
           {/* La personne suivie prime sur le cycle automatique de la salle de
               crise : un opérateur qui choisit un dossier ne doit pas se faire
               déplacer la carte sous les yeux dix secondes plus tard. */}
-          <LiveMapGrid initialPositions={livePos} geofences={geofences} focusCaseId={followCase ?? cycleCase} />
+          <LiveMapGrid initialPositions={livePos} geofences={geofences} focusCaseId={followCase ?? cycleCase} agents={agents} />
         </div>
 
         {/* Triage / Stream */}
