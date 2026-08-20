@@ -127,6 +127,13 @@ export default function FollowPanel({
             <span className="mx-1.5">·</span>
             <Radio className="w-3 h-3 inline mr-1" />vu il y a {ago(ctx.lastSeenAt)}
           </p>
+          {/* Prévision d'extinction — n'apparaît que si elle apprend quelque
+              chose : moins de vingt-quatre heures d'autonomie, ou en charge. */}
+          {ctx.batteryForecast && (
+            <p className={ctx.batteryForecast.startsWith('En charge') ? 'text-emerald-600 font-medium' : 'text-amber-600 font-medium'}>
+              {ctx.batteryForecast}
+            </p>
+          )}
           <p className={fixStale ? 'text-amber-600 font-medium' : muted}>
             <MapPin className="w-3 h-3 inline mr-1" />
             Dernier point il y a {ago(ctx.lastFixAt)}{fixStale ? ' — position vieillissante' : ''}

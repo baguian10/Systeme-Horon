@@ -22,7 +22,7 @@ export interface CaseCtx {
   lat: number | null; lng: number | null; online: boolean;
   // Contexte de la fiche de suivi — tout est déjà chargé par le rendu serveur.
   caseNumber?: string; status?: string; deviceId?: string | null;
-  battery?: number | null; worn?: boolean | null;
+  battery?: number | null; batteryForecast?: string | null; worn?: boolean | null;
   lastSeenAt?: string | null; lastFixAt?: string | null;
   judgeName?: string | null; measureKind?: string | null;
   startDate?: string | null; endDate?: string | null; curfew?: string | null;

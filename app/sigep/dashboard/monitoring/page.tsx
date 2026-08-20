@@ -101,6 +101,33 @@ export default async function MonitoringPage() {
   // à la fiche de suivi. Tout vient de la requête des dossiers déjà faite plus
   // haut — c'est pourquoi la fiche s'ouvre sans aller rechercher quoi que ce
   // soit, ce qui compte quand un opérateur passe d'un dossier à l'autre.
+  // Prévision d'extinction par bracelet — une seule requête pour toute la
+  // flotte, les relevés des six dernières heures suffisant à la pente.
+  const batteryLabelByDevice = new Map<string, string>();
+  if (process.env.NEXT_PUBLIC_SUPABASE_URL) {
+    const { createAdminClient } = await import('@/lib/supabase/admin');
+    const sb = createAdminClient();
+    if (sb) {
+      const { data: tel } = await sb
+        .from('device_telemetry')
+        .select('device_id, battery_pct, recorded_at')
+        .gte('recorded_at', new Date(Date.now() - 6 * 3600_000).toISOString())
+        .order('recorded_at', { ascending: true })
+        .limit(2000);
+      const byDevice = new Map<string, { battery_pct: number | null; recorded_at: string }[]>();
+      for (const row of (tel ?? []) as { device_id: string; battery_pct: number | null; recorded_at: string }[]) {
+        const arr = byDevice.get(row.device_id) ?? [];
+        arr.push({ battery_pct: row.battery_pct, recorded_at: row.recorded_at });
+        byDevice.set(row.device_id, arr);
+      }
+      const { forecastBattery, batteryForecastLabel } = await import('@/lib/devices/battery');
+      for (const [deviceId, points] of byDevice) {
+        const label = batteryForecastLabel(forecastBattery(points));
+        if (label) batteryLabelByDevice.set(deviceId, label);
+      }
+    }
+  }
+
   const caseInfo: Record<string, CaseCtx> = {};
   for (const c of activeCases) {
     const pos = posByCase.get(c.id);
@@ -116,6 +143,7 @@ export default async function MonitoringPage() {
       status: c.status,
       deviceId: c.device?.id ?? null,
       battery: c.device?.battery_pct ?? null,
+      batteryForecast: c.device?.id ? batteryLabelByDevice.get(c.device.id) ?? null : null,
       worn: c.device?.worn ?? null,
       lastSeenAt: c.device?.last_seen_at ?? null,
       lastFixAt: pos?.recorded_at ?? null,
