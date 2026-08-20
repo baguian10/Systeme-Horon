@@ -443,6 +443,57 @@ export async function getWearingStatus(imei: string): Promise<{ worn: boolean; a
   return { worn: m[1] === '1', at: new Date().toISOString() };
 }
 
+// ── État de la sangle : le vrai signal de port de ce matériel ────────────────
+//
+// La détection de port par capteur optique (APWR, `>*wearconfig@1*<`) ne
+// fonctionne pas sur ce bracelet : sa fiche d'état annonce `PPG[C0m]`, donc pas
+// de capteur. La commande est bien acquittée, mais aucune trame APWR ne suit.
+//
+// Ce que le bracelet émet réellement, c'est une trame d'alarme AP10 dont l'état
+// vaut 16 quand la sangle est verrouillée et 05 quand elle est ouverte ou
+// arrachée (03 = terminal retiré). Sur un bracelet de cheville c'est de toute
+// façon la sangle qui fait foi : le porteur ne peut s'en défaire sans l'ouvrir.
+//
+// Format AP10 : IWAP10<date><A|V><lat><lng><vitesse><heure alarme>…,MCC,MNC,
+// LAC,CID,<état d'alarme>,<langue>,… — l'état est le 5ᵉ champ après la tête.
+export type StrapState = { closed: boolean; code: string; at: string };
+
+const STRAP_CLOSED = new Set(['16']);          // sangle verrouillée
+const STRAP_OPEN = new Set(['03', '05']);      // retiré / sangle ouverte
+
+// Fenêtre de 6 h : au-delà, la plateforme renvoie un journal vide au lieu d'un
+// journal plus long — une fenêtre de 12 h ne rapporte qu'une seule ligne.
+export async function getStrapState(imei: string, windowMinutes = 360): Promise<StrapState | null> {
+  const lines = await traxbeanPost<string[]>('business/device/fetchDeviceLog', {
+    imei,
+    startTime: new Date(Date.now() - windowMinutes * 60000).toISOString(),
+  });
+  if (!Array.isArray(lines)) return null;
+
+  // Du plus récent au plus ancien : on garde la première trame concluante.
+  for (let i = lines.length - 1; i >= 0; i--) {
+    const line = String(lines[i]);
+    if (!line.includes('IWAP10')) continue;
+    const head = /IWAP10(\d{6})[AV].*?(\d{6})\d{3}\.\d{2}/.exec(line);
+    const fields = line.slice(line.indexOf('IWAP10')).split(',');
+    const code = (fields[5] ?? '').trim();
+    if (!STRAP_CLOSED.has(code) && !STRAP_OPEN.has(code)) continue;
+
+    // Horodatage porté par la trame elle-même (date AAMMJJ + heure UTC de
+    // l'alarme) : le bracelet retransmet parfois des trames différées, s'en
+    // remettre à l'heure de lecture les daterait toutes de maintenant.
+    let at = new Date().toISOString();
+    if (head) {
+      const [, d, t] = head;
+      const iso = `20${d.slice(0, 2)}-${d.slice(2, 4)}-${d.slice(4, 6)}T${t.slice(0, 2)}:${t.slice(2, 4)}:${t.slice(4, 6)}Z`;
+      const parsed = Date.parse(iso);
+      if (!Number.isNaN(parsed)) at = new Date(parsed).toISOString();
+    }
+    return { closed: STRAP_CLOSED.has(code), code, at };
+  }
+  return null;
+}
+
 export type DeviceConfigKind = 'sos' | 'timezoneBF' | 'strap' | 'apn';
 
 // Device-level configuration (SUPER_ADMIN / technical).

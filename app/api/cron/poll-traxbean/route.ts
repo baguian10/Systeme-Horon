@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server';
-import { isTraxbeanConfigured, getDeviceLocation, getLatestBleScan, getWearingStatus, getDeviceWearStatus, getLatestHealth, checkTraxbeanAuth } from '@/lib/traxbean/client';
+import { isTraxbeanConfigured, getDeviceLocation, getLatestBleScan, getWearingStatus, getDeviceWearStatus, getStrapState, getLatestHealth, checkTraxbeanAuth } from '@/lib/traxbean/client';
 import { getSettings } from '@/lib/settings';
 
 export const dynamic = 'force-dynamic';
@@ -92,10 +92,24 @@ export async function GET(request: NextRequest) {
   }
 
   // Only poll devices assigned to a case (positions require a case_id).
-  const { data: devices } = await supabase
+  // `arm_on_wear` arrive par migration : si la colonne manque encore, la requête
+  // entière échouerait et la collecte s'arrêterait net. On retombe alors sur le
+  // jeu de colonnes historique — le suivi continue, seul l'armement automatique
+  // reste en sommeil.
+  type PolledDevice = {
+    id: string; imei: string; case_id: string;
+    battery_pct: number | null; signal_strength_dbm: number | null;
+    is_online: boolean | null; last_seen_at: string | null;
+    worn?: boolean | null; arm_on_wear?: boolean | null;
+  };
+  const BASE_COLS = 'id, imei, case_id, battery_pct, signal_strength_dbm, is_online, last_seen_at, worn';
+  let devices = (await supabase
     .from('devices')
-    .select('id, imei, case_id, battery_pct, signal_strength_dbm, is_online, last_seen_at')
-    .not('case_id', 'is', null);
+    .select(`${BASE_COLS}, arm_on_wear`)
+    .not('case_id', 'is', null)).data as PolledDevice[] | null;
+  if (!devices) {
+    devices = (await supabase.from('devices').select(BASE_COLS).not('case_id', 'is', null)).data as PolledDevice[] | null;
+  }
 
   if (!devices || devices.length === 0) {
     return NextResponse.json({ ok: true, polled: 0, note: 'no assigned devices' });
@@ -307,14 +321,55 @@ export async function GET(request: NextRequest) {
       }
 
       // ── Wearing status (anti-removal) → persist + TAMPER on removal ──
-      // Primary source: the platform target `wear` field (1 worn / 0 removed /
-      // null unknown); fall back to APWR in the log if unknown.
+      // Trois sources, de la plus directe à la plus fiable en pratique :
+      //   1. le champ `wear` de la fiche plateforme (1 porté / 0 retiré) ;
+      //   2. les trames APWR du journal ;
+      //   3. l'état de la sangle, lu dans les trames d'alarme AP10.
+      // Sur le TR40 les deux premières ne donnent rien — le bracelet annonce
+      // `PPG[C0m]`, il n'a pas de capteur optique et n'émet jamais d'APWR, même
+      // après un `>*wearconfig@1*<` acquitté. La sangle, elle, parle : code 16
+      // à la fermeture, 05 à l'ouverture. Sur un bracelet de cheville c'est de
+      // toute façon le signal qui fait foi.
       let worn = await getDeviceWearStatus(device.imei);
       if (worn === null) {
         const wr = await getWearingStatus(device.imei);
         worn = wr ? wr.worn : null;
       }
+      let strapAt: string | null = null;
+      if (worn === null) {
+        const strap = await getStrapState(device.imei);
+        if (strap) { worn = strap.closed; strapAt = strap.at; }
+      }
+      const wasWorn = device.worn ?? null;
       await supabase.from('devices').update({ worn, worn_checked_at: new Date().toISOString() }).eq('id', device.id);
+
+      // ── Armement à la pose ──
+      // Le dossier passe en surveillance active dès que la sangle se ferme sur
+      // la cheville, sans intervention manuelle. Ne concerne que les dossiers en
+      // attente : un dossier déjà actif ou suspendu n'est pas touché, et la
+      // bascule ne se produit qu'au passage retiré/inconnu → porté.
+      if (worn === true && wasWorn !== true && device.arm_on_wear) {
+        const { data: kase } = await supabase
+          .from('cases').select('id, status, case_number').eq('id', device.case_id).maybeSingle();
+        const k = kase as { id: string; status: string; case_number: string } | null;
+        if (k && k.status === 'PENDING') {
+          await supabase.from('cases').update({
+            status: 'ACTIVE',
+            start_date: strapAt ?? new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          }).eq('id', k.id);
+          const { sendDeviceCommand } = await import('@/lib/traxbean/client');
+          await sendDeviceCommand(device.imei, 'locate');
+          // Trace dans le journal du bracelet — l'armement n'a pas d'auteur
+          // humain, il n'a donc pas sa place dans le journal d'audit, qui
+          // exige un compte.
+          const { logDeviceEvent } = await import('@/lib/devices/events');
+          await logDeviceEvent(supabase, {
+            deviceId: device.id, caseId: k.id, type: 'COMMAND',
+            detail: `Armement à la pose : sangle verrouillée, surveillance du dossier ${k.case_number} activée`,
+          });
+        }
+      }
       if (worn === true) {
         // Bracelet back on the body — end any open TAMPER episode (alert stays
         // open for manual review; a NEW removal will raise a fresh alert).
