@@ -1,9 +1,20 @@
 import { notFound } from 'next/navigation';
+import { after } from 'next/server';
 import Link from 'next/link';
+import { logCaseAccess } from '@/lib/audit/access';
 import {
   ArrowLeft, User, Calendar, FileText, Wifi, WifiOff,
-  Battery, MapPin, ShieldCheck, Clock,
+  Battery, MapPin, ShieldCheck, Clock, Eye,
 } from 'lucide-react';
+
+// Libellés des contextes de consultation, partagés avec le journal complet.
+const ACCESS_LABEL: Record<string, string> = {
+  DOSSIER: 'dossier ouvert',
+  SUIVI: 'fiche de suivi',
+  INCIDENT: 'panneau incident',
+  TRAJET: 'trajet consulté',
+  EXPORT: 'export',
+};
 import { fetchCaseById, fetchCaseAssignments, fetchOperationalUsers, fetchJournalEntries, fetchTigSites, fetchTigAttendance } from '@/lib/mock/helpers';
 import { getSession } from '@/lib/auth/session';
 import AutoRefresh from '@/components/common/AutoRefresh';
@@ -38,6 +49,30 @@ export default async function CaseDetailPage({ params }: { params: Promise<{ id:
     ? await Promise.all([fetchTigSites(), fetchTigAttendance(id)])
     : [[], []];
   if (!session || !caseData) notFound();
+
+  // Consultation du dossier — enregistrée après la réponse, pour que le traçage
+  // ne retarde jamais l'affichage d'un dossier qu'on ouvre en urgence.
+  after(() => logCaseAccess({
+    caseId: id, context: 'DOSSIER',
+    userId: session.id, actorName: session.full_name, actorRole: session.role,
+  }));
+
+  // Consultations récentes — pour le magistrat saisi et l'administration.
+  // Table absente (migration non appliquée) : liste vide, aucun blocage.
+  type AccessRow = { id: number; actor_name: string | null; context: string; viewed_at: string };
+  let recentAccess: AccessRow[] = [];
+  const canSeeAccess = session.role === 'SUPER_ADMIN' || (session.role === 'JUDGE' && caseData.judge_id === session.id);
+  if (canSeeAccess && process.env.NEXT_PUBLIC_SUPABASE_URL) {
+    const { createAdminClient } = await import('@/lib/supabase/admin');
+    const sb = createAdminClient();
+    if (sb) {
+      const { data } = await sb
+        .from('case_access_log')
+        .select('id, actor_name, context, viewed_at')
+        .eq('case_id', id).order('viewed_at', { ascending: false }).limit(8);
+      recentAccess = (data ?? []) as AccessRow[];
+    }
+  }
 
   const showPII = canViewPII(session.role);
   const canGeo = allow(session, canManageGeofences(session.role), 'geofences');
@@ -412,6 +447,35 @@ export default async function CaseDetailPage({ params }: { params: Promise<{ id:
             entries={journalEntries}
             canWrite={canJournal && caseData.status !== 'TERMINATED'}
           />
+
+          {/* Qui a consulté ce dossier — visible du magistrat saisi et de
+              l'administration. Le juge doit pouvoir voir qui regarde le dossier
+              dont il répond ; c'est le pendant du traçage. */}
+          {recentAccess.length > 0 && (
+            <div className="bg-white rounded-2xl border border-gray-100 p-5">
+              <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                <Eye className="w-4 h-4 text-gray-400" /> Consultations récentes
+              </h3>
+              <ul className="space-y-1.5">
+                {recentAccess.map((a) => (
+                  <li key={a.id} className="flex items-center justify-between gap-2 text-xs">
+                    <span className="truncate">
+                      <span className="font-medium text-gray-800">{a.actor_name ?? 'Compte supprimé'}</span>
+                      <span className="text-gray-400"> · {ACCESS_LABEL[a.context] ?? a.context}</span>
+                    </span>
+                    <span className="text-gray-400 whitespace-nowrap">
+                      {new Date(a.viewed_at).toLocaleString('fr-FR', { timeZone: 'Africa/Ouagadougou', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+              {session.role === 'SUPER_ADMIN' && (
+                <Link href={`/sigep/dashboard/audit/consultations?dossier=${caseData.id}`} className="mt-2 inline-block text-[11px] text-blue-600 hover:underline">
+                  Journal complet des consultations →
+                </Link>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </div>

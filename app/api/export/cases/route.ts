@@ -37,6 +37,14 @@ export async function GET() {
 
   const csv = [header, ...rows].join('\n');
 
+  // Un export sort les dossiers du système : chacun est enregistré au journal
+  // des consultations, avec le contexte EXPORT.
+  const { logCaseAccessBulk } = await import('@/lib/audit/access');
+  await logCaseAccessBulk({
+    caseIds: cases.map((c) => c.id), context: 'EXPORT',
+    userId: session.id, actorName: session.full_name, actorRole: session.role,
+  });
+
   return new NextResponse(csv, {
     headers: {
       'Content-Type': 'text/csv; charset=utf-8',

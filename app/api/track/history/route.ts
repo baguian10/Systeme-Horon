@@ -28,6 +28,18 @@ export async function GET(request: NextRequest) {
   const date = sp.get('date');
   const mode = sp.get('mode');
 
+  // Consulter le trajet de quelqu'un est une consultation à part entière : elle
+  // révèle ses déplacements. La liste des jours disponibles (mode=days) n'en
+  // révèle aucun et n'est donc pas enregistrée.
+  if (mode !== 'days') {
+    const { logCaseAccess } = await import('@/lib/audit/access');
+    await logCaseAccess({
+      caseId, context: 'TRAJET',
+      userId: session.id, actorName: session.full_name, actorRole: session.role,
+      ip: request.headers.get('x-forwarded-for')?.split(',')[0].trim() ?? null,
+    });
+  }
+
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
     if (mode === 'days') return NextResponse.json({ days: [] });
     if (date) return NextResponse.json({ ...emptyDay(date), trail: [] });
