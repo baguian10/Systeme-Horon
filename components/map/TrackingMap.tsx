@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, Tooltip, Circle, Polygon, Polyline, LayersControl, ZoomControl, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, Tooltip, Circle, CircleMarker, Polygon, Polyline, LayersControl, ZoomControl, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import type { DrawnShape } from '@/components/geofences/GeofenceDrawMap';
 // leaflet/dist/leaflet.css is imported globally in app/layout.tsx
@@ -203,6 +203,11 @@ export default function TrackingMap({ markers, geofences = [], center = [12.3647
   const [follow, setFollow] = useState(false);
   const [showTrail, setShowTrail] = useState(false);
   const [trail, setTrail] = useState<[number, number][]>([]);
+  // Points horodatés du trajet + trace recalée sur les routes quand un moteur
+  // de recalage est configuré. Sans eux, la carte ne pouvait pas distinguer un
+  // déplacement réellement suivi d'un trou de plusieurs minutes.
+  const [trailPoints, setTrailPoints] = useState<{ lat: number; lng: number; t: number }[]>([]);
+  const [matched, setMatched] = useState<[number, number][] | null>(null);
   const [drawing, setDrawing] = useState(false);
   const [drawnShape, setDrawnShape] = useState<DrawnShape | null>(null);
   const [gfName, setGfName] = useState('');
@@ -237,11 +242,16 @@ export default function TrackingMap({ markers, geofences = [], center = [12.3647
   useEffect(() => {
     // Conditional reset when the trail is toggled off — not a render cascade.
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    if (!showTrail || !primary?.caseId) { setTrail([]); return; }
+    if (!showTrail || !primary?.caseId) { setTrail([]); setTrailPoints([]); setMatched(null); return; }
     let active = true;
     fetch(`/api/track/history?caseId=${encodeURIComponent(primary.caseId)}`, { cache: 'no-store' })
       .then((r) => r.json())
-      .then((d) => { if (active && Array.isArray(d.trail)) setTrail(d.trail); })
+      .then((d) => {
+        if (!active) return;
+        if (Array.isArray(d.trail)) setTrail(d.trail);
+        if (Array.isArray(d.trailPoints)) setTrailPoints(d.trailPoints);
+        setMatched(Array.isArray(d.matched) ? d.matched : null);
+      })
       .catch(() => {});
     return () => { active = false; };
   }, [showTrail, primary?.caseId, primary?.lat, primary?.lng]);
@@ -297,10 +307,50 @@ export default function TrackingMap({ markers, geofences = [], center = [12.3647
         return null;
       })}
 
-      {/* GPS trail (history) */}
-      {showTrail && trail.length > 1 && (
+      {/* Trajet.
+          Trois couches, dans cet ordre de préférence :
+            · la trace recalée sur les routes, si un moteur est configuré — elle
+              restitue les virages que dix secondes d'intervalle effacent ;
+            · sinon les segments entre points consécutifs, EN POINTILLÉ dès que
+              l'écart dépasse une minute et demie : une longue ligne droite ne
+              doit plus se lire comme un trajet suivi, mais comme un trou ;
+            · les relevés eux-mêmes, en petits points, pour qu'on voie où la
+              mesure existe réellement. */}
+      {showTrail && matched && matched.length > 1 && (
+        <Polyline positions={matched} pathOptions={{ color: '#7c3aed', weight: 4, opacity: 0.85 }} />
+      )}
+
+      {showTrail && !matched && trailPoints.length > 1 && trailPoints.slice(1).map((p, i) => {
+        const prev = trailPoints[i];
+        const gapS = (p.t - prev.t) / 1000;
+        const uncertain = gapS > 90;
+        return (
+          <Polyline
+            key={`seg-${p.t}-${i}`}
+            positions={[[prev.lat, prev.lng], [p.lat, p.lng]]}
+            pathOptions={{
+              color: '#7c3aed',
+              weight: uncertain ? 2 : 3,
+              opacity: uncertain ? 0.35 : 0.85,
+              dashArray: uncertain ? '6 8' : undefined,
+            }}
+          />
+        );
+      })}
+
+      {/* Repli quand le détail horodaté n'est pas disponible (ancien format). */}
+      {showTrail && !matched && trailPoints.length === 0 && trail.length > 1 && (
         <Polyline positions={trail} pathOptions={{ color: '#7c3aed', weight: 3, opacity: 0.8 }} />
       )}
+
+      {showTrail && trailPoints.map((p) => (
+        <CircleMarker
+          key={`pt-${p.t}`}
+          center={[p.lat, p.lng]}
+          radius={2.5}
+          pathOptions={{ color: '#7c3aed', weight: 1, fillColor: '#7c3aed', fillOpacity: 0.9 }}
+        />
+      ))}
 
       {/* Externally-driven mini trail (e.g. selected device in surveillance) */}
       {extraTrail && extraTrail.length > 1 && (

@@ -29,7 +29,33 @@ const STATUS_LABELS: Record<CaseStatus, string> = {
 
 const STALE_MS = 5 * 60_000;   // grey out after 5 min without a fix
 const TRAIL_MS = 30 * 60_000;  // keep 30 min of trail
-const ANIM_MS  = 1_200;        // marker glide duration between fixes
+const ANIM_MS  = 1_200;        // glissement minimal du repère entre deux relevés
+// Plafond du glissement : au-delà d'une minute d'écart, étaler le déplacement
+// donnerait un repère qui avance imperturbablement pendant que le bracelet se
+// tait. Le rayon d'incertitude prend alors le relais pour dire l'ignorance.
+const ANIM_MAX_MS = 60_000;
+
+// ── Rayon d'incertitude ──────────────────────────────────────────────────────
+//
+// Quand le réseau lâche — ce qui arrive souvent — la carte continuait d'afficher
+// un point immobile, avec l'aplomb d'une position vraie. Un système de
+// surveillance qui présente une supposition comme un fait est dangereux : un
+// agent envoyé sur un point vieux d'une demi-heure cherche quelqu'un qui n'y est
+// plus depuis longtemps.
+//
+// Le cercle traduit donc l'ignorance : il part de la précision GPS du relevé et
+// grandit avec le temps écoulé, à la vitesse de marche par défaut, ou à la
+// dernière vitesse connue si elle était plus élevée. C'est la zone où la
+// personne PEUT se trouver, pas là où elle est.
+const UNCERTAINTY_AFTER_MS = 60_000;   // en deçà, le point vaut la position
+const WALK_M_S = 1.4;                  // marche, plancher de propagation
+const UNCERTAINTY_MAX_M = 5_000;       // au-delà, le cercle n'apprend plus rien
+
+function uncertaintyRadiusM(ageMs: number, speedKmh: number | null): number {
+  const ageS = ageMs / 1000;
+  const speed = Math.max(WALK_M_S, ((speedKmh ?? 0) * 1000) / 3600);
+  return Math.min(UNCERTAINTY_MAX_M, Math.round(speed * ageS));
+}
 
 export interface MapGeofenceLite {
   id: string;
@@ -114,6 +140,8 @@ function AnimatedMarker({ pos, icon, children }: { pos: LivePosition; icon: L.Di
   const [mountPos] = useState<[number, number]>([pos.latitude, pos.longitude]);
   const shown = useRef<[number, number]>([pos.latitude, pos.longitude]);
   const raf = useRef<number | null>(null);
+  // Instant du relevé précédent : sert à mesurer la cadence réelle du bracelet.
+  const prevStamp = useRef<number>(Date.parse(pos.recorded_at));
 
   useEffect(() => {
     const marker = ref.current;
@@ -122,10 +150,27 @@ function AnimatedMarker({ pos, icon, children }: { pos: LivePosition; icon: L.Di
     const toLat = pos.latitude, toLng = pos.longitude;
     if (fromLat === toLat && fromLng === toLng) return;
     if (raf.current) cancelAnimationFrame(raf.current);
+
+    // Durée du glissement calée sur la cadence observée du bracelet, au lieu
+    // d'une constante. À dix secondes d'intervalle, le repère avançait en un
+    // dixième du temps puis restait figé neuf secondes sur dix — un mouvement
+    // saccadé, alors que la personne, elle, marche sans s'arrêter. En étalant
+    // le déplacement sur l'intervalle réel, le repère avance continûment, à la
+    // vitesse vraie. Le prix est une latence d'un intervalle, bornée et connue :
+    // le rayon d'incertitude et l'âge du point la donnent à lire.
+    const stamp = Date.parse(pos.recorded_at);
+    const observed = stamp - prevStamp.current;
+    prevStamp.current = stamp;
+    const duration = Number.isFinite(observed) && observed > 0
+      ? Math.max(ANIM_MS, Math.min(observed, ANIM_MAX_MS))
+      : ANIM_MS;
+
     const t0 = performance.now();
     const step = (t: number) => {
-      const k = Math.min(1, (t - t0) / ANIM_MS);
-      const e = 1 - (1 - k) * (1 - k); // ease-out
+      const k = Math.min(1, (t - t0) / duration);
+      // Déplacement linéaire, sans amorti : une personne qui marche ne
+      // décélère pas à l'approche de chaque relevé.
+      const e = k;
       const lat = fromLat + (toLat - fromLat) * e;
       const lng = fromLng + (toLng - fromLng) * e;
       shown.current = [lat, lng];
@@ -304,6 +349,23 @@ export default function LiveTrackingMap({ positions, geofences = [], focusCaseId
           ));
         })}
 
+        {/* Rayon d'incertitude — dessiné SOUS les repères, pour ne pas masquer
+            le point ni les alertes. Absent tant que la position est fraîche. */}
+        {positions.map((pos) => {
+          const ageMs = now - Date.parse(pos.recorded_at);
+          if (ageMs < UNCERTAINTY_AFTER_MS) return null;
+          const r = uncertaintyRadiusM(ageMs, pos.speed_kmh);
+          const color = ageMs > STALE_MS ? '#94a3b8' : DOT_COLORS[pos.status] ?? '#64748b';
+          return (
+            <Circle
+              key={`u-${pos.case_id}`}
+              center={[pos.latitude, pos.longitude]}
+              radius={r}
+              pathOptions={{ color, weight: 1, opacity: 0.5, fillColor: color, fillOpacity: 0.07, dashArray: '4 4' }}
+            />
+          );
+        })}
+
         {/* Trackers — gliding markers with heading, speed, staleness, follow ring. */}
         {positions.map((pos) => {
           const ageMs = now - Date.parse(pos.recorded_at);
@@ -326,6 +388,11 @@ export default function LiveTrackingMap({ positions, geofences = [], focusCaseId
                     </span>
                   </div>
                   {pos.speed_kmh !== null && <div style={{ color: '#64748b', marginBottom: 3 }}>{pos.speed_kmh.toFixed(1)} km/h</div>}
+                  {ageMs >= UNCERTAINTY_AFTER_MS && (
+                    <div style={{ color: '#b45309', marginBottom: 3 }}>
+                      Peut se trouver dans un rayon de {(() => { const r = uncertaintyRadiusM(ageMs, pos.speed_kmh); return r >= 1000 ? `${(r / 1000).toFixed(1)} km` : `${r} m`; })()}
+                    </div>
+                  )}
                   {pos.alert_count > 0 && (
                     <div style={{ color: '#ef4444', fontWeight: 700, marginBottom: 3 }}>
                       {pos.alert_count} alerte{pos.alert_count > 1 ? 's' : ''} active{pos.alert_count > 1 ? 's' : ''}
