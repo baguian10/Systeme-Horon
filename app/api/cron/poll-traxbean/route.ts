@@ -379,23 +379,45 @@ export async function GET(request: NextRequest) {
           .eq('is_resolved', false).is('condition_cleared_at', null);
       }
       if (worn === false) {
-        const { count } = await supabase
-          .from('alerts')
-          .select('id', { count: 'exact', head: true })
-          .eq('case_id', device.case_id)
-          .eq('alert_type', 'TAMPER_DETECTED')
-          .eq('is_resolved', false)
-          .is('condition_cleared_at', null);
-        if (!count) {
-          await supabase.from('alerts').insert({
-            case_id: device.case_id, device_id: device.id,
-            alert_type: 'TAMPER_DETECTED', severity: 5,
-            description: 'Bracelet retiré du corps (détection de port).',
-            position_lat: live.lat, position_lon: live.lng,
-          });
-          await supabase.from('cases').update({ status: 'VIOLATION', updated_at: new Date().toISOString() }).eq('id', device.case_id);
-          const { dispatchAlertNotifications } = await import('@/lib/notify');
-          await dispatchAlertNotifications({ caseId: device.case_id, alertType: 'TAMPER_DETECTED', description: 'Bracelet retiré du corps (détection de port).' });
+        // Retrait autorisé : un responsable a ouvert une fenêtre motivée et
+        // bornée (fin de mesure, maintenance, soins). Pendant celle-ci
+        // l'ouverture est consignée, pas alarmée. La fenêtre est lue à part et
+        // son absence est traitée comme « pas d'autorisation » : si la migration
+        // n'est pas encore passée, l'anti-retrait continue de protéger.
+        const { data: rem } = await supabase
+          .from('devices').select('removal_allowed_until, removal_reason').eq('id', device.id).maybeSingle();
+        const until = (rem as { removal_allowed_until?: string | null } | null)?.removal_allowed_until ?? null;
+        const reason = (rem as { removal_reason?: string | null } | null)?.removal_reason ?? null;
+        const authorised = Boolean(until) && Date.parse(until!) > Date.now();
+
+        if (authorised) {
+          // Une seule trace par retrait, au passage porté → retiré.
+          if (wasWorn !== false) {
+            const { logDeviceEvent } = await import('@/lib/devices/events');
+            await logDeviceEvent(supabase, {
+              deviceId: device.id, caseId: device.case_id, type: 'TAMPER',
+              detail: `Retrait autorisé — ${reason ?? 'motif non précisé'} (sangle ouverte)`,
+            });
+          }
+        } else {
+          const { count } = await supabase
+            .from('alerts')
+            .select('id', { count: 'exact', head: true })
+            .eq('case_id', device.case_id)
+            .eq('alert_type', 'TAMPER_DETECTED')
+            .eq('is_resolved', false)
+            .is('condition_cleared_at', null);
+          if (!count) {
+            await supabase.from('alerts').insert({
+              case_id: device.case_id, device_id: device.id,
+              alert_type: 'TAMPER_DETECTED', severity: 5,
+              description: 'Bracelet retiré du corps (détection de port).',
+              position_lat: live.lat, position_lon: live.lng,
+            });
+            await supabase.from('cases').update({ status: 'VIOLATION', updated_at: new Date().toISOString() }).eq('id', device.case_id);
+            const { dispatchAlertNotifications } = await import('@/lib/notify');
+            await dispatchAlertNotifications({ caseId: device.case_id, alertType: 'TAMPER_DETECTED', description: 'Bracelet retiré du corps (détection de port).' });
+          }
         }
       }
 
