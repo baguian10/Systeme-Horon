@@ -87,7 +87,9 @@ export async function GET(request: NextRequest) {
       t: Date.parse(p.recorded_at as string),
       speed: (p.speed_kmh as number | null) ?? null,
     }));
-    return NextResponse.json({ points });
+    const { snapToRoads } = await import('@/lib/track/mapmatch');
+    const matched = await snapToRoads(points);
+    return NextResponse.json({ points, matched });
   }
 
   // ---- legacy trail (no date) — keep TrackingMap working ----
@@ -124,10 +126,23 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    const trail = rows
-      .reverse()
-      .map((p) => [p.latitude, p.longitude] as [number, number]);
-    return NextResponse.json({ trail });
+    const ordered = rows.reverse();
+    const trail = ordered.map((p) => [p.latitude, p.longitude] as [number, number]);
+
+    // Points horodatés : c'est ce qui permet à la carte de distinguer un
+    // déplacement suivi seconde par seconde d'un trou de plusieurs minutes que
+    // la ligne droite masquait jusqu'ici.
+    const trailPoints = ordered.map((p) => ({
+      lat: p.latitude as number,
+      lng: p.longitude as number,
+      t: Date.parse(p.recorded_at as string),
+    }));
+
+    // Recalage sur les routes si le ministère héberge son propre moteur.
+    const { snapToRoads } = await import('@/lib/track/mapmatch');
+    const matched = await snapToRoads(trailPoints);
+
+    return NextResponse.json({ trail, trailPoints, matched });
   }
 
   // ---- enriched daily itinerary ----

@@ -13,6 +13,7 @@ const WINDOW_MS = 30 * 60_000; // ±30 min around the trigger
 export default function IncidentReplay({ caseId, triggeredAt }: { caseId: string; triggeredAt: string }) {
   const triggerMs = useMemo(() => Date.parse(triggeredAt), [triggeredAt]);
   const [points, setPoints] = useState<ReplayPoint[]>([]);
+  const [matched, setMatched] = useState<[number, number][] | null>(null);
   const [loading, setLoading] = useState(true);
   const [playhead, setPlayhead] = useState(0);
   const [playing, setPlaying] = useState(false);
@@ -30,6 +31,7 @@ export default function IncidentReplay({ caseId, triggeredAt }: { caseId: string
         if (!active) return;
         const pts: ReplayPoint[] = Array.isArray(d.points) ? d.points : [];
         setPoints(pts);
+        setMatched(Array.isArray(d.matched) ? d.matched : null);
         setPlayhead(pts.length ? pts[0].t : triggerMs);
       })
       .catch(() => active && setPoints([]))
@@ -52,7 +54,24 @@ export default function IncidentReplay({ caseId, triggeredAt }: { caseId: string
     return () => { if (raf.current) cancelAnimationFrame(raf.current); };
   }, [playing, speed, min, max]);
 
-  const segments = useMemo(() => (points.length ? [points.map((p) => [p.lat, p.lng] as [number, number])] : []), [points]);
+  // Le trajet était tracé d'un seul trait : deux points séparés de dix minutes
+  // devenaient une ligne droite parfaitement affirmée, alors que personne ne
+  // sait ce qui s'est passé entre les deux. On coupe donc le tracé à chaque
+  // silence de plus d'une minute et demie — le trou se voit au lieu d'être
+  // comblé. Quand un moteur de recalage est configuré, sa trace remplace le
+  // tout : elle suit les rues et restitue les virages.
+  const GAP_MS = 90_000;
+  const segments = useMemo(() => {
+    if (matched && matched.length > 1) return [matched];
+    const out: [number, number][][] = [];
+    let cur: [number, number][] = [];
+    for (let i = 0; i < points.length; i++) {
+      if (i > 0 && points[i].t - points[i - 1].t > GAP_MS) { if (cur.length > 1) out.push(cur); cur = []; }
+      cur.push([points[i].lat, points[i].lng]);
+    }
+    if (cur.length > 1) out.push(cur);
+    return out;
+  }, [points, matched]);
 
   if (loading) return <div className="h-full flex items-center justify-center text-sm text-gray-400">Chargement du rejeu…</div>;
   if (points.length === 0) return <div className="h-full flex items-center justify-center text-sm text-gray-400">Pas de positions autour de l&apos;incident.</div>;

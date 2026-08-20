@@ -21,6 +21,7 @@ import BleScanButton from '@/components/devices/BleScanButton';
 import BleHighAvailButton from '@/components/devices/BleHighAvailButton';
 import CallWhitelistPanel from '@/components/devices/CallWhitelistPanel';
 import ArmOnWearToggle from '@/components/devices/ArmOnWearToggle';
+import ReportIntervalControl from '@/components/devices/ReportIntervalControl';
 import RemovalWindowButton from '@/components/devices/RemovalWindowButton';
 import MiniPositionMap from '@/components/devices/MiniPositionMapLoader';
 import AutoRefresh from '@/components/common/AutoRefresh';
@@ -256,6 +257,7 @@ export default async function DeviceDetailPage({ params }: { params: Promise<{ i
                 <BleScanButton imei={d.imei} />
                 <BleHighAvailButton imei={d.imei} active={d.ble_high_avail ?? false} />
                 <ArmOnWearToggle imei={d.imei} active={d.arm_on_wear ?? false} />
+                <ReportIntervalControl imei={d.imei} current={d.report_interval_s} />
                 <RemovalWindowButton imei={d.imei} until={d.removal_allowed_until ?? null} reason={d.removal_reason ?? null} />
                 <ProvisionButton imei={d.imei} />
                 <Link href={`/sigep/dashboard/devices/${d.id}/label`} target="_blank" className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700"><Tag className="w-3.5 h-3.5" /> Étiquette</Link>

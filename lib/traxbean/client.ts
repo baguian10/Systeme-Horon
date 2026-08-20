@@ -298,8 +298,17 @@ export async function sendDeviceCommand(imei: string, command: TraxbeanCommand, 
     case 'shutdown': return post('business/target/doShutdown', { imei, param: '' });
     case 'realtime': return post('business/target/setPositionInterval', { imei, param: '10' });
     case 'setInterval': {
-      const sec = Math.max(10, Math.min(86400, Math.round(Number(value) || 300)));
-      return post('business/target/setPositionInterval', { imei, param: String(sec) });
+      // Plancher à 5 s : le firmware l'accepte (BP34 acquitté), mais c'est le
+      // dernier cran utile — en deçà la trame n'a pas le temps de partir, et la
+      // décharge devient de toute façon prohibitive.
+      const sec = Math.max(5, Math.min(86400, Math.round(Number(value) || 300)));
+      // Deux voies pour la même consigne : le raccourci de la plateforme, puis
+      // la trame IW complète, qui fixe aussi le mode et rallume le GPS. Le
+      // bracelet retombe en mode économie quand la batterie faiblit et cesse
+      // alors d'écouter la première.
+      const viaPlatform = await post('business/target/setPositionInterval', { imei, param: String(sec) });
+      const viaFrame = await sendIW(imei, `IWBP34,${imei},${cmdSerial()},8,${sec},1#`);
+      return viaPlatform || viaFrame;
     }
     case 'enableBle': {
       const targetId = await getTargetIdByImei(imei);

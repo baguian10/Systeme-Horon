@@ -29,7 +29,11 @@ const STATUS_LABELS: Record<CaseStatus, string> = {
 
 const STALE_MS = 5 * 60_000;   // grey out after 5 min without a fix
 const TRAIL_MS = 30 * 60_000;  // keep 30 min of trail
-const ANIM_MS  = 1_200;        // marker glide duration between fixes
+const ANIM_MS  = 1_200;        // glissement minimal du repère entre deux relevés
+// Plafond du glissement : au-delà d'une minute d'écart, étaler le déplacement
+// donnerait un repère qui avance imperturbablement pendant que le bracelet se
+// tait. Le rayon d'incertitude prend alors le relais pour dire l'ignorance.
+const ANIM_MAX_MS = 60_000;
 
 // ── Rayon d'incertitude ──────────────────────────────────────────────────────
 //
@@ -136,6 +140,8 @@ function AnimatedMarker({ pos, icon, children }: { pos: LivePosition; icon: L.Di
   const [mountPos] = useState<[number, number]>([pos.latitude, pos.longitude]);
   const shown = useRef<[number, number]>([pos.latitude, pos.longitude]);
   const raf = useRef<number | null>(null);
+  // Instant du relevé précédent : sert à mesurer la cadence réelle du bracelet.
+  const prevStamp = useRef<number>(Date.parse(pos.recorded_at));
 
   useEffect(() => {
     const marker = ref.current;
@@ -144,10 +150,27 @@ function AnimatedMarker({ pos, icon, children }: { pos: LivePosition; icon: L.Di
     const toLat = pos.latitude, toLng = pos.longitude;
     if (fromLat === toLat && fromLng === toLng) return;
     if (raf.current) cancelAnimationFrame(raf.current);
+
+    // Durée du glissement calée sur la cadence observée du bracelet, au lieu
+    // d'une constante. À dix secondes d'intervalle, le repère avançait en un
+    // dixième du temps puis restait figé neuf secondes sur dix — un mouvement
+    // saccadé, alors que la personne, elle, marche sans s'arrêter. En étalant
+    // le déplacement sur l'intervalle réel, le repère avance continûment, à la
+    // vitesse vraie. Le prix est une latence d'un intervalle, bornée et connue :
+    // le rayon d'incertitude et l'âge du point la donnent à lire.
+    const stamp = Date.parse(pos.recorded_at);
+    const observed = stamp - prevStamp.current;
+    prevStamp.current = stamp;
+    const duration = Number.isFinite(observed) && observed > 0
+      ? Math.max(ANIM_MS, Math.min(observed, ANIM_MAX_MS))
+      : ANIM_MS;
+
     const t0 = performance.now();
     const step = (t: number) => {
-      const k = Math.min(1, (t - t0) / ANIM_MS);
-      const e = 1 - (1 - k) * (1 - k); // ease-out
+      const k = Math.min(1, (t - t0) / duration);
+      // Déplacement linéaire, sans amorti : une personne qui marche ne
+      // décélère pas à l'approche de chaque relevé.
+      const e = k;
       const lat = fromLat + (toLat - fromLat) * e;
       const lng = fromLng + (toLng - fromLng) * e;
       shown.current = [lat, lng];
