@@ -7,6 +7,7 @@ import { Activity, AlertTriangle, Bell, CircleDot, Maximize2, Clock, Radio, List
 import { AlertTypeBadge, RiskBadge } from '@/components/ui/StatusBadge';
 import AlertActions from '@/components/alerts/AlertActions';
 import { useRealtimeStream, type StreamAlert, type StreamOperator } from '@/hooks/useRealtimeStream';
+import FollowPanel from './FollowPanel';
 import type { LivePosition } from '@/hooks/usePositionFeed';
 import type { CaseStatus } from '@/lib/supabase/types';
 import type { TrackerMarker } from '@/components/map/TrackingMap';
@@ -16,7 +17,18 @@ const LiveMapGrid = dynamic(() => import('@/components/realtime/LiveMapGrid'), {
 const TrackingMap = dynamic(() => import('@/components/map/TrackingMap'), { ssr: false });
 const IncidentReplay = dynamic(() => import('@/components/realtime/IncidentReplay'), { ssr: false });
 
-interface CaseCtx { label: string; imei: string | null; sim: string | null; risk: string | null; lat: number | null; lng: number | null; online: boolean }
+export interface CaseCtx {
+  label: string; imei: string | null; sim: string | null; risk: string | null;
+  lat: number | null; lng: number | null; online: boolean;
+  // Contexte de la fiche de suivi — tout est déjà chargé par le rendu serveur.
+  caseNumber?: string; status?: string; deviceId?: string | null;
+  battery?: number | null; worn?: boolean | null;
+  lastSeenAt?: string | null; lastFixAt?: string | null;
+  judgeName?: string | null; measureKind?: string | null;
+  startDate?: string | null; endDate?: string | null; curfew?: string | null;
+  zones?: number; alertCount?: number;
+  tigOrdered?: number | null; tigDone?: number | null;
+}
 
 // L — severity-based audio cue (Web Audio, no asset).
 function beep(severity: number, muted: boolean) {
@@ -311,12 +323,17 @@ export default function MonitoringConsole({
       .then((r) => r.json()).then((d) => { if (Array.isArray(d.trail)) setIncidentTrail(d.trail); }).catch(() => {});
   }, []);
 
-  async function locate(imei: string) {
+  // Renvoie le message pour l'appelant qui l'affiche chez lui — la fiche de
+  // suivi a le sien, à côté du bouton, plutôt qu'en bas du panneau d'incident.
+  async function locate(imei: string): Promise<string> {
     setLocateMsg('Envoi…');
+    let msg: string;
     try {
       const res = await fetch('/api/track/command', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ imei, action: 'locate' }) });
-      setLocateMsg(res.ok ? 'Localisation demandée ✓' : 'Échec de la commande');
-    } catch { setLocateMsg('Erreur réseau'); }
+      msg = res.ok ? 'Localisation demandée ✓' : 'Échec de la commande';
+    } catch { msg = 'Erreur réseau'; }
+    setLocateMsg(msg);
+    return msg;
   }
 
   const allOpenAlerts = useMemo(() => alerts.slice().sort((a, b) => b.severity - a.severity || Date.parse(a.triggered_at) - Date.parse(b.triggered_at)), [alerts]);
@@ -679,9 +696,22 @@ export default function MonitoringConsole({
 
       <div className={`grid grid-cols-1 gap-4 ${crisis ? 'h-[calc(100vh-9rem)]' : 'h-[calc(100vh-15rem)]'} xl:grid-cols-5`}>
         {/* Map */}
-        <div className={`rounded-2xl overflow-hidden border border-gray-100 min-h-[360px] ${
+        <div className={`relative rounded-2xl overflow-hidden border border-gray-100 min-h-[360px] ${
           panel === 'masque' ? 'xl:col-span-5' : panel === 'reduit' ? 'xl:col-span-4' : 'xl:col-span-3'
         }`}>
+          {/* Fiche de suivi — en surcouche de la carte plutôt qu'en troisième
+              colonne : elle apparaît sans réduire la carte, et disparaît avec
+              le suivi. */}
+          {followCase && caseInfo[followCase] && (
+            <FollowPanel
+              caseId={followCase}
+              ctx={caseInfo[followCase]}
+              crisis={crisis}
+              onClose={() => { setFollowCase(null); setPersonQuery(''); }}
+              onLocate={locate}
+              onIncident={openIncident}
+            />
+          )}
           {/* La personne suivie prime sur le cycle automatique de la salle de
               crise : un opérateur qui choisit un dossier ne doit pas se faire
               déplacer la carte sous les yeux dix secondes plus tard. */}
