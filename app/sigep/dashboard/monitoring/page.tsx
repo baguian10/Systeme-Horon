@@ -4,7 +4,7 @@ import { fetchCases, fetchAlerts, fetchOperationalUsers, fetchRecentDeviceEvents
 import { getSession } from '@/lib/auth/session';
 import type { LivePosition } from '@/hooks/usePositionFeed';
 import type { CaseStatus } from '@/lib/supabase/types';
-import MonitoringConsole, { type TriageAlert, type StreamEvent } from '@/components/realtime/MonitoringConsole';
+import MonitoringConsole, { type TriageAlert, type StreamEvent, type CaseCtx } from '@/components/realtime/MonitoringConsole';
 import DemoControls from '@/components/realtime/DemoControls';
 import AutoRefresh from '@/components/common/AutoRefresh';
 
@@ -97,8 +97,11 @@ export default async function MonitoringPage() {
 
   const metrics = { online, offline: activeCases.length - online, violations, battery, stale, avgAckMin: avg(ackDeltas), avgResolveMin: avg(resDeltas) };
 
-  // Per-case context for the incident panel (M) + quick commands.
-  const caseInfo: Record<string, { label: string; imei: string | null; sim: string | null; risk: string | null; lat: number | null; lng: number | null; online: boolean }> = {};
+  // Contexte par dossier : sert au panneau d'incident, aux commandes rapides et
+  // à la fiche de suivi. Tout vient de la requête des dossiers déjà faite plus
+  // haut — c'est pourquoi la fiche s'ouvre sans aller rechercher quoi que ce
+  // soit, ce qui compte quand un opérateur passe d'un dossier à l'autre.
+  const caseInfo: Record<string, CaseCtx> = {};
   for (const c of activeCases) {
     const pos = posByCase.get(c.id);
     caseInfo[c.id] = {
@@ -109,6 +112,22 @@ export default async function MonitoringPage() {
       lat: pos?.latitude ?? c.last_position?.latitude ?? null,
       lng: pos?.longitude ?? c.last_position?.longitude ?? null,
       online: c.device?.is_online ?? false,
+      caseNumber: c.case_number,
+      status: c.status,
+      deviceId: c.device?.id ?? null,
+      battery: c.device?.battery_pct ?? null,
+      worn: c.device?.worn ?? null,
+      lastSeenAt: c.device?.last_seen_at ?? null,
+      lastFixAt: pos?.recorded_at ?? null,
+      judgeName: c.judge?.full_name ?? null,
+      measureKind: c.measure_kind ?? null,
+      startDate: c.start_date ?? null,
+      endDate: c.end_date ?? null,
+      curfew: c.curfew_start && c.curfew_end ? `${c.curfew_start.slice(0, 5)} – ${c.curfew_end.slice(0, 5)}` : null,
+      zones: geofencesAll.filter((g) => g.case_id === c.id).length,
+      alertCount: c.alert_count ?? 0,
+      tigOrdered: c.tig_hours_ordered ?? null,
+      tigDone: c.tig_hours_completed ?? null,
     };
   }
 
