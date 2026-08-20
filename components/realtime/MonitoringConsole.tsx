@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
-import { Activity, AlertTriangle, Bell, CircleDot, Maximize2, Clock, Radio, ListFilter, Volume2, VolumeX, Crosshair, Phone, X, MapPin, ShieldAlert } from 'lucide-react';
+import { Activity, AlertTriangle, Bell, CircleDot, Maximize2, Clock, Radio, ListFilter, Volume2, VolumeX, Crosshair, Phone, X, MapPin, ShieldAlert, PanelRight, PanelRightClose, PanelRightOpen, Search } from 'lucide-react';
 import { AlertTypeBadge, RiskBadge } from '@/components/ui/StatusBadge';
 import AlertActions from '@/components/alerts/AlertActions';
 import { useRealtimeStream, type StreamAlert, type StreamOperator } from '@/hooks/useRealtimeStream';
@@ -117,6 +117,14 @@ export default function MonitoringConsole({
   const [replayMode, setReplayMode] = useState(false);
   const [locateMsg, setLocateMsg] = useState<string | null>(null);
   const [crisis, setCrisis] = useState(false);
+  // Largeur du panneau de triage. En plein écran il mangeait deux cinquièmes de
+  // la salle de crise sans moyen de le réduire : la carte est pourtant ce qu'on
+  // regarde. Trois crans, mémorisés d'une session à l'autre.
+  const [panel, setPanel] = useState<'large' | 'reduit' | 'masque'>('large');
+  // Personne suivie : carte centrée sur elle, triage limité à son dossier.
+  const [followCase, setFollowCase] = useState<string | null>(null);
+  const [personQuery, setPersonQuery] = useState('');
+  const [pickerOpen, setPickerOpen] = useState(false);
   const [cycleCase, setCycleCase] = useState<string | null>(null);
   const [presentOps, setPresentOps] = useState<StreamOperator[]>([]);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -127,6 +135,11 @@ export default function MonitoringConsole({
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     try { if (localStorage.getItem('horon.mon.muted') === '1') setMuted(true); } catch { /* ignore */ }
+    try {
+      const p = localStorage.getItem('horon.mon.panel');
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      if (p === 'reduit' || p === 'masque' || p === 'large') setPanel(p);
+    } catch { /* ignore */ }
   }, []);
   useEffect(() => { mutedRef.current = muted; try { localStorage.setItem('horon.mon.muted', muted ? '1' : '0'); } catch { /* ignore */ } }, [muted]);
 
@@ -181,6 +194,46 @@ export default function MonitoringConsole({
     // 1 s tick — drives the live SLA countdowns.
     const id = setInterval(() => setNow(Date.now()), 1_000);
     return () => clearInterval(id);
+  }, []);
+
+  // Battement de suivi — 10 s.
+  //
+  // Le flux SSE pousse les positions en moins de trois secondes, mais il ne
+  // peut pousser que ce qui est déjà en base. Or le collecteur ne tournait qu'au
+  // rafraîchissement de page. La console bat donc elle-même la mesure, au rythme
+  // d'émission du bracelet (une trame toutes les dix secondes) : la carte suit
+  // le terrain au lieu d'afficher le dernier passage.
+  //
+  // Le battement s'arrête quand l'onglet passe en arrière-plan — personne ne
+  // regarde, rien ne justifie d'interroger la plateforme GPS.
+  useEffect(() => {
+    let stopped = false;
+    async function beat() {
+      if (stopped || document.visibilityState !== 'visible') return;
+      try {
+        const r = await fetch('/api/track/refresh', { cache: 'no-store' });
+        if (!r.ok) return;
+        const d = await r.json() as { positions?: { case_id: string; latitude: number; longitude: number; speed_kmh: number | null; recorded_at: string }[] };
+        if (stopped || !d.positions?.length) return;
+        setLivePos((prev) => {
+          const byId = new Map(prev.map((p) => [p.case_id, p]));
+          for (const p of d.positions!) {
+            const ex = byId.get(p.case_id);
+            // Le dossier connu garde son numéro, son statut et son compte
+            // d'alertes : seul le point bouge. Un dossier encore inconnu de la
+            // console apparaîtra au prochain rendu serveur.
+            if (ex && Date.parse(p.recorded_at) > Date.parse(ex.recorded_at)) {
+              byId.set(p.case_id, { ...ex, latitude: p.latitude, longitude: p.longitude, speed_kmh: p.speed_kmh, recorded_at: p.recorded_at });
+            }
+          }
+          return Array.from(byId.values());
+        });
+      } catch { /* le battement suivant réessaiera */ }
+    }
+    const id = setInterval(beat, 10_000);
+    beat();
+    document.addEventListener('visibilitychange', beat);
+    return () => { stopped = true; clearInterval(id); document.removeEventListener('visibilitychange', beat); };
   }, []);
 
   // Demo mode: the simulator engine still drives positions/alerts via the map
@@ -266,7 +319,36 @@ export default function MonitoringConsole({
     } catch { setLocateMsg('Erreur réseau'); }
   }
 
-  const openAlerts = useMemo(() => alerts.slice().sort((a, b) => b.severity - a.severity || Date.parse(a.triggered_at) - Date.parse(b.triggered_at)), [alerts]);
+  const allOpenAlerts = useMemo(() => alerts.slice().sort((a, b) => b.severity - a.severity || Date.parse(a.triggered_at) - Date.parse(b.triggered_at)), [alerts]);
+  // Suivi d'une personne : la console se resserre sur elle — carte centrée et
+  // triage limité à son dossier. Sur une flotte d'un seul porteur la question
+  // ne se posait pas ; à dix elle décide de l'utilisabilité.
+  const openAlerts = useMemo(
+    () => (followCase ? allOpenAlerts.filter((a) => a.case_id === followCase) : allOpenAlerts),
+    [allOpenAlerts, followCase],
+  );
+
+  // Répertoire cherchable : nom, numéro de dossier, IMEI, numéro SIM.
+  const directory = useMemo(() => {
+    const byCase = new Map(livePos.map((p) => [p.case_id, p.case_number]));
+    return Object.entries(caseInfo).map(([id, c]) => ({
+      id,
+      label: c.label,
+      caseNumber: byCase.get(id) ?? '',
+      imei: c.imei ?? '',
+      sim: c.sim ?? '',
+      online: c.online,
+      risk: c.risk,
+    }));
+  }, [caseInfo, livePos]);
+
+  const matches = useMemo(() => {
+    const q = personQuery.trim().toLowerCase();
+    if (!q) return directory.slice(0, 8);
+    return directory
+      .filter((d) => `${d.label} ${d.caseNumber} ${d.imei} ${d.sim}`.toLowerCase().includes(q))
+      .slice(0, 8);
+  }, [directory, personQuery]);
 
   // Claim ("je prends") — assigns to self + IN_PROGRESS via the existing action.
   const claim = useCallback((alertId: string) => {
@@ -497,6 +579,54 @@ export default function MonitoringConsole({
             </span>
           )}
         </div>
+        {/* Sélecteur de personne suivie — nom, dossier, IMEI ou numéro SIM. */}
+        <div className={`relative flex items-center gap-1.5 rounded-xl border px-2.5 ${card} min-w-[210px]`}>
+          <Search className={`w-3.5 h-3.5 shrink-0 ${crisis ? 'text-slate-500' : 'text-gray-400'}`} />
+          <input
+            value={personQuery}
+            onChange={(e) => { setPersonQuery(e.target.value); setPickerOpen(true); }}
+            onFocus={() => setPickerOpen(true)}
+            onBlur={() => setTimeout(() => setPickerOpen(false), 150)}
+            placeholder="Suivre une personne…"
+            data-tip="Chercher par nom, numéro de dossier, IMEI ou numéro SIM"
+            className={`w-full bg-transparent py-2 text-xs outline-none ${crisis ? 'text-slate-200 placeholder:text-slate-500' : 'text-gray-800 placeholder:text-gray-400'}`}
+          />
+          {followCase && (
+            <button
+              onClick={() => { setFollowCase(null); setPersonQuery(''); }}
+              data-tip="Cesser le suivi et revenir à la flotte entière"
+              className="shrink-0 text-gray-400 hover:text-red-500"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          )}
+          {pickerOpen && matches.length > 0 && (
+            <ul className={`absolute top-full left-0 right-0 mt-1 z-[1200] max-h-64 overflow-y-auto rounded-xl border shadow-lg ${crisis ? 'bg-slate-900 border-slate-700' : 'bg-white border-gray-200'}`}>
+              {matches.map((m) => (
+                <li key={m.id}>
+                  <button
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => { setFollowCase(m.id); setPersonQuery(m.label); setPickerOpen(false); }}
+                    className={`w-full text-left px-2.5 py-1.5 text-xs ${
+                      m.id === followCase
+                        ? (crisis ? 'bg-slate-800' : 'bg-blue-50')
+                        : (crisis ? 'hover:bg-slate-800' : 'hover:bg-gray-50')
+                    }`}
+                  >
+                    <span className="flex items-center gap-1.5">
+                      <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${m.online ? 'bg-emerald-500' : 'bg-gray-300'}`} />
+                      <span className={`font-medium truncate ${crisis ? 'text-slate-200' : 'text-gray-800'}`}>{m.label}</span>
+                    </span>
+                    <span className={`block pl-3 truncate ${crisis ? 'text-slate-500' : 'text-gray-400'} text-[10px]`}>
+                      {[m.caseNumber, m.imei].filter(Boolean).join(' · ') || 'sans référence'}
+                    </span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+
         {/* Présence — operators currently connected to the center (SSE roster). */}
         {presentOps.length > 0 && (
           <div className={`flex items-center gap-1.5 rounded-xl border px-3 py-2 ${card}`} data-tip="Opérateurs connectés au centre en ce moment">
@@ -520,6 +650,23 @@ export default function MonitoringConsole({
             </span>
           </div>
         )}
+        <button
+          onClick={() => {
+            const next = panel === 'large' ? 'reduit' : panel === 'reduit' ? 'masque' : 'large';
+            setPanel(next);
+            try { localStorage.setItem('horon.mon.panel', next); } catch { /* ignore */ }
+          }}
+          data-tip={
+            panel === 'large' ? 'Réduire le panneau des alertes — la carte gagne la place'
+              : panel === 'reduit' ? 'Masquer le panneau des alertes — carte plein cadre'
+              : 'Réafficher le panneau des alertes'
+          }
+          className={`rounded-xl border px-3 ${card} ${crisis ? 'text-slate-300 hover:text-white' : 'text-gray-600 hover:text-gray-900'}`}
+        >
+          {panel === 'large' ? <PanelRight className="w-4 h-4" />
+            : panel === 'reduit' ? <PanelRightClose className="w-4 h-4" />
+            : <PanelRightOpen className="w-4 h-4" />}
+        </button>
         <button onClick={() => setMuted((m) => !m)} data-tip={muted ? 'Réactiver le son des alertes' : 'Couper le son des alertes'} className={`rounded-xl border px-3 ${card} ${crisis ? 'text-slate-300 hover:text-white' : 'text-gray-600 hover:text-gray-900'}`}>{muted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}</button>
         <button
           onClick={() => crisis ? document.exitFullscreen?.() : enterCrisis()}
@@ -530,14 +677,19 @@ export default function MonitoringConsole({
         </button>
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-5 gap-4 h-[calc(100vh-15rem)]">
+      <div className={`grid grid-cols-1 gap-4 ${crisis ? 'h-[calc(100vh-9rem)]' : 'h-[calc(100vh-15rem)]'} xl:grid-cols-5`}>
         {/* Map */}
-        <div className="xl:col-span-3 rounded-2xl overflow-hidden border border-gray-100 min-h-[360px]">
-          <LiveMapGrid initialPositions={livePos} geofences={geofences} focusCaseId={cycleCase} />
+        <div className={`rounded-2xl overflow-hidden border border-gray-100 min-h-[360px] ${
+          panel === 'masque' ? 'xl:col-span-5' : panel === 'reduit' ? 'xl:col-span-4' : 'xl:col-span-3'
+        }`}>
+          {/* La personne suivie prime sur le cycle automatique de la salle de
+              crise : un opérateur qui choisit un dossier ne doit pas se faire
+              déplacer la carte sous les yeux dix secondes plus tard. */}
+          <LiveMapGrid initialPositions={livePos} geofences={geofences} focusCaseId={followCase ?? cycleCase} />
         </div>
 
         {/* Triage / Stream */}
-        <div className={`xl:col-span-2 flex flex-col rounded-2xl border overflow-hidden min-h-[360px] ${crisis ? 'bg-slate-900 border-slate-800' : 'bg-white border-gray-100'}`}>
+        <div className={`${panel === 'masque' ? 'hidden' : panel === 'reduit' ? 'xl:col-span-1' : 'xl:col-span-2'} flex flex-col rounded-2xl border overflow-hidden min-h-[360px] ${crisis ? 'bg-slate-900 border-slate-800' : 'bg-white border-gray-100'}`}>
           <div className="flex border-b border-gray-50">
             <button onClick={() => setTab('triage')} className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 text-sm font-medium ${tab === 'triage' ? 'text-red-600 border-b-2 border-red-500' : 'text-gray-500'}`}>
               <AlertTriangle className="w-4 h-4" /> Triage ({openAlerts.length})
@@ -546,6 +698,18 @@ export default function MonitoringConsole({
               <Activity className="w-4 h-4" /> Flux d&apos;activité
             </button>
           </div>
+
+          {followCase && (
+            <div className={`flex items-center justify-between gap-2 px-3 py-1.5 text-[11px] border-b ${crisis ? 'bg-slate-800 border-slate-700 text-slate-300' : 'bg-blue-50/60 border-blue-100 text-blue-800'}`}>
+              <span className="truncate">
+                Suivi : <span className="font-semibold">{caseInfo[followCase]?.label ?? followCase.slice(0, 8)}</span>
+                {allOpenAlerts.length > openAlerts.length && ` · ${allOpenAlerts.length - openAlerts.length} alerte(s) masquée(s)`}
+              </span>
+              <button onClick={() => { setFollowCase(null); setPersonQuery(''); }} className="shrink-0 font-semibold hover:underline">
+                Tout afficher
+              </button>
+            </div>
+          )}
 
           {tab === 'triage' ? (
             <div className="flex-1 overflow-y-auto divide-y divide-gray-50">

@@ -57,6 +57,20 @@ export async function POST(request: NextRequest) {
     await logDeviceEvent(supabase, { deviceId: device.id, caseId: device.case_id, type: 'ONLINE', detail: 'Reprise de contact' });
   }
 
+  // Anti-doublon : le bracelet garde le même horodatage tant qu'il n'a pas
+  // recalculé sa position. Deux collectes rapprochées — le battement de la
+  // console et le passage complet — rapportent alors la même mesure. Sans ce
+  // garde-fou la table se remplit de copies : 25 000 lignes portant la même
+  // seconde y ont déjà été observées.
+  const stamp = timestamp ?? new Date().toISOString();
+  const { data: lastPos } = await supabase
+    .from('positions').select('recorded_at')
+    .eq('device_id', device.id).order('recorded_at', { ascending: false }).limit(1).maybeSingle();
+  if ((lastPos as { recorded_at?: string } | null)?.recorded_at === stamp) {
+    await supabase.from('devices').update({ is_online: true, last_seen_at: new Date().toISOString() }).eq('id', device.id);
+    return NextResponse.json({ ok: true, duplicate: true });
+  }
+
   // Insert position
   await supabase.from('positions').insert({
     device_id: device.id,
@@ -65,7 +79,7 @@ export async function POST(request: NextRequest) {
     longitude: lon,
     accuracy_m: accuracy_m ?? null,
     speed_kmh: speed_kmh ?? null,
-    recorded_at: timestamp ?? new Date().toISOString(),
+    recorded_at: stamp,
   });
 
   // Update device last_seen + online status
