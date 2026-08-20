@@ -315,13 +315,24 @@ export default function MonitoringConsole({
   });
   const connected = sseConnected || demoConnected;
 
+  // Consultation d'un dossier depuis la console — journal des consultations.
+  // Le serveur dédoublonne sur une fenêtre de quinze minutes ; inutile de
+  // filtrer ici, et une trace manquée ne doit rien bloquer.
+  const noteAccess = useCallback((caseId: string, context: 'SUIVI' | 'INCIDENT') => {
+    fetch('/api/cases/access', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ caseId, context }),
+    }).catch(() => {});
+  }, []);
+
   // M — open the incident panel for a case (fetch its recent mini-trail).
   const openIncident = useCallback((caseId: string, triggeredAt?: string) => {
+    noteAccess(caseId, 'INCIDENT');
     setIncident(caseId); setIncidentTrail(null); setLocateMsg(null);
     setIncidentTrigger(triggeredAt ?? null); setReplayMode(false);
     fetch(`/api/track/history?caseId=${encodeURIComponent(caseId)}&limit=40`, { cache: 'no-store' })
       .then((r) => r.json()).then((d) => { if (Array.isArray(d.trail)) setIncidentTrail(d.trail); }).catch(() => {});
-  }, []);
+  }, [noteAccess]);
 
   // Renvoie le message pour l'appelant qui l'affiche chez lui — la fiche de
   // suivi a le sien, à côté du bouton, plutôt qu'en bas du panneau d'incident.
@@ -623,7 +634,7 @@ export default function MonitoringConsole({
                 <li key={m.id}>
                   <button
                     onMouseDown={(e) => e.preventDefault()}
-                    onClick={() => { setFollowCase(m.id); setPersonQuery(m.label); setPickerOpen(false); }}
+                    onClick={() => { noteAccess(m.id, 'SUIVI'); setFollowCase(m.id); setPersonQuery(m.label); setPickerOpen(false); }}
                     className={`w-full text-left px-2.5 py-1.5 text-xs ${
                       m.id === followCase
                         ? (crisis ? 'bg-slate-800' : 'bg-blue-50')

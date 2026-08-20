@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation';
-import { ClipboardList } from 'lucide-react';
+import Link from 'next/link';
+import { ClipboardList, Eye } from 'lucide-react';
 import { getSession } from '@/lib/auth/session';
 import { canViewUsers , allow } from '@/lib/auth/permissions';
 
@@ -104,9 +105,20 @@ export default async function AuditPage() {
             {entries.length} entrée{entries.length !== 1 ? 's' : ''} · accès SUPER_ADMIN uniquement
           </p>
         </div>
-        <div className="flex items-center gap-1.5 text-xs text-gray-400 bg-white border border-gray-100 rounded-lg px-3 py-2">
-          <ClipboardList className="w-3.5 h-3.5" />
-          Immuable — lecture seule
+        <div className="flex items-center gap-2">
+          {/* Les consultations ont leur propre journal : bien plus nombreuses
+              que les actes de gestion, elles noieraient celui-ci. */}
+          <Link
+            href="/sigep/dashboard/audit/consultations"
+            className="flex items-center gap-1.5 text-xs text-gray-600 hover:text-gray-900 bg-white border border-gray-100 rounded-lg px-3 py-2"
+          >
+            <Eye className="w-3.5 h-3.5" />
+            Journal des consultations
+          </Link>
+          <div className="flex items-center gap-1.5 text-xs text-gray-400 bg-white border border-gray-100 rounded-lg px-3 py-2">
+            <ClipboardList className="w-3.5 h-3.5" />
+            Immuable — lecture seule
+          </div>
         </div>
       </div>
 
