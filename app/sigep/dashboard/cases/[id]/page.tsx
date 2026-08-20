@@ -35,6 +35,7 @@ import DeviceConfigPanel from '@/components/cases/DeviceConfigPanel';
 import CommsPanel from '@/components/cases/CommsPanel';
 import AssignmentManager from '@/components/cases/AssignmentManager';
 import JournalPanel from '@/components/cases/JournalPanel';
+import SealVerifyPanel from '@/components/cases/SealVerifyPanel';
 import TigTrackingPanel from '@/components/tig/TigTrackingPanel';
 
 export const revalidate = 0;
@@ -447,6 +448,12 @@ export default async function CaseDetailPage({ params }: { params: Promise<{ id:
             entries={journalEntries}
             canWrite={canJournal && caseData.status !== 'TERMINATED'}
           />
+
+          {/* Intégrité du relevé — le contrôle qu'un magistrat pose avant de
+              s'appuyer sur les positions dans une décision. */}
+          {(session.role === 'JUDGE' || session.role === 'SUPER_ADMIN' || session.role === 'ADMIN') && (
+            <SealVerifyPanel caseId={caseData.id} />
+          )}
 
           {/* Qui a consulté ce dossier — visible du magistrat saisi et de
               l'administration. Le juge doit pouvoir voir qui regarde le dossier

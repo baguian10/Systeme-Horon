@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   X, MapPin, Phone, FolderOpen, Radio, Battery, Lock, Unlock,
   Gavel, Clock, ShieldAlert, Loader2, CircleDot,
@@ -42,8 +42,10 @@ function date(iso: string | null | undefined): string {
   return new Date(iso).toLocaleDateString('fr-FR', { timeZone: 'Africa/Ouagadougou', day: '2-digit', month: '2-digit', year: 'numeric' });
 }
 
+interface Baseline { verdict: 'habituel' | 'inhabituel' | 'insuffisant'; explanation: string }
+
 export default function FollowPanel({
-  caseId, ctx, crisis, onClose, onLocate, onIncident,
+  caseId, ctx, crisis, onClose, onLocate, onIncident, escort,
 }: {
   caseId: string;
   ctx: CaseCtx;
@@ -51,9 +53,24 @@ export default function FollowPanel({
   onClose: () => void;
   onLocate: (imei: string) => Promise<string | void> | void;
   onIncident: (caseId: string) => void;
+  /** Agent en escorte le plus proche, s'il y en a un en ligne. */
+  escort?: { name: string; m: number } | null;
 }) {
   const [locating, setLocating] = useState(false);
   const [locateMsg, setLocateMsg] = useState<string | null>(null);
+  // Écart d'habitude — calculé à l'ouverture de la fiche, pas en continu : le
+  // profil porte sur trente jours, il ne bouge pas d'une minute à l'autre.
+  const [baseline, setBaseline] = useState<Baseline | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    setBaseline(null);
+    fetch(`/api/track/baseline?caseId=${encodeURIComponent(caseId)}`, { cache: 'no-store' })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => { if (active && d?.verdict) setBaseline(d); })
+      .catch(() => {});
+    return () => { active = false; };
+  }, [caseId]);
 
   const risk = ctx.risk ? RISK_LABEL[ctx.risk] : null;
   const fixAge = ctx.lastFixAt ? (Date.now() - Date.parse(ctx.lastFixAt)) / 1000 : null;
@@ -142,6 +159,39 @@ export default function FollowPanel({
             <p className={`font-mono text-[10px] ${muted}`}>{ctx.lat.toFixed(5)}, {ctx.lng.toFixed(5)}</p>
           )}
         </div>
+
+        {/* Écart d'habitude — comparaison à SA propre habitude, pas à une règle
+            générale. Le raisonnement est donné en clair : ce qui est présenté à
+            un magistrat doit pouvoir être compris et contesté. */}
+        <div className="space-y-1 pt-2.5 border-t border-inherit">
+          <p className={rowLabel}>Habitude</p>
+          {!baseline ? (
+            <p className={muted}>Analyse en cours…</p>
+          ) : (
+            <>
+              <p className={
+                baseline.verdict === 'inhabituel' ? 'text-amber-600 font-medium'
+                : baseline.verdict === 'habituel' ? 'text-emerald-600 font-medium'
+                : muted
+              }>
+                {baseline.verdict === 'inhabituel' ? 'Lieu inhabituel pour cette heure'
+                  : baseline.verdict === 'habituel' ? 'Conforme à ses habitudes'
+                  : 'Historique insuffisant'}
+              </p>
+              <p className={`${muted} text-[10px]`}>{baseline.explanation}</p>
+            </>
+          )}
+        </div>
+
+        {/* Escorte en cours */}
+        {escort && (
+          <div className="pt-2.5 border-t border-inherit">
+            <p className={rowLabel}>Escorte</p>
+            <p className="text-emerald-600 font-medium">
+              {escort.name} à {escort.m >= 1000 ? `${(escort.m / 1000).toFixed(1)} km` : `${escort.m} m`}
+            </p>
+          </div>
+        )}
 
         {/* Gestes immédiats */}
         <div className="space-y-1.5 pt-2.5 border-t border-inherit">

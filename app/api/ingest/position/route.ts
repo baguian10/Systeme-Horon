@@ -64,15 +64,28 @@ export async function POST(request: NextRequest) {
   // seconde y ont déjà été observées.
   const stamp = timestamp ?? new Date().toISOString();
   const { data: lastPos } = await supabase
-    .from('positions').select('recorded_at')
+    .from('positions').select('recorded_at, seal_seq, seal_hash')
     .eq('device_id', device.id).order('recorded_at', { ascending: false }).limit(1).maybeSingle();
-  if ((lastPos as { recorded_at?: string } | null)?.recorded_at === stamp) {
+  const last = lastPos as { recorded_at?: string; seal_seq?: number | null; seal_hash?: string | null } | null;
+  if (last?.recorded_at === stamp) {
     await supabase.from('devices').update({ is_online: true, last_seen_at: new Date().toISOString() }).eq('id', device.id);
     return NextResponse.json({ ok: true, duplicate: true });
   }
 
+  // Scellé : chaque relevé porte l'empreinte du précédent, de sorte qu'une
+  // retouche ultérieure casse la chaîne et se voie. Les colonnes arrivent par
+  // migration ; tant qu'elles manquent, l'insertion se fait sans elles plutôt
+  // que d'échouer — une position non scellée vaut mieux qu'une position perdue.
+  const { sealHash } = await import('@/lib/track/seal');
+  const prevHash = last?.seal_hash ?? null;
+  const seal = {
+    seal_seq: (last?.seal_seq ?? 0) + 1,
+    seal_prev: prevHash,
+    seal_hash: sealHash({ deviceId: device.id, recordedAt: stamp, lat, lng: lon, prev: prevHash }),
+  };
+
   // Insert position
-  await supabase.from('positions').insert({
+  const row = {
     device_id: device.id,
     case_id: device.case_id,
     latitude: lat,
@@ -80,7 +93,9 @@ export async function POST(request: NextRequest) {
     accuracy_m: accuracy_m ?? null,
     speed_kmh: speed_kmh ?? null,
     recorded_at: stamp,
-  });
+  };
+  const { error: insErr } = await supabase.from('positions').insert({ ...row, ...seal });
+  if (insErr) await supabase.from('positions').insert(row); // colonnes de scellé absentes
 
   // Update device last_seen + online status
   await supabase

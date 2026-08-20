@@ -27,13 +27,16 @@ const STATUS_COLORS: Record<CaseStatus, string> = {
 
 import type { MapGeofenceLite } from './LiveTrackingMap';
 
+import type { AgentPin } from './LiveTrackingMap';
+
 interface Props {
   initialPositions?: LivePosition[];
   geofences?: MapGeofenceLite[];
   focusCaseId?: string | null;
+  agents?: AgentPin[];
 }
 
-export default function LiveMapGrid({ initialPositions = [], geofences = [], focusCaseId = null }: Props) {
+export default function LiveMapGrid({ initialPositions = [], geofences = [], focusCaseId = null, agents = [] }: Props) {
   const positions = usePositionFeed(initialPositions);
 
   return (
@@ -41,7 +44,7 @@ export default function LiveMapGrid({ initialPositions = [], geofences = [], foc
 
       {/* Leaflet map fills entire container */}
       <div className="absolute inset-0">
-        <LiveTrackingMap positions={positions} geofences={geofences} focusCaseId={focusCaseId} />
+        <LiveTrackingMap positions={positions} geofences={geofences} focusCaseId={focusCaseId} agents={agents} />
       </div>
 
       {/* Top label overlay */}
