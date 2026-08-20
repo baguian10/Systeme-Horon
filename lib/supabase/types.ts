@@ -71,6 +71,9 @@ export interface Device {
   call_enabled?: boolean | null;
   call_whitelist_only?: boolean | null;  // IW BP84 : n'accepter que la liste blanche
   arm_on_wear?: boolean | null;          // armer la surveillance à la fermeture de la sangle
+  removal_allowed_until?: string | null; // fenêtre pendant laquelle ouvrir la sangle n'alarme pas
+  removal_reason?: string | null;
+  removal_by?: string | null;
   signal_strength_dbm: number | null;
   gps_accuracy_m: number | null;
   tamper_detected: boolean;
