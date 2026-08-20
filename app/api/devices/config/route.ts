@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic';
 
 const ALLOWED: DeviceConfigKind[] = ['sos', 'timezoneBF', 'strap', 'apn'];
 // Fall / wearing detection (BP40 shortcuts) + lifecycle (reset / server) + BLE.
-const EXTRA = ['fallOn', 'fallOff', 'fallSensitivity', 'wearOn', 'wearOff', 'factoryReset', 'setServer', 'bleHighAvail'];
+const EXTRA = ['fallOn', 'fallOff', 'fallSensitivity', 'wearOn', 'wearOff', 'factoryReset', 'setServer', 'bleHighAvail', 'armOnWearOn', 'armOnWearOff'];
 
 // POST /api/devices/config — device-level protocol configuration.
 // Body: { imei, kind, value? }. SUPER_ADMIN / ADMIN with 'hardware'.
@@ -25,6 +25,17 @@ export async function POST(request: NextRequest) {
 
   let ok: boolean;
   switch (kind) {
+    // Réglage de la plateforme, pas du bracelet : rien à transmettre au
+    // matériel, la bascule est enregistrée plus bas avec les autres.
+    case 'armOnWearOn':
+    case 'armOnWearOff': {
+      const { createAdminClient } = await import('@/lib/supabase/admin');
+      const sb = createAdminClient();
+      if (!sb) { ok = false; break; }
+      const { error } = await sb.from('devices').update({ arm_on_wear: kind === 'armOnWearOn' }).eq('imei', imei);
+      ok = !error;
+      break;
+    }
     case 'fallOn':          ok = await setFallAlarm(imei, true); break;
     case 'fallOff':         ok = await setFallAlarm(imei, false); break;
     case 'fallSensitivity': ok = await setFallSensitivity(imei, Number(value)); break;
